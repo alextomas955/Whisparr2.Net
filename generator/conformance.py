@@ -16,6 +16,7 @@ Requires Docker. Run it when the pin moves, not per change.
     python generator/conformance.py
 """
 
+import datetime
 import json
 import os
 import time
@@ -587,6 +588,59 @@ def declared_never_returned(document, seen_props):
     return missing
 
 
+def stale_start_time_refusal(reported, boot_began_at):
+    """Return a refusal sentence when the instance predates this run, or None.
+
+    The one identity signal a long-running instance on the pinned image cannot satisfy. Branch,
+    major version and image digest are all identical on a personal instance running the same
+    release, so they say nothing about which instance answered.
+
+    Not greater than. startTime has whole-second resolution and the recorded stamp is truncated to
+    the same resolution, so a boot that lands inside the stamped second reports a value equal to it.
+    A strict comparison would refuse that correct run, and would do so only sometimes.
+    """
+    if reported >= boot_began_at:
+        return None
+    return (
+        "ERROR: REFUSED - the instance reports a start time of "
+        + reported.isoformat()
+        + ", which is before this run began its boot at "
+        + boot_began_at.isoformat()
+        + ". This run did not start the instance that answered, so nothing was written."
+    )
+
+
+def refuse_an_instance_this_run_did_not_start(base, key, boot_began_at):
+    """Refuse before the sweep writes anything, if the reachable instance predates this boot.
+
+    The address is the first protection: the port was read back from the container this run created
+    under a name carrying a per-run suffix. This is the second. It exists because the write probe
+    below issues a real delete, and a delete against an instance this run did not create has no
+    undo.
+    """
+    status, _ctype, body = send(base, "GET", "/api/v3/system/status", key)
+    if status != 200:
+        die(
+            "ERROR: REFUSED - the status read answered {} rather than 200, so this run cannot "
+            "prove which instance it reached. Nothing was written.".format(status)
+        )
+    reported = json.loads(body).get("startTime")
+    if not reported:
+        die(
+            "ERROR: REFUSED - the instance reported no start time, so this run cannot prove it "
+            "reached the container it created. Nothing was written."
+        )
+    parsed = datetime.datetime.fromisoformat(reported.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        die(
+            "ERROR: REFUSED - the reported start time " + reported + " carries no time zone, so "
+            "the comparison would silently move by this machine's offset. Nothing was written."
+        )
+    refusal = stale_start_time_refusal(parsed.astimezone(datetime.timezone.utc), boot_began_at)
+    if refusal:
+        die(refusal)
+
+
 def main():
     # Checked before anything boots. The map is a measurement against one document, and against a
     # document that has moved it would validate a payload against the wrong schema.
@@ -608,6 +662,7 @@ def main():
     try:
         # -v removes the anonymous volume the image declares for /config. The loopback publish is
         # explicit: a bare publish binds every interface and puts this run's key on all of them.
+        boot_began_at = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
         verify_image.run_docker(["rm", "-f", "-v", CONTAINER_NAME])
         created = verify_image.run_docker([
             "create", "--name", CONTAINER_NAME,
@@ -644,6 +699,9 @@ def main():
         elapsed = wait_for_marker(CONTAINER_NAME, READY_TIMEOUT_SEC)
         print("  + started {} on host port {}, ready in {:.2f}s".format(
             CONTAINER_NAME, port, elapsed))
+
+        refuse_an_instance_this_run_did_not_start(
+            base, verify_image.API_KEY, boot_began_at)
 
         result = sweep_reads(document, base, verify_image.API_KEY)
         if external:
