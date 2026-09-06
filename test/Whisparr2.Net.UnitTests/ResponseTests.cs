@@ -245,6 +245,41 @@ namespace Whisparr2.Net.UnitTests
         }
 
         /// <summary>
+        /// No fragment of the body reaches the message, however short the body is.
+        /// </summary>
+        /// <remarks>
+        /// A length bound does not pin this. An earlier design embedded the first 512 characters of
+        /// the body, and every bound in the case above still passed: a 512-character fragment fits
+        /// under the bound, and a truncated fragment is not the whole long body a DoesNotContain
+        /// over that body looks for. This case uses a short secret-shaped body so that any
+        /// embedding at all, truncated or whole, puts it in the message.
+        ///
+        /// The leak is real rather than theoretical. The exception is constructed for a success
+        /// whose body could not be read, and the host configuration operation answers 200 with the
+        /// instance API key in the body. A message reaches every default logger, including an
+        /// unhandled-exception handler the consumer never wrote.
+        /// </remarks>
+        [Fact]
+        public async Task No_part_of_the_body_reaches_the_message()
+        {
+            const string Secret = "SENTINEL-Key-in-body-123";
+            string body = "{" + '"' + "apiKey" + '"' + ":" + '"' + Secret + '"' + "}";
+
+            using LoopbackCapture capture = new(status: 500, body: body);
+
+            await using ServiceProvider provider = BuildProvider(capture);
+            IGetSystemStatusApiResponse response =
+                await provider.GetRequiredService<ISystemApi>().GetSystemStatusAsync();
+
+            Whisparr2ApiException error =
+                Assert.Throws<Whisparr2ApiException>(() => response.EnsureSuccess());
+
+            Assert.Contains(Secret, error.RawContent, StringComparison.Ordinal);
+            Assert.DoesNotContain(Secret, error.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain("apiKey", error.Message, StringComparison.Ordinal);
+        }
+
+        /// <summary>
         /// A create answering 201 is a success and its body is reachable.
         /// </summary>
         /// <remarks>
