@@ -3,6 +3,7 @@
 #nullable enable
 
 using System.Globalization;
+using System.Net.Http;
 using System.Text.Json;
 using System.Xml.Linq;
 using DotNet.Testcontainers.Builders;
@@ -290,6 +291,53 @@ namespace Whisparr2.Net.IntegrationTests
             BaseUrl = "http://" + _container.Hostname + ":"
                 + _container.GetMappedPublicPort(ContainerPort).ToString(CultureInfo.InvariantCulture);
             ContainerId = _container.Id;
+
+            await RefuseAnInstanceThisRunDidNotStart().ConfigureAwait(false);
+        }
+
+        /// <summary>Refuses before any test runs if the reachable instance predates this boot.</summary>
+        /// <remarks>
+        /// This machine runs a personal Whisparr library on the same image digest this fixture
+        /// pins, so it satisfies every other identity signal: same branch, same major version,
+        /// same image. Start time is the one signal it cannot satisfy, because a long-running
+        /// instance reports a value days old.
+        ///
+        /// The check lives here rather than only in a test because xunit does not contract class
+        /// order within a collection. A test that writes could otherwise run before the test that
+        /// checks, and a write against a real library has no undo. Running it in initialization
+        /// covers every test in the collection whatever order they take.
+        ///
+        /// A raw read rather than the typed client, so the guard does not depend on the layer the
+        /// suite exists to exercise.
+        /// </remarks>
+        private async Task RefuseAnInstanceThisRunDidNotStart()
+        {
+            using HttpClient probe = new() { BaseAddress = new Uri(BaseUrl) };
+            probe.DefaultRequestHeaders.Add("X-Api-Key", ApiKey);
+
+            using HttpResponseMessage response =
+                await probe.GetAsync("api/v3/system/status").ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+
+            string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            string? reported = JsonDocument.Parse(body).RootElement
+                .GetProperty("startTime").GetString();
+
+            if (reported is null)
+            {
+                throw new InvalidOperationException(
+                    "The instance reported no start time, so this fixture cannot prove it reached "
+                        + "the container this run started. Nothing was proven.");
+            }
+
+            DateTimeOffset startedAt = DateTimeOffset.Parse(
+                reported, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+
+            string? refusal = StaleStartTimeRefusal(startedAt, BootBeganAt);
+            if (refusal is not null)
+            {
+                throw new InvalidOperationException(refusal);
+            }
         }
 
         /// <summary>Destroys the container, if one was started.</summary>
