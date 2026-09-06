@@ -25,6 +25,7 @@ import sys
 import tempfile
 
 import fetch_spec
+import preprocess_spec
 import verify_image
 from _common import git_blob_sha1, resolve_repo_path, sha256_file
 
@@ -424,6 +425,77 @@ def check_image_identity():
     print("ok  image identity: nine status dicts judged, six image fields recorded and observed")
 
 
+# Every refusal line in the pre-processing module opens with the first and closes with the second,
+# so one grep finds them all. docs/REGENERATION.md keys its refusal table on the same strings.
+REFUSAL_PREFIX = "ERROR: REFUSED - "
+REFUSAL_TAIL = "Nothing was written."
+
+
+def zero_condition_documents():
+    """One synthetic document per transformation, each satisfying that transformation's zero-condition.
+
+    A few lines each, in the spirit of document() above, rather than committed fixtures that would
+    each need reviewing whenever the pin moves. Returned from module level so the set of
+    transformations covered can be compared against the set the pre-processing module declares.
+    """
+    return {
+        # Root security already narrows to the header scheme alone.
+        "T1": {"security": [dict(scheme) for scheme in preprocess_spec.SECURITY], "paths": {}},
+        # No malformed root path to delete.
+        "T2": {"paths": {"/api/v3/series": {"get": {}}}},
+        # Every operation already annotated. It carries an operation on purpose: a document with
+        # none must not read as already annotated.
+        "T3": {"paths": {"/api/v3/series": {"get": {"operationId": "ListSeries"}}}},
+        # None of the five CLR-shaped schemas declared.
+        "T4": {"components": {"schemas": {}}},
+    }
+
+
+def check_preprocess_zero_conditions():
+    """Each transformation refuses, in its own words, over a document it has nothing to do to.
+
+    Per transformation rather than over the run as a whole. A run-level test that something changed
+    passes while three of the four are dead, which is the redundant rewrite this exists to catch.
+    The walk is over the transformation tuple, so a fifth transformation added later cannot be
+    silently uncovered: it would have no document here and the first assertion would say so.
+    """
+    documents = zero_condition_documents()
+    declared = {name for name, _ in preprocess_spec.TRANSFORMATIONS}
+    assert set(documents) == declared, sorted(set(documents) ^ declared)
+
+    lines = {}
+    for name, transform in preprocess_spec.TRANSFORMATIONS:
+        count, refusals = transform(documents[name])
+        assert count == 0, (name, count)
+        assert len(refusals) == 1, (name, refusals)
+        assert refusals[0].startswith(REFUSAL_PREFIX), refusals[0]
+        assert refusals[0].endswith(REFUSAL_TAIL), refusals[0]
+        lines[name] = refusals[0]
+
+    # Four transformations refusing with one sentence would pass every assertion above and tell a
+    # reader nothing about which of them found nothing.
+    assert len(set(lines.values())) == len(lines), lines
+    print("ok  zero conditions: {} transformations refuse over their own zero-condition, each "
+          "changing nothing and naming itself".format(len(lines)))
+
+
+def check_operation_id_shape():
+    """The identifier pattern accepts a PascalCase name and refuses the two shapes that matter."""
+    shape = preprocess_spec.OPERATION_ID_PATTERN
+    assert shape.fullmatch("GetCalendarFeed")
+
+    # The derivation the one non-cosmetic override entry exists to replace. A dot is not a C#
+    # identifier character.
+    assert not shape.fullmatch("GetFeedV3CalendarWhisparr.ics")
+
+    # The vector that matters. A pattern that grew an IGNORECASE flag, or a call that became search
+    # rather than fullmatch, still passes the two above and hands the generator a name it sanitises
+    # into one of its own choosing.
+    assert not shape.fullmatch("listMovie")
+    print("ok  operationId shape: three names judged, PascalCase accepted, a dotted name and a "
+          "camelCase name refused")
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -436,6 +508,8 @@ OFFLINE_CHECKS = (
     check_flag_vectors,
     check_propose_is_fail_closed,
     check_image_identity,
+    check_preprocess_zero_conditions,
+    check_operation_id_shape,
 )
 
 # Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
