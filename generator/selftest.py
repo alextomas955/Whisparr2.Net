@@ -496,6 +496,198 @@ def check_operation_id_shape():
           "camelCase name refused")
 
 
+def parsed_raw_spec():
+    """The committed raw document, freshly parsed, so a caller can mutate it without affecting another.
+
+    The path comes from the pre-processing module's own constant rather than being restated here.
+    """
+    with open(resolve_repo_path(preprocess_spec.DEFAULT_RAW_SPEC), encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def operations_of(document):
+    """(key, method, path, operation) for every operation in the document, in document order."""
+    return [
+        (method.upper() + " " + path, method, path, operation)
+        for path, item in document["paths"].items()
+        for method, operation in item.items()
+        if method in preprocess_spec.HTTP_METHODS
+    ]
+
+
+def check_preprocess_transformations_apply():
+    """The four transformations still change the pinned document, by the amounts measured.
+
+    This fails the day the pin moves in a way that changes those numbers, and that is the intended
+    behaviour rather than brittleness to design around. The repair is to re-measure the new document
+    and state its numbers here, never to loosen the assertion into "something changed".
+    """
+    document = parsed_raw_spec()
+    counts = []
+    for name, transform in preprocess_spec.TRANSFORMATIONS:
+        count, refusals = transform(document)
+        assert refusals == [], (name, refusals)
+        counts.append(count)
+    assert counts == [1, 1, 227, 10], counts
+
+    paths = document["paths"]
+    schemas = document["components"]["schemas"]
+    measured = (len(paths), len(operations_of(document)), len(schemas))
+    assert measured == (156, 227, 129), measured
+    assert [name for name in preprocess_spec.CLR_SCHEMAS if name in schemas] == []
+    print("ok  transformations: the four report {}, {}, {} and {} over the pin, leaving {} path "
+          "items, {} operations and {} schemas".format(*(tuple(counts) + measured)))
+
+
+def check_override_table():
+    """Every override entry matches an operation, and a ninth that matches none is refused."""
+    overrides = preprocess_spec.OPERATION_ID_OVERRIDES
+    assert len(overrides) == 8, len(overrides)
+
+    document = parsed_raw_spec()
+    preprocess_spec.delete_root_path(document)
+    count, refusals = preprocess_spec.assign_operation_ids(document)
+    # An unused key is the stale-override refusal, so a clean run is the assertion that all 8 matched.
+    assert refusals == [], refusals
+    assert count == 227, count
+
+    stale = "GET /api/v3/nowhere"
+    assert stale not in overrides, stale
+    # A plain dict copy on the module attribute, restored in the finally so a failed assertion
+    # cannot leave the mutation behind for the checks that follow.
+    preprocess_spec.OPERATION_ID_OVERRIDES = dict(overrides, **{stale: "GetNowhere"})
+    try:
+        count, refusals = preprocess_spec.assign_operation_ids(parsed_raw_spec())
+        assert count == 0, count
+        assert len(refusals) == 2, refusals
+        assert refusals[0].startswith(REFUSAL_PREFIX), refusals[0]
+        assert "1 override entries match no operation" in refusals[0], refusals[0]
+        assert stale in refusals[1], refusals[1]
+    finally:
+        preprocess_spec.OPERATION_ID_OVERRIDES = overrides
+    print("ok  override table: {} entries, every one matching an operation, and an injected ninth "
+          "refused by name".format(len(overrides)))
+
+
+def check_operation_id_derivation():
+    """227 distinct names over the pin, no collisions, and the readability claim checked.
+
+    The global collision assertion is strictly stricter than the per-class collision the generator
+    would suffer. The per-tag count is measured anyway, because it is the collision that would
+    actually break a build, and reporting it is what makes the stricter assertion legible.
+    """
+    document = parsed_raw_spec()
+    preprocess_spec.delete_root_path(document)
+    count, refusals = preprocess_spec.assign_operation_ids(document)
+    assert refusals == [], refusals
+
+    named = [
+        (operation["operationId"], (operation.get("tags") or [""])[0])
+        for _, _, _, operation in operations_of(document)
+    ]
+    assert len(named) == count == 227, (len(named), count)
+    assert len({identifier for identifier, _ in named}) == 227
+    assert len(set(named)) == 227
+
+    # Every override key derived naively, which is what D-11 claims is safe for seven of the eight.
+    naive = {}
+    for key, method, path, operation in operations_of(parsed_raw_spec()):
+        if key in preprocess_spec.OPERATION_ID_OVERRIDES:
+            naive[key] = preprocess_spec.derive_operation_id(
+                method, path, (operation.get("tags") or [""])[0],
+                preprocess_spec.returns_json_array(operation),
+            )
+    assert len(naive) == len(preprocess_spec.OPERATION_ID_OVERRIDES), sorted(naive)
+    invalid = sorted(
+        key for key, identifier in naive.items()
+        if not preprocess_spec.OPERATION_ID_PATTERN.fullmatch(identifier)
+    )
+    assert len(invalid) == 1, invalid
+
+    # And the transformation agrees, with the table emptied: one name fails the shape assertion,
+    # and it is the same one. The other seven entries are readability choices.
+    overrides = preprocess_spec.OPERATION_ID_OVERRIDES
+    preprocess_spec.OPERATION_ID_OVERRIDES = {}
+    try:
+        bare = parsed_raw_spec()
+        preprocess_spec.delete_root_path(bare)
+        count, refusals = preprocess_spec.assign_operation_ids(bare)
+        assert count == 0, count
+        assert len(refusals) == 2, refusals
+        assert "shape assertion failed: 1 names" in refusals[0], refusals[0]
+        assert refusals[1].strip().startswith(invalid[0] + " "), refusals[1]
+    finally:
+        preprocess_spec.OPERATION_ID_OVERRIDES = overrides
+    print("ok  operationId derivation: {} distinct names over {} operations, no collision globally "
+          "or within a tag, and {} is the one override the build needs".format(
+              len({identifier for identifier, _ in named}), len(named), invalid[0]))
+
+
+def clr_reference_sites(document):
+    """Every reference to the five CLR-shaped schemas, partitioned by whether it lives inside one.
+
+    Walked here rather than read back out of the rewrite, so the partition the rewrite relies on is
+    measured a second time by something that does not share its code. An outside site is returned as
+    the parent node and the key, so the replacement it received can be read after the rewrite runs.
+    That is what keeps the ten from being restated as a list of paths.
+    """
+    schemas = document["components"]["schemas"]
+    targets = set(preprocess_spec.CLR_SCHEMAS)
+    owner_of = {id(schemas[name]): name for name in targets if name in schemas}
+    inside = []
+    outside = []
+
+    def walk(node, owner):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                name = None
+                if isinstance(value, dict):
+                    reference = value.get("$ref")
+                    if isinstance(reference, str) and reference.startswith(
+                        preprocess_spec.REF_PREFIX
+                    ):
+                        name = reference[len(preprocess_spec.REF_PREFIX):]
+                if name in targets:
+                    if owner is None:
+                        outside.append((node, key, name))
+                    else:
+                        inside.append((owner, key, name))
+                    continue
+                walk(value, owner_of.get(id(value), owner))
+        elif isinstance(node, list):
+            for item in node:
+                walk(item, owner)
+
+    walk(document, None)
+    return inside, outside
+
+
+def check_clr_schema_partition():
+    """Eleven references, ten outside the five and one inside, and the two witness shapes."""
+    document = parsed_raw_spec()
+    inside, outside = clr_reference_sites(document)
+    assert len(inside) + len(outside) == 11, (len(inside), len(outside))
+    assert len(outside) == 10, len(outside)
+    assert sorted(inside) == [preprocess_spec.INTERNAL_REFERENCE], inside
+
+    count, refusals = preprocess_spec.rewrite_clr_schemas(document)
+    assert refusals == [], refusals
+    assert count == len(outside), (count, len(outside))
+
+    def replacement(name):
+        return preprocess_spec.OBJECT_SHAPED.get(name, preprocess_spec.STRING)
+
+    dated = [(node, key) for node, key, name in outside if replacement(name) == preprocess_spec.DATE]
+    plain = [(node, key) for node, key, name in outside if replacement(name) != preprocess_spec.DATE]
+    assert len(dated) == 1, len(dated)
+    assert dated[0][0][dated[0][1]] == preprocess_spec.DATE, dated[0][0][dated[0][1]]
+    assert all(node[key] == preprocess_spec.STRING for node, key in plain), plain
+    assert [name for name in preprocess_spec.CLR_SCHEMAS if name in document["components"]["schemas"]] == []
+    print("ok  CLR schemas: {} references, {} outside rewritten to strings of which {} carries a "
+          "date format, and the one inside is {}.{} -> {}".format(
+              len(inside) + len(outside), len(outside), len(dated), *inside[0]))
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -509,7 +701,11 @@ OFFLINE_CHECKS = (
     check_propose_is_fail_closed,
     check_image_identity,
     check_preprocess_zero_conditions,
+    check_preprocess_transformations_apply,
+    check_override_table,
     check_operation_id_shape,
+    check_operation_id_derivation,
+    check_clr_schema_partition,
 )
 
 # Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
