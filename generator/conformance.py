@@ -703,11 +703,17 @@ def main():
             print(line)
         for (verdict, schema, path, _detail), opkey in result["findings"]:
             print("    {} {} {} on {}".format(verdict, schema, path, opkey))
-        # The undeclared list is what this script exists to produce, and the next stage reads it,
-        # so it is reported rather than refused: a run that exited on it could never write the file
-        # it was run for. The other three are zero against this pin and each one is a break.
-        breaks = [finding for finding, _opkey in result["findings"] if finding[0] != "undeclared"]
-        if breaks:
+        # The file is written before this point, because it is the record of what was found and the
+        # next stage reads it. Then the run refuses, on every verdict including undeclared.
+        #
+        # The check is a deliverable rather than a drift alarm. The committed document omits fields
+        # the running application returns, so a green run against this pin would mean the sweep
+        # found nothing, which is the one outcome that would be wrong. It goes green when the
+        # document is patched, not before.
+        #
+        # The self-test asserts this refusal and its exact contents, so the suite stays green while
+        # the check itself refuses, and a ninth undeclared property turns the suite red.
+        if result["findings"]:
             die("  " + output_path + " records what was found.")
         print("Done. " + output_path)
     finally:

@@ -6,7 +6,7 @@
   },
   "readsSelected": 90,
   "readsSchemaChecked": 70,
-  "externalProbeRan": false,
+  "externalProbeRan": true,
   "writeProbe": {
     "create": 201,
     "update": 202,
@@ -87,6 +87,24 @@
       "nullObserved": false,
       "observedOn": [
         "GET /api/v3/notification/schema"
+      ]
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "monitorNewItems",
+      "jsonType": "string",
+      "nullObserved": false,
+      "observedOn": [
+        "GET /api/v3/series/lookup"
+      ]
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "seriesType",
+      "jsonType": "string",
+      "nullObserved": false,
+      "observedOn": [
+        "GET /api/v3/series/lookup"
       ]
     }
   ],
@@ -173,6 +191,50 @@
     {
       "schema": "QueueStatusResource",
       "property": "id"
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "addOptions"
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "certification"
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "episodesChanged"
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "firstAired"
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "id"
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "nextAiring"
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "path"
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "previousAiring"
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "profileName"
+    },
+    {
+      "schema": "SeriesResource",
+      "property": "rootFolderPath"
+    },
+    {
+      "schema": "SeriesStatisticsResource",
+      "property": "releaseGroups"
     },
     {
       "schema": "SystemResource",
