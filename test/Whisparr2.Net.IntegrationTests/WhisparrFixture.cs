@@ -69,7 +69,8 @@ namespace Whisparr2.Net.IntegrationTests
         /// uid 1000, so at the default the process throws this on every restart and the supervisor
         /// loops. The wait strategy then times out with a message naming no cause, which is why the
         /// grep for this marker lives in the catch around the start call rather than in an
-        /// assertion. generator/verify_image.py greps its container log for the same string.
+        /// assertion. No script greps a container log for this string, so this fixture is the only
+        /// reader of the marker.
         /// </remarks>
         private const string AccessDeniedMarker = "UnauthorizedAccessException";
 
@@ -467,7 +468,7 @@ namespace Whisparr2.Net.IntegrationTests
         /// <exception cref="InvalidOperationException">The seed declares no ApiKey element.</exception>
         /// <remarks>
         /// Parsed from the seed rather than restated, so the fixture cannot hold a key the
-        /// container was never given. generator/verify_image.py reads the same element out of the
+        /// container was never given. generator/container.py reads the same element out of the
         /// same file.
         /// </remarks>
         private static string ReadSeedApiKey(byte[] seed)

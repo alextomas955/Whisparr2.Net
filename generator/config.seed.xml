@@ -5,7 +5,7 @@
   Port is the port inside the container; nothing in this repository names a host port, because the
   host port is assigned by Docker and read back at run time.
 
-  This is the only copy. generator/verify_image.py reads it, and the integration test fixture reads
+  This is the only copy. generator/container.py reads it, and the integration test fixture reads
   it too, so the two cannot disagree on the key.
 -->
 <Config>

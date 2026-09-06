@@ -25,7 +25,7 @@ import urllib.parse
 import urllib.request
 import uuid
 
-import verify_image
+import container
 from _common import die, resolve_repo_path, write_json_lf
 
 REFUSAL_PREFIX = "ERROR: REFUSED - "
@@ -374,7 +374,7 @@ def send(base, method, path, key, query=None, payload=None):
         return error.code, error.headers.get("Content-Type", ""), error.read()
 
 
-def wait_for_marker(container, timeout_sec):
+def wait_for_marker(container_name, timeout_sec):
     """Block until the container log carries the readiness marker.
 
     Both HTTP signals return before the application has finished loading its defaults, so a sweep
@@ -383,11 +383,11 @@ def wait_for_marker(container, timeout_sec):
     """
     started = time.monotonic()
     while time.monotonic() - started < timeout_sec:
-        logs = verify_image.run_docker(["logs", container])
+        logs = container.run_docker(["logs", container_name])
         if READY_MARKER in (logs.stdout or "") + (logs.stderr or ""):
             return time.monotonic() - started
         time.sleep(0.2)
-    logs = verify_image.run_docker(["logs", container, "--tail", "40"])
+    logs = container.run_docker(["logs", container_name, "--tail", "40"])
     die(
         REFUSAL_PREFIX
         + "the container did not report readiness within {}s. Nothing was written.".format(
@@ -658,26 +658,26 @@ def main():
     external = os.environ.get(EXTERNAL_FLAG) == "1"
     total_gets = sum(len(tier) for tier in select_reads(document))
 
-    print("Check conformance against " + verify_image.IMAGE_REF)
+    print("Check conformance against " + container.IMAGE_REF)
     try:
         # -v removes the anonymous volume the image declares for /config. The loopback publish is
         # explicit: a bare publish binds every interface and puts this run's key on all of them.
         boot_began_at = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
-        verify_image.run_docker(["rm", "-f", "-v", CONTAINER_NAME])
-        created = verify_image.run_docker([
+        container.run_docker(["rm", "-f", "-v", CONTAINER_NAME])
+        created = container.run_docker([
             "create", "--name", CONTAINER_NAME,
-            "-p", "127.0.0.1::{}".format(verify_image.CONTAINER_PORT),
-            verify_image.IMAGE_REF,
+            "-p", "127.0.0.1::{}".format(container.CONTAINER_PORT),
+            container.IMAGE_REF,
         ])
         if created.returncode != 0:
             die(
-                "ERROR: docker create failed for " + verify_image.IMAGE_REF + ".",
+                "ERROR: docker create failed for " + container.IMAGE_REF + ".",
                 (created.stdout or "") + (created.stderr or ""),
             )
 
         # Before start: the application reads the key at startup and rewrites the file.
-        copied = verify_image.copy_into_container(
-            CONTAINER_NAME, "/config", "config.xml", verify_image.SEED_BYTES, 0o666
+        copied = container.copy_into_container(
+            CONTAINER_NAME, "/config", "config.xml", container.SEED_BYTES, 0o666
         )
         if copied.returncode != 0:
             die(
@@ -686,7 +686,7 @@ def main():
                 + (copied.stderr or b"").decode("utf-8", "replace"),
             )
 
-        started = verify_image.run_docker(["start", CONTAINER_NAME])
+        started = container.run_docker(["start", CONTAINER_NAME])
         if started.returncode != 0:
             die(
                 "ERROR: docker start failed for " + CONTAINER_NAME + ".",
@@ -694,21 +694,21 @@ def main():
             )
 
         # The only address this run speaks to, read back from the container it just created.
-        port = verify_image.host_port(CONTAINER_NAME, verify_image.CONTAINER_PORT)
+        port = container.host_port(CONTAINER_NAME, container.CONTAINER_PORT)
         base = "http://127.0.0.1:{}".format(port)
         elapsed = wait_for_marker(CONTAINER_NAME, READY_TIMEOUT_SEC)
         print("  + started {} on host port {}, ready in {:.2f}s".format(
             CONTAINER_NAME, port, elapsed))
 
         refuse_an_instance_this_run_did_not_start(
-            base, verify_image.API_KEY, boot_began_at)
+            base, container.API_KEY, boot_began_at)
 
-        result = sweep_reads(document, base, verify_image.API_KEY)
+        result = sweep_reads(document, base, container.API_KEY)
         if external:
-            external_probe(document, base, verify_image.API_KEY, result)
+            external_probe(document, base, container.API_KEY, result)
 
         # After the sweep, never before. It writes a row, and a row changes what some reads return.
-        probe = write_probe(base, verify_image.API_KEY)
+        probe = write_probe(base, container.API_KEY)
         print("  + write probe create {} update {} delete {}".format(
             probe["create"], probe["update"], probe["delete"]))
 
@@ -776,7 +776,7 @@ def main():
         print("Done. " + output_path)
     finally:
         # Force-remove so a failed run cannot leave a container holding a published port and a key.
-        verify_image.run_docker(["rm", "-f", "-v", CONTAINER_NAME])
+        container.run_docker(["rm", "-f", "-v", CONTAINER_NAME])
 
 
 if __name__ == "__main__":
