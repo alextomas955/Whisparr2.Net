@@ -14,6 +14,8 @@ and a non-zero exit are what this needs.
 """
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import tempfile
@@ -179,6 +181,68 @@ def check_provenance_complete():
     print("ok  provenance: thirteen spec fields present and observed, no patched-spec field")
 
 
+def parse_and_check(argv):
+    """Run the flag contract over one argv vector. Returns (exit code, stderr text).
+
+    argparse writes usage and the message to stderr and raises SystemExit, so the buffer is what
+    carries the message text the assertions read. No subprocess and no network.
+    """
+    parser = fetch_spec.build_parser()
+    buffer = io.StringIO()
+    with contextlib.redirect_stderr(buffer):
+        try:
+            args = parser.parse_args(argv)
+            fetch_spec.check_flag_contract(parser, args)
+        except SystemExit as stop:
+            return stop.code, buffer.getvalue()
+    return 0, buffer.getvalue()
+
+
+def check_flag_vectors():
+    """The six flag vectors of D-04, and the three constants-drift vectors of the move path."""
+    destinations = sorted(vars(fetch_spec.build_parser().parse_args([])))
+    assert destinations == ["commit", "expect_bytes", "expect_sha256", "out_file", "propose"], (
+        destinations
+    )
+
+    code, _ = parse_and_check([])
+    assert code == 0, code
+
+    code, message = parse_and_check(["--commit", "abc"])
+    assert code == 2, code
+    assert "--expect-sha256" in message and "--expect-bytes" in message, message
+    assert message.rstrip().endswith("Run --propose abc to observe the values first."), message
+
+    code, message = parse_and_check(["--commit", "abc", "--expect-sha256", "d"])
+    assert code == 2, code
+    assert "--expect-bytes" in message, message
+    assert "--expect-sha256" not in message.split("missing", 1)[1], message
+
+    code, _ = parse_and_check(["--commit", "abc", "--expect-sha256", "d", "--expect-bytes", "5"])
+    assert code == 0, code
+
+    code, _ = parse_and_check(["--propose", "abc"])
+    assert code == 0, code
+
+    code, message = parse_and_check(["--propose", "abc", "--commit", "abc"])
+    assert code == 2, code
+    assert "--commit" in message and "writes nothing" in message, message
+
+    assert (
+        fetch_spec.constants_drift(
+            fetch_spec.SPEC_COMMIT, fetch_spec.EXPECTED_BYTES, fetch_spec.EXPECTED_SHA256
+        )
+        == []
+    )
+    drift = fetch_spec.constants_drift(
+        "0" * 40, fetch_spec.EXPECTED_BYTES, fetch_spec.EXPECTED_SHA256
+    )
+    assert len(drift) == 1 and "SPEC_COMMIT" in drift[0], drift
+    assert len(fetch_spec.constants_drift("0" * 40, 1, "x")) == 3
+
+    print("ok  flag contract: six flag vectors refuse or accept as D-04 states, three drift vectors")
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -187,6 +251,7 @@ OFFLINE_CHECKS = (
     check_atomic_write,
     check_committed_spec,
     check_provenance_complete,
+    check_flag_vectors,
 )
 
 # The network group lands with the proposal mode.
