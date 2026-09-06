@@ -882,6 +882,45 @@ def check_preprocess_refusal_gate_exits():
           "writes no output".format(len(refusals)))
 
 
+def check_preprocess_refuses_committed_write_targets():
+    """The pin and the committed provenance record are not write targets for a scratch run.
+
+    Both refusals live at the argument boundary, before the document is parsed, so this drives
+    main() through a patched argv and needs no document on disk. The two cases are separate
+    because they fail for different reasons: the first names an output, the second names a
+    directory the caller never wrote down.
+    """
+    default_raw = resolve_repo_path(preprocess_spec.DEFAULT_RAW_SPEC)
+    default_out = resolve_repo_path(preprocess_spec.DEFAULT_OUT_FILE)
+    committed = [
+        (default_raw, sha256_file(default_raw)),
+        (default_out, sha256_file(default_out)),
+        (resolve_repo_path(fetch_spec.PROVENANCE_PATH), sha256_file(resolve_repo_path(fetch_spec.PROVENANCE_PATH))),
+    ]
+
+    with tempfile.TemporaryDirectory() as directory:
+        scratch_in = os.path.join(directory, "in.json")
+        with open(default_raw, "rb") as source, open(scratch_in, "wb") as target:
+            target.write(source.read())
+
+        # Writing the patched document over the pin destroys the identity every other check is
+        # measured against.
+        code, output = run_preprocess_spec("--out-file", preprocess_spec.DEFAULT_RAW_SPEC)
+        assert code == 1, (code, output)
+        assert "the pinned input document is not a write target" in output, output
+
+        # An output beside the committed provenance rewrites a file the caller never named.
+        code, output = run_preprocess_spec(
+            "--raw-spec", scratch_in, "--out-file", "spec/scratch.json"
+        )
+        assert code == 1, (code, output)
+        assert "may not write beside the committed provenance record" in output, output
+
+    for path, digest in committed:
+        assert sha256_file(path) == digest, path
+    print("ok  write targets: the pin and the committed provenance are refused, all three intact")
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -901,6 +940,7 @@ OFFLINE_CHECKS = (
     check_operation_id_derivation,
     check_clr_schema_partition,
     check_preprocess_refuses_scratch_input,
+    check_preprocess_refuses_committed_write_targets,
     check_patched_document_on_disk,
     check_preprocess_reproduces_committed_output,
     check_preprocess_refusal_gate_exits,
