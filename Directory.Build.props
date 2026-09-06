@@ -1,0 +1,73 @@
+<Project>
+
+  <!-- Compilation. Owned here because the library csproj is generator output. -->
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Empty on purpose, and measured rather than inherited. Built with TreatWarningsAsErrors
+         and GenerateDocumentationFile both on: 0 warnings on net8.0 and net10.0, in Debug and in
+         Release. The generated tree declares no deprecated member, so nothing raises CS0612, and
+         it documents every public member, so nothing raises CS1591. The document does mark five
+         operations deprecated and the generator emits ten [Obsolete] attributes for them, but
+         declaring and implementing an obsolete member warns about nothing; only calling one does.
+         Add a token at the project whose own build demands it, with the failing build as the
+         recorded reason. -->
+    <NoWarn>$(NoWarn)</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Deterministic build and symbols. Deterministic already defaults to true; do not set it.
+       Do not reference Microsoft.SourceLink.GitHub; it suppresses the SDK's built-in copy. -->
+  <PropertyGroup>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- SourceLink reads origin, the only remote a clone is guaranteed to have.
+
+       The problem this solves: origin here is the git@github.com-alex SSH alias, and the SDK
+       does not recognise that host, so it emits no source map at all and ships a dead .snupkg,
+       silently and with no warning. Pointing GitRepositoryRemoteName at a hand-added canonical
+       remote fixes it only on the one machine where someone typed git remote add by hand; every
+       clone has only origin and gets two fallback warnings per project per build.
+
+       Registering the alias as a GitHub host is repo-tracked, so it works in every clone. -->
+  <ItemGroup>
+    <SourceLinkGitHubHost Include="github.com-alex" ContentUrl="https://raw.githubusercontent.com" />
+  </ItemGroup>
+
+  <!-- NuGet package metadata.
+
+       RepositoryUrl and RepositoryType are set here rather than left to SourceLink. SourceLink
+       derives the nuspec repository url from origin, and origin here is the git@github.com-alex
+       SSH alias, so without these two the package records a host that does not resolve. The
+       SourceLinkGitHubHost mapping above fixes the source map and does not touch this value.
+
+       EnablePackageValidation is deliberately absent. With no published baseline it has nothing
+       to compare against. -->
+  <PropertyGroup>
+    <PackageId>Whisparr2.Net</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>alextomas955</Authors>
+    <Description>C# SDK for Whisparr 2, generated from Whisparr's own OpenAPI document.</Description>
+    <Copyright>Copyright (c) 2026 alextomas955</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/alextomas955/Whisparr2.Net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/alextomas955/Whisparr2.Net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>whisparr;arr;openapi;sdk;rest;client</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <!-- Required by PackageReadmeFile. Without it, pack fails with NU5039.
+       $(MSBuildThisFileDirectory) is the repository root, so this works from any project depth. -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+</Project>

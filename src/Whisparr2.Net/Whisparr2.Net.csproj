@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Hand-owned. The generator would write this file, so **/*.csproj is in
+       openapiGeneratorIgnoreList; see generator/gen-config.yaml.
+
+       This file carries the two build facts Directory.Build.props cannot express: the
+       TFM-conditional PackageReference items below, which are per-TFM item data rather than a
+       property, and the Compile glob further down, which must apply to this project alone.
+       Everything else the generator writes here is either a placeholder the props already
+       correct, or a RepositoryUrl/RepositoryType pair that overrides the SDK's built-in
+       SourceLink and ships a .snupkg with no commit SHA. Do not restate a props value here. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.30" />
+    <PackageReference Include="Microsoft.Net.Http.Headers" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.30" />
+    <PackageReference Include="Microsoft.Extensions.Http" Condition="'$(TargetFramework)' == 'net10.0'" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Condition="'$(TargetFramework)' == 'net10.0'" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Condition="'$(TargetFramework)' == 'net10.0'" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Net.Http.Headers" Condition="'$(TargetFramework)' == 'net10.0'" Version="10.0.1" />
+  </ItemGroup>
+
+  <!-- The hand-written layer. src/hand-written/ sits outside this project's directory, so nothing
+       compiles it without this glob. It is shipped before that directory exists, and a glob over
+       an absent directory builds clean on both target frameworks. Omit it and every hand-written
+       file builds into nothing: the build stays green, the tests pass, and the library ships
+       without the types.
+
+       This cannot move to Directory.Build.props. The props apply to every project under the
+       repository root, so the same glob there would also compile these sources into the test
+       assembly alongside its ProjectReference, and every hand-written type would be defined
+       twice. -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)..\hand-written\**\*.cs" />
+  </ItemGroup>
+
+</Project>
