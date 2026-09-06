@@ -131,21 +131,23 @@ namespace Whisparr2.Net
         /// Composes the message. The body is deliberately absent from it.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// A message is the one part of an exception that every default logger writes, including an
         /// unhandled-exception handler the consumer never wrote. The body can carry a credential,
         /// so putting it there would leak through a path the consumer never chose. The message
         /// reports the body's length and names <see cref="RawContent"/> instead, and a caller who
         /// wants the body reads that member and decides for itself where it goes.
+        /// </para>
+        /// <para>
+        /// The null check belongs here rather than in the constructor body. This method runs in the
+        /// base constructor argument list, so a check placed in the body would run after the first
+        /// dereference.
+        /// </para>
         /// </remarks>
         /// <param name="response">The response the message describes.</param>
         /// <param name="summary">One sentence saying which throwing outcome this is.</param>
         /// <returns>The message.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="response"/> is null.</exception>
-        /// <remarks>
-        /// The null check belongs here rather than in the constructor body. This method runs in the
-        /// base constructor argument list, so a check placed in the body would run after the first
-        /// dereference.
-        /// </remarks>
         private static string BuildMessage(IApiResponse response, string summary)
         {
             ArgumentNullException.ThrowIfNull(response);
