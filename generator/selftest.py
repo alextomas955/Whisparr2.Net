@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""Prove the two refusals that stand between this repository and the wrong application.
+"""Prove the refusals that stand between this repository and the wrong application, and prove that
+the transformations the pinned document needs still change it.
 
-The failure this guards against is silent. If the eros document is accepted, or if bytes nobody
-stated in advance are accepted, the result is a client that compiles, produces no warnings, passes a
-build and targets a different application. That defect surfaces long after generation, packaging and
-documentation have all been built on the wrong document.
+The failure the refusals guard against is silent. If the eros document is accepted, or if bytes
+nobody stated in advance are accepted, the result is a client that compiles, produces no warnings,
+passes a build and targets a different application. That defect surfaces long after generation,
+packaging and documentation have all been built on the wrong document.
+
+The failure the pre-processing checks guard against is quieter still. Whisparr fixes something
+upstream, a rewrite that was patching it has nothing left to patch, and it keeps running over a
+document it no longer describes with nothing to say so. Each of the four is driven over a document
+where its own zero-condition holds, and each is driven over the pin and made to report the number it
+was measured at.
 
 Standard library only. No framework, no requirements file and no configuration file. A bare assert
 and a non-zero exit are what this needs.
@@ -161,10 +168,10 @@ def check_atomic_write():
 
 
 def check_committed_spec():
-    """The file on disk still matches its own recorded byte count, sha256 and blob sha1.
+    """Both committed specs on disk still match their own recorded values.
 
     This is the assertion that catches a CRLF-mangled checkout. With core.autocrlf=true and no
-    .gitattributes rule the checked-out spec carries injected CR bytes and none of the three match.
+    .gitattributes rule the checked-out spec carries injected CR bytes and none of the values match.
     """
     provenance = read_provenance()
     path = read_committed_spec()
@@ -174,7 +181,11 @@ def check_committed_spec():
     assert len(body) == provenance["specBytes"], (len(body), provenance["specBytes"])
     assert sha256_file(path) == provenance["specSha256"]
     assert git_blob_sha1(body) == provenance["specBlobSha1"]
-    print("ok  committed spec: bytes, sha256 and blob sha1 on disk match provenance")
+
+    patched = resolve_repo_path(preprocess_spec.DEFAULT_OUT_FILE)
+    assert sha256_file(patched) == provenance["generatedSpecSha256"], patched
+    print("ok  committed specs: two files judged, bytes, sha256 and blob sha1 on disk match "
+          "provenance")
 
 
 def check_provenance_complete():
@@ -688,6 +699,51 @@ def check_clr_schema_partition():
               len(inside) + len(outside), len(outside), len(dated), *inside[0]))
 
 
+def run_preprocess_spec(*arguments):
+    """Invoke the real pre-processing script and capture its output.
+
+    Mirrors run_fetch_spec below, including the encoding and errors pair, which is set because a
+    non-ASCII byte in captured output otherwise raises UnicodeDecodeError on a Windows console.
+    """
+    completed = subprocess.run(
+        [
+            sys.executable,
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "preprocess_spec.py"),
+        ]
+        + list(arguments),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    return completed.returncode, completed.stdout + completed.stderr
+
+
+def check_preprocess_refuses_scratch_input():
+    """A scratch input aimed at the committed output path is refused, and that output does not move.
+
+    The only pre-processing check that runs a subprocess. The refusal lives in main(), ahead of the
+    parse, so there is no function to drive it through.
+    """
+    committed = resolve_repo_path(preprocess_spec.DEFAULT_OUT_FILE)
+    before = (os.path.getsize(committed), sha256_file(committed))
+
+    with tempfile.TemporaryDirectory() as directory:
+        scratch = resolve_repo_path(os.path.join(directory, "scratch.json"))
+        with open(scratch, "w", encoding="utf-8") as handle:
+            json.dump(document("3.0.1", "3.0.0", WHISPARR2_PATHS), handle)
+        code, output = run_preprocess_spec("--raw-spec", scratch)
+
+    assert code == 1, (code, output)
+    assert scratch in output, output
+    assert committed in output, output
+    # The assertion that makes this a test of the control rather than of the message.
+    assert (os.path.getsize(committed), sha256_file(committed)) == before
+    print("ok  scratch input: a non-default input aimed at the committed output exits 1, and that "
+          "output is byte-identical afterwards")
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -706,6 +762,7 @@ OFFLINE_CHECKS = (
     check_operation_id_shape,
     check_operation_id_derivation,
     check_clr_schema_partition,
+    check_preprocess_refuses_scratch_input,
 )
 
 # Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
