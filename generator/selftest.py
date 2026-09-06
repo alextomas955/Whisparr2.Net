@@ -1626,10 +1626,11 @@ def check_integration_suite_addresses_only_its_own_container():
           "forbidden shapes are each refused in their own words".format(len(sources), len(fired)))
 
 
-# Two schemas and five properties, in the spirit of zero_condition_documents() above: an integer, a
-# nullable string, a boolean, a reference to a string enum, and a nullable map of nullable strings.
-# Small enough that a reader can hold the whole expectation in their head, and enough to reach every
-# branch of the walker that reports a failure.
+# Two schemas and seven properties, in the spirit of zero_condition_documents() above: an integer, a
+# nullable string, a boolean, a reference to a string enum, a nullable map of nullable strings, an
+# array of integers, and a single-member allOf wrapper around the enum. Small enough that a reader
+# can hold the whole expectation in their head, and enough to reach every branch of the walker that
+# reports a failure and every branch that recurses.
 CONFORMANCE_PAIR_DOCUMENT = {
     "components": {
         "schemas": {
@@ -1646,19 +1647,46 @@ CONFORMANCE_PAIR_DOCUMENT = {
                         "additionalProperties": {"type": "string", "nullable": True},
                         "nullable": True,
                     },
+                    "tags": {"type": "array", "items": {"type": "integer", "format": "int32"}},
+                    "child": {"allOf": [{"$ref": "#/components/schemas/ThingKind"}]},
+                    "loose": {"$ref": "#/components/schemas/Loose"},
                 },
             },
             "ThingKind": {"enum": ["standard", "special"], "type": "string"},
+            "Loose": {"type": "object", "properties": {"note": {"type": "string"}}},
         }
     }
 }
 
 CONFORMANCE_PAIR_ROOT = {"$ref": "#/components/schemas/Thing"}
 
-# Six pairs. Four produce a finding and two must not, because a walker that flagged everything would
-# satisfy the first four and be useless. The expectation carries the owning schema name: a finding
+# Every property Thing declares, each carrying a conformant value. Used as the last pair below and
+# as the body the seen-property assertions walk.
+CONFORMANCE_DECLARED_PROPS = ("child", "enabled", "id", "kind", "label", "loose", "strings",
+                              "tags")
+
+CONFORMANCE_CONFORMANT_BODY = {
+    "id": 1,
+    "label": None,
+    "enabled": True,
+    "kind": "standard",
+    "strings": {"a": "b"},
+    "tags": [1, 2],
+    "child": "special",
+    "loose": {"note": "n"},
+}
+
+# Twelve pairs. Ten produce a finding and two must not, because a walker that flagged everything
+# would satisfy the ten and be useless. The expectation carries the owning schema name: a finding
 # that could not name its schema could not be keyed by schema and property, which is the whole shape
-# of the patch list, and the two pairs that reach an inline subschema are where that is lost.
+# of the patch list, and the pairs that reach an inline subschema are where that is lost.
+#
+# Six of these exist because the branch they reach survived being deleted while the suite stayed
+# green. A value inside a map, a value inside an array, and a value under an allOf wrapper are each
+# reached only by a recursion the walker could drop while reporting nothing, and a boolean standing
+# where an integer is declared is caught only by a guard that would otherwise read True as a
+# conforming integer. Every one of them is a silent under-report, which is the failure this check
+# exists to prevent.
 CONFORMANCE_PAIRS = (
     ("an undeclared property",
      {"id": 1, "javEpisodeFormat": "x"},
@@ -1668,10 +1696,23 @@ CONFORMANCE_PAIRS = (
      ("null", "Thing", "$.id")),
     ("an enum value outside the declared set", {"kind": "premium"},
      ("enum", "ThingKind", "$.kind")),
+    ("a boolean where an integer is declared", {"id": True}, ("type", "Thing", "$.id")),
+    ("a wrong JSON type inside a map-shaped site", {"strings": {"a": 5}},
+     ("type", None, "$.strings.a")),
+    ("a wrong JSON type inside an array", {"tags": ["x"]}, ("type", None, "$.tags[0]")),
+    ("a scalar where an array is declared", {"tags": 5}, ("type", "Thing", "$.tags")),
+    ("a scalar where an object is declared", {"strings": "x"}, ("type", "Thing", "$.strings")),
+    ("an enum violation under an allOf wrapper", {"child": "premium"},
+     ("enum", "ThingKind", "$.child")),
+    # A non-string against a string enum is a type mismatch, not an enum mismatch. The two verdicts
+    # key different rows of the patch list, and the value is wrong in its type before its content.
+    ("a non-string where a string enum is declared", {"kind": 5}, ("type", "ThingKind", "$.kind")),
     ("a map-shaped site", {"strings": {"a": "b", "c": None}}, None),
-    ("a fully conformant body",
-     {"id": 1, "label": None, "enabled": True, "kind": "standard", "strings": {"a": "b"}},
-     None),
+    # Undeclared is reported only where the schema closes itself. Against a schema that does not,
+    # an unknown key is legal, and a walker that flagged it would fill the patch list with
+    # properties the document never meant to exclude.
+    ("an unknown key under a schema that does not close itself", {"loose": {"z": 1}}, None),
+    ("a fully conformant body", CONFORMANCE_CONFORMANT_BODY, None),
 )
 
 # The seventh case is not a walker case. The content type is classified before a body is parsed, so
@@ -1686,10 +1727,11 @@ NON_JSON_CONTENT_TYPES = (
 JSON_CONTENT_TYPES = ("application/json", "application/json; charset=utf-8")
 
 
-def conformance_findings(body):
+def conformance_findings(body, seen_props=None):
     """Every finding the shipped walker records for one body against the pair document."""
     findings = []
-    conformance.walk(CONFORMANCE_PAIR_DOCUMENT, CONFORMANCE_PAIR_ROOT, body, findings, set())
+    conformance.walk(CONFORMANCE_PAIR_DOCUMENT, CONFORMANCE_PAIR_ROOT, body, findings,
+                     seen_props if seen_props is not None else set())
     return findings
 
 
@@ -1711,6 +1753,14 @@ def check_conformance_failure_branches():
         assert len(findings) == 1, (name, findings)
         verdict, schema, path, _detail = findings[0]
         assert (verdict, schema, path) == expected, (name, findings[0])
+
+    # The detail a finding carries becomes the jsonType the patch list reports. bool is a subclass
+    # of int in Python, so a type name that did not order the two would record a boolean as an
+    # integer and the consumer would patch the document to the wrong type.
+    assert [conformance.json_type_of(value)
+            for value in (None, True, 1, 1.5, "x", [], {})] == [
+                "null", "boolean", "integer", "number", "string", "array", "object"]
+    assert conformance_findings({"id": True})[0][3] == "boolean"
 
     # The four verdict sentences, from the findings the pairs just produced. Each is a line
     # docs/REGENERATION.md keys a row on, and a verdict with no sentence would print nothing.
@@ -1740,6 +1790,23 @@ def check_conformance_failure_branches():
         assert fires.endswith(REFUSAL_TAIL), fires
         assert quiet is None, quiet
     assert len({fires for fires, _quiet in refusals}) == len(refusals), refusals
+
+    # The walker records which declared properties a body carried, and that record is the only
+    # input to the never-returned list. A walker that recorded nothing would report every declared
+    # property as never returned, and every assertion above would still pass.
+    seen = set()
+    assert conformance_findings(CONFORMANCE_CONFORMANT_BODY, seen) == [], seen
+    assert seen == {("Thing", prop) for prop in CONFORMANCE_DECLARED_PROPS} | {("Loose", "note")}, \
+        seen
+    assert conformance.declared_never_returned(CONFORMANCE_PAIR_DOCUMENT, seen) == [], seen
+
+    partial = set()
+    conformance_findings({"id": 1}, partial)
+    assert partial == {("Thing", "id")}, partial
+    assert conformance.declared_never_returned(CONFORMANCE_PAIR_DOCUMENT, partial) == [
+        {"schema": "Thing", "property": prop}
+        for prop in CONFORMANCE_DECLARED_PROPS if prop != "id"
+    ]
 
     produced = sum(1 for _name, _body, expected in CONFORMANCE_PAIRS if expected)
     print("ok  conformance branches: {} synthetic pairs, {} of them producing a finding, {} "
