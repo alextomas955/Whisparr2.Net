@@ -217,7 +217,8 @@ def parse_and_check(argv):
 
 
 def check_flag_vectors():
-    """The ten flag vectors of D-04, and the three constants-drift vectors of the move path."""
+    """The ten flag vectors of D-04, three sha40 shape vectors, and three constants-drift
+    vectors of the move path."""
     destinations = sorted(vars(fetch_spec.build_parser().parse_args([])))
     assert destinations == ["commit", "expect_bytes", "expect_sha256", "out_file", "propose"], (
         destinations
@@ -276,6 +277,25 @@ def check_flag_vectors():
     code, _ = parse_and_check(["--propose", "../../Radarr/Radarr/master"])
     assert code == 2, code
 
+    # Three spellings of a commit that sha40 refuses, each aimed at one way it could stop doing so.
+    # The uppercase pinned commit is what a case-folding parser would accept. The padded pinned
+    # commit is what a stripping parser would accept. A 41-character value is what a length test
+    # written with < rather than != would accept. The shipped sha40 refuses all three, and these
+    # vectors are here to keep it that way. They go through --propose alone because a value passed
+    # to --commit alone also hits the partial-move refusal of D-04, which exits 2 on its own and so
+    # would pin nothing. Both commit-taking flags carry the same type callable.
+    code, message = parse_and_check(["--propose", fetch_spec.SPEC_COMMIT.upper()])
+    assert code == 2, code
+    assert "40-character lowercase hex commit SHA" in message, message
+
+    code, message = parse_and_check(["--propose", " " + fetch_spec.SPEC_COMMIT + " "])
+    assert code == 2, code
+    assert "40-character lowercase hex commit SHA" in message, message
+
+    code, message = parse_and_check(["--propose", commit + "0"])
+    assert code == 2, code
+    assert "40-character lowercase hex commit SHA" in message, message
+
     assert (
         fetch_spec.constants_drift(
             fetch_spec.SPEC_COMMIT, fetch_spec.EXPECTED_BYTES, fetch_spec.EXPECTED_SHA256
@@ -288,7 +308,10 @@ def check_flag_vectors():
     assert len(drift) == 1 and "SPEC_COMMIT" in drift[0], drift
     assert len(fetch_spec.constants_drift("0" * 40, 1, "x")) == 3
 
-    print("ok  flag contract: ten flag vectors refuse or accept as D-04 states, three drift vectors")
+    print(
+        "ok  flag contract: ten flag vectors as D-04 states, three sha40 shape vectors, "
+        "three drift vectors"
+    )
 
 
 def check_propose_is_fail_closed():
