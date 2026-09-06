@@ -18,5 +18,6 @@
   "whisparrBranch": "v2",
   "whisparrBuildTime": "2026-08-27T00:08:16Z",
   "whisparrPackageVersion": "v2-f001ed4",
-  "generatedSpecSha256": "6189fca94cfe499ecdb11c11d194edc165226fed27a6811eec12dd76fcb5c0dc"
+  "generatedSpecSha256": "6189fca94cfe499ecdb11c11d194edc165226fed27a6811eec12dd76fcb5c0dc",
+  "generatedTreeSha256": "a47304d384fe21097ec150b4270aef9cbaba2a069099c72e30f3421cc2bd5937"
 }
