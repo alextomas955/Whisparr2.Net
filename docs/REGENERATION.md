@@ -180,9 +180,8 @@ generator is run against. It then writes the sha256 of that file into `spec/PROV
 `generatedSpecSha256`. Both outputs are committed.
 
 The patched document is committed rather than built into an ignored path because the diff between
-the two spec files is the review artifact of a spec refresh. It is what shows a reviewer that
-pre-processing did to the new pin what it did to the old one. A hash recorded over a file no
-reviewer can open records nothing.
+the two spec files is the review artifact of a spec refresh. It shows a reviewer what pre-processing
+did to the new pin. A hash recorded over a file no reviewer can open records nothing.
 
 What it does, in order. It narrows root security to the header scheme, so the generated client does
 not send the key in the URL of every request. It deletes the malformed root path, which declares a
