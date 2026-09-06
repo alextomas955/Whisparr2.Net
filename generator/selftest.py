@@ -30,6 +30,7 @@ import contextlib
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1059,6 +1060,293 @@ def check_generated_files_manifest():
           "files".format(len(manifest)))
 
 
+def put_text(path, text):
+    """Write LF-terminated text, creating the parent directory."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
+
+
+# A document in the shape generate.expected_from_spec reads, carrying one schema, one tag and two
+# operations. Roughly 300 bytes rather than the 337 KB pin, and small enough that a reader can hold
+# the whole expectation in their head: Model/Thing.cs, Api/ThingApi.cs, Api/IApi.cs, and the two
+# method stems ListThing and CreateThing.
+SYNTHETIC_SPEC = {
+    "openapi": "3.0.1",
+    "info": {"title": "Whisparr", "version": "3.0.0"},
+    "components": {"schemas": {"Thing": {"type": "object"}}},
+    "paths": {
+        "/api/v3/thing": {
+            "get": {"operationId": "ListThing", "tags": ["Thing"]},
+            "post": {"operationId": "CreateThing", "tags": ["Thing"]},
+        }
+    },
+}
+
+# The two operations as generichost writes them, each with the OrDefault twin beside it, so the
+# stem filter in api_method_names is exercised rather than assumed away.
+THING_API_CS = """namespace Whisparr2.Net.Api
+{{
+    public partial class ThingApi
+    {{
+        public async Task<I{0}ApiResponse> {0}Async(CancellationToken token)
+        public async Task<I{0}ApiResponse?> {0}OrDefaultAsync(CancellationToken token)
+        public async Task<ICreateThingApiResponse> CreateThingAsync(CancellationToken token)
+        public async Task<ICreateThingApiResponse?> CreateThingOrDefaultAsync(CancellationToken token)
+    }}
+}}
+"""
+
+
+def build_synthetic_tree(root, list_stem="ListThing"):
+    """A repository-shaped tree the gates accept, under root.
+
+    It carries the staged input generate.py reads, the five generated subdirectories, the three
+    meta members and a provenance record, which is everything gate_staged_tree and
+    verify_committed_tree touch. list_stem renames the first operation's implementation without
+    renaming what the spec declares, which is the generator-rename case D-07 names.
+
+    Two files that are not generator output sit in the tree on purpose: a stray .cs beside the
+    csproj and one under obj/, which is what a build leaves behind. Both must be invisible to
+    generated_cs_files and to tree_members.
+    """
+    package_root = os.path.join(root, "src", "Whisparr2.Net")
+    put_text(os.path.join(root, "spec", "openapi.generated.json"),
+             json.dumps(SYNTHETIC_SPEC, indent=2) + "\n")
+    put_text(os.path.join(package_root, "Model", "Thing.cs"), "// Thing\n")
+    put_text(os.path.join(package_root, "Api", "ThingApi.cs"), THING_API_CS.format(list_stem))
+    put_text(os.path.join(package_root, "Api", "IApi.cs"), "// IApi\n")
+    put_text(os.path.join(package_root, "Client", "ClientUtils.cs"), "// ClientUtils\n")
+    put_text(os.path.join(package_root, "Extensions", "ServiceCollection.cs"), "// Extensions\n")
+    put_text(os.path.join(package_root, "Logging", "Logging.cs"), "// Logging\n")
+    put_text(os.path.join(package_root, "Stray.cs"), "// hand-written, beside the csproj\n")
+    put_text(os.path.join(package_root, "obj", "Debug", "net8.0", "AssemblyInfo.cs"), "// build\n")
+
+    members = [relative for relative, _ in generate.tree_members(root) if relative.endswith(".cs")]
+    put_text(os.path.join(root, ".openapi-generator", "FILES"), "".join(m + "\n" for m in members))
+    put_text(os.path.join(root, ".openapi-generator", "VERSION"), "7.25.0\n")
+    put_text(os.path.join(root, ".openapi-generator-ignore"), "# nothing\n")
+    put_text(os.path.join(root, "spec", "PROVENANCE.json"),
+             json.dumps({"specSha256": "0" * 64, "generatedTreeSha256": generate.tree_sha256(root)},
+                        indent=2) + "\n")
+    return package_root
+
+
+@contextlib.contextmanager
+def repo_root_at(root):
+    """Point generate.py's repository root at a synthetic tree for the duration of a block.
+
+    verify_committed_tree and write_tree_digest read the module constant rather than a parameter,
+    so this is what lets them be driven without a Docker run and without touching the repository.
+    """
+    original = generate.REPO_ROOT
+    generate.REPO_ROOT = root
+    try:
+        yield
+    finally:
+        generate.REPO_ROOT = original
+
+
+def call_gate(function, *arguments):
+    """Call a gate and return (exit code or None, everything it printed).
+
+    None means the gate returned. generate.die prints to stdout and raises SystemExit, so a gate
+    that printed a refusal and carried on is distinguishable here from one that refused.
+    """
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        try:
+            function(*arguments)
+        except SystemExit as stop:
+            return stop.code, buffer.getvalue()
+    return None, buffer.getvalue()
+
+
+def check_staged_tree_gate_refuses():
+    """gate_staged_tree accepts a tree that matches its spec and refuses six mutations of it.
+
+    What this pins is the census gate as a gate. check_generated_tree_matches_spec drives
+    expected_from_spec and api_method_names over the committed tree, so the derivation is covered,
+    but nothing offline made gate_staged_tree refuse anything: every refusal in it could be deleted
+    and the suite stayed green. It runs against a staged tree that exists only during a Docker run,
+    which is why the tree here is synthetic.
+
+    The control is asserted first. Without it a gate that refused everything would satisfy all six
+    mutations.
+    """
+    def gated(mutate, list_stem="ListThing"):
+        with tempfile.TemporaryDirectory() as root:
+            package_root = build_synthetic_tree(root, list_stem)
+            mutate(package_root)
+            return call_gate(generate.gate_staged_tree, root, package_root, "PKG")
+
+    def unchanged(package_root):
+        pass
+
+    code, output = gated(unchanged)
+    assert code is None, (code, output)
+    # Six, not eight: the stray beside the csproj and the one under obj/ are not generator output.
+    assert "staged 6 .cs files" in output, output
+    assert "every one of the 2 method names the spec declares is implemented" in output, output
+
+    refusals = [
+        ("a missing subdirectory",
+         lambda pkg: shutil.rmtree(os.path.join(pkg, "Api")),
+         "is missing 1 of the five generated subdirectories: Api"),
+        ("a missing manifest",
+         lambda pkg: os.remove(os.path.join(pkg, "..", "..", ".openapi-generator", "FILES")),
+         "the staged tree is missing .openapi-generator/FILES"),
+        ("a missing ignore file",
+         lambda pkg: os.remove(os.path.join(pkg, "..", "..", ".openapi-generator-ignore")),
+         "the staged tree is missing .openapi-generator-ignore"),
+        ("a file the spec does not imply",
+         lambda pkg: put_text(os.path.join(pkg, "Model", "Ghost.cs"), "// ghost\n"),
+         "Model/Ghost.cs was generated and the spec implies no such file"),
+        ("a file the spec implies and the generator did not write",
+         lambda pkg: os.remove(os.path.join(pkg, "Model", "Thing.cs")),
+         "Model/Thing.cs is implied by the spec and was not generated"),
+        ("a subdirectory holding no .cs",
+         lambda pkg: os.remove(os.path.join(pkg, "Client", "ClientUtils.cs")),
+         "Client/ holds no .cs file"),
+    ]
+    for name, mutate, expected in refusals:
+        code, output = gated(mutate)
+        assert code == 1, (name, code, output)
+        assert "REFUSED" in output, (name, output)
+        assert expected in output, (name, output)
+        assert "Nothing in PKG was touched" in output, (name, output)
+
+    # The generator renaming an operationId is its own refusal, because the file names still match.
+    code, output = gated(unchanged, list_stem="ListThings")
+    assert code == 1, (code, output)
+    assert "does not carry the method names the spec declares, in 2 case(s)" in output, output
+    assert "ListThing is declared by the spec and no Api/*.cs implements ListThingAsync" \
+        in output, output
+    assert "ListThings is implemented as ListThingsAsync and the spec declares no such " \
+        "operationId" in output, output
+    assert "generator/preprocess_spec.py" in output, output
+    print("ok  staged gate: a matching staged tree passes and seven mutations of it each refuse")
+
+
+def check_preflight_refuses_a_damaged_tree():
+    """verify_committed_tree refuses on three states and bootstraps on exactly one.
+
+    What this pins is the pre-flight that stands between a hand edit and the delete in step 3. It
+    was unasserted: the refusal on a recorded digest that no longer matches could be turned into a
+    print, and the suite stayed green.
+
+    The fourth state is the one the bootstrap belongs to, a genuinely absent digest over a tree
+    that was never generated. It is asserted here as well, because a pre-flight that refused it
+    would make the first generation impossible and no other check would say so.
+    """
+    def preflight(mutate):
+        with tempfile.TemporaryDirectory() as root:
+            package_root = build_synthetic_tree(root)
+            mutate(root, package_root)
+            with repo_root_at(root):
+                return call_gate(generate.verify_committed_tree, package_root)
+
+    def drop_digest(root):
+        path = os.path.join(root, "spec", "PROVENANCE.json")
+        with open(path, encoding="utf-8") as handle:
+            record = json.load(handle)
+        record.pop("generatedTreeSha256")
+        put_text(path, json.dumps(record, indent=2) + "\n")
+
+    def unchanged(root, package_root):
+        pass
+
+    code, output = preflight(unchanged)
+    assert code is None, (code, output)
+    assert "the committed tree matches generatedTreeSha256" in output, output
+
+    # A recorded digest over a tree missing one subdirectory. This is the state that used to take
+    # the bootstrap branch, print that no digest was recorded and delete a co-located hand edit.
+    def missing_subdir(root, package_root):
+        shutil.rmtree(os.path.join(package_root, "Extensions"))
+        put_text(os.path.join(package_root, "Model", "Thing.cs"), "// Thing, edited by hand\n")
+
+    code, output = preflight(missing_subdir)
+    assert code == 1, (code, output)
+    assert "generatedTreeSha256 is recorded but the tree is incomplete" in output, output
+    assert "missing    Extensions" in output, output
+    assert "no generatedTreeSha256 recorded yet" not in output, output
+
+    # A recorded digest over a complete tree that no longer hashes to it. The added and the deleted
+    # file are named from the manifest; the edit is not localisable from one hash and is not named.
+    def hand_edited(root, package_root):
+        put_text(os.path.join(package_root, "Model", "Thing.cs"), "// Thing, edited by hand\n")
+        put_text(os.path.join(package_root, "Model", "Ghost.cs"), "// ghost\n")
+        os.remove(os.path.join(package_root, "Logging", "Logging.cs"))
+
+    code, output = preflight(hand_edited)
+    assert code == 1, (code, output)
+    assert "does not match generatedTreeSha256 in spec/PROVENANCE.json" in output, output
+    assert "src/Whisparr2.Net/Model/Ghost.cs is on disk and is not in .openapi-generator/FILES" \
+        in output, output
+    assert "src/Whisparr2.Net/Logging/Logging.cs is in .openapi-generator/FILES and is not on " \
+        "disk" in output, output
+    assert "generator/generate.py --check" in output, output
+
+    # No digest recorded over a tree that still holds four of the five subdirectories. A first
+    # generation never looks like this.
+    def partial_bootstrap(root, package_root):
+        drop_digest(root)
+        shutil.rmtree(os.path.join(package_root, "Extensions"))
+
+    code, output = preflight(partial_bootstrap)
+    assert code == 1, (code, output)
+    assert "no generatedTreeSha256 is recorded and the tree is partial" in output, output
+    assert "missing    Extensions" in output, output
+
+    # The one state the bootstrap belongs to.
+    def first_run(root, package_root):
+        drop_digest(root)
+        for subdir in generate.GENERATED_SUBDIRS:
+            shutil.rmtree(os.path.join(package_root, subdir))
+
+    code, output = preflight(first_run)
+    assert code is None, (code, output)
+    assert "no generatedTreeSha256 recorded yet, establishing it" in output, output
+    print("ok  pre-flight: a damaged tree refuses on three states and only an absent tree "
+          "bootstraps")
+
+
+def check_write_tree_digest_keeps_the_record():
+    """write_tree_digest replaces one field, keeps every other, and writes the pipeline's bytes.
+
+    What this pins is the only writer of generatedTreeSha256. It runs at the end of a generation,
+    after the tree has already been replaced, so a version of it that dropped the thirteen fetch
+    fields or the six image fields would destroy the provenance record and the run would still
+    print Done. Nothing offline saw that.
+
+    The record is a copy of the committed one, so the field list is the real one rather than an
+    invented one, and it is written under a temporary directory.
+    """
+    committed = read_provenance()
+    assert "generatedTreeSha256" in committed, sorted(committed)
+    replacement = "b" * 64
+
+    with tempfile.TemporaryDirectory() as root:
+        path = os.path.join(root, "spec", "PROVENANCE.json")
+        put_text(path, json.dumps(committed, indent=2, ensure_ascii=False) + "\n")
+        with repo_root_at(root):
+            generate.write_tree_digest(replacement)
+        with open(path, "rb") as handle:
+            raw = handle.read()
+
+    written = json.loads(raw.decode("utf-8"))
+    assert written["generatedTreeSha256"] == replacement, written["generatedTreeSha256"]
+    assert list(written) == list(committed), (list(written), list(committed))
+    for key, value in committed.items():
+        if key != "generatedTreeSha256":
+            assert written[key] == value, key
+    assert b"\r" not in raw, "the record was written with CRLF"
+    assert raw.endswith(b"\n"), "the record has no trailing newline"
+    print("ok  provenance write: generatedTreeSha256 is replaced and the other {} fields "
+          "survive".format(len(committed) - 1))
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -1086,6 +1374,9 @@ OFFLINE_CHECKS = (
     check_generated_tree_matches_spec,
     check_tree_digest_moves,
     check_generated_files_manifest,
+    check_staged_tree_gate_refuses,
+    check_preflight_refuses_a_damaged_tree,
+    check_write_tree_digest_keeps_the_record,
 )
 
 # Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
