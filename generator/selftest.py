@@ -9,6 +9,8 @@ documentation have all been built on the wrong document.
 Standard library only. No framework, no requirements file and no configuration file. A bare assert
 and a non-zero exit are what this needs.
 
+This script is run by hand today. Wiring it into a workflow lands with the phase that adds one.
+
     python generator/selftest.py
     python generator/selftest.py --network
 """
@@ -18,6 +20,8 @@ import contextlib
 import io
 import json
 import os
+import subprocess
+import sys
 import tempfile
 
 import fetch_spec
@@ -254,8 +258,56 @@ OFFLINE_CHECKS = (
     check_flag_vectors,
 )
 
-# The network group lands with the proposal mode.
-NETWORK_CHECKS = ()
+# Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
+# the next upstream commit.  measured 2026-09-05
+EROS_COMMIT = "cc3fb2abcf60f7c0048eb0294015d291b82bde08"
+SAME_BYTES_COMMIT = "1a6005e594c8e3a30bd6a19d900f60177f68ac10"
+
+
+def run_fetch_spec(*arguments):
+    """Invoke the real script and capture its output.
+
+    encoding and errors are set because a non-ASCII byte in captured output otherwise raises
+    UnicodeDecodeError on a Windows console.
+    """
+    completed = subprocess.run(
+        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "fetch_spec.py")]
+        + list(arguments),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    return completed.returncode, completed.stdout + completed.stderr
+
+
+def check_network_propose():
+    """The proposal mode against real commits: it refuses the trap and it writes nothing."""
+    path = read_committed_spec()
+    before = (os.path.getsize(path), sha256_file(path))
+
+    code, output = run_fetch_spec("--propose", EROS_COMMIT)
+    assert code != 0, code
+    assert "/api/v3/movie" in output and "/api/v3/series" in output, output
+    assert "337327" in output, output
+    # Only this one file. spec/PROVENANCE.json is written by a sibling plan in this same wave, so a
+    # record over the whole directory would fail here for a reason unrelated to the proposal.
+    assert (os.path.getsize(path), sha256_file(path)) == before
+    print("ok  network: the eros commit is refused naming both paths, and nothing was written")
+
+    code, output = run_fetch_spec("--propose", SAME_BYTES_COMMIT)
+    assert code == 0, (code, output)
+    assert "282862" in output, output
+    assert "a3037cf379826505dc4557e74bf0798f43f2d4b8" in output, output
+    print("ok  network: a different commit carrying the same blob reports the pinned values")
+
+    code, output = run_fetch_spec("--commit", fetch_spec.SPEC_COMMIT)
+    assert code == 2, (code, output)
+    print("ok  network: --commit with no expectation flags exits 2")
+
+
+NETWORK_CHECKS = (check_network_propose,)
 
 
 def main():

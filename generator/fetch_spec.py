@@ -315,13 +315,51 @@ def check_flag_contract(parser, args):
         )
 
 
+def run_propose(commit):
+    """Fetch a candidate read-only, print what the write path will demand, and write nothing.
+
+    It runs tier 2 and tier 3 and never tier 1. Tier 1 is the pin, and a proposal has no pin yet,
+    while tiers 2 and 3 are properties of the application and must hold for any candidate. So a
+    proposal against the wrong application refuses in words rather than printing values that invite
+    a paste.
+
+    It is called from main() and returns out of it before the write section, rather than sharing a
+    code path with the write and gating the final open. That sharing is how a proposal mode becomes
+    the bypass D-04 exists to prevent.
+    """
+    url = spec_url(commit)
+    status, body = http_get_bytes(url)
+    if status != 200:
+        die("ERROR: REFUSED - {} answered HTTP {}. Nothing was written.".format(url, status))
+
+    try:
+        document = json.loads(body)
+    except json.JSONDecodeError as error:
+        die(
+            "ERROR: REFUSED - the response body is not valid JSON: {}. Nothing was "
+            "written.".format(error)
+        )
+
+    # Exactly the three values the write path will demand, which is the purpose of the mode.
+    print("Proposal for commit " + commit)
+    print("  --expect-bytes   {}".format(len(body)))
+    print("  --expect-sha256  " + hashlib.sha256(body).hexdigest())
+    print("  blob sha1        " + git_blob_sha1(body))
+
+    problems = check_tier2(document) + check_tier3(document)
+    if problems:
+        die(*problems)
+    print("Nothing was written.")
+
+
 def main():
     parser = build_parser()
     args = parser.parse_args()
     check_flag_contract(parser, args)
 
     if args.propose:
-        die("ERROR: the proposal mode is not implemented yet. Nothing was written.")
+        run_propose(args.propose)
+        return
 
     out_path = resolve_repo_path(args.out_file)
     provenance_path = resolve_repo_path(PROVENANCE_PATH)
