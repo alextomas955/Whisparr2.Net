@@ -215,34 +215,64 @@ def parse_and_check(argv):
 
 
 def check_flag_vectors():
-    """The six flag vectors of D-04, and the three constants-drift vectors of the move path."""
+    """The ten flag vectors of D-04, and the three constants-drift vectors of the move path."""
     destinations = sorted(vars(fetch_spec.build_parser().parse_args([])))
     assert destinations == ["commit", "expect_bytes", "expect_sha256", "out_file", "propose"], (
         destinations
     )
 
+    # A real commit-shaped value, because both commit-taking flags now carry a type that refuses
+    # anything else. A placeholder here would be refused before the contract is reached.
+    commit = "0" * 40
+
     code, _ = parse_and_check([])
     assert code == 0, code
 
-    code, message = parse_and_check(["--commit", "abc"])
+    code, message = parse_and_check(["--commit", commit])
     assert code == 2, code
     assert "--expect-sha256" in message and "--expect-bytes" in message, message
-    assert message.rstrip().endswith("Run --propose abc to observe the values first."), message
+    assert message.rstrip().endswith(
+        "Run --propose {} to observe the values first.".format(commit)
+    ), message
 
-    code, message = parse_and_check(["--commit", "abc", "--expect-sha256", "d"])
+    code, message = parse_and_check(["--commit", commit, "--expect-sha256", "d"])
     assert code == 2, code
     assert "--expect-bytes" in message, message
     assert "--expect-sha256" not in message.split("missing", 1)[1], message
 
-    code, _ = parse_and_check(["--commit", "abc", "--expect-sha256", "d", "--expect-bytes", "5"])
+    code, _ = parse_and_check(["--commit", commit, "--expect-sha256", "d", "--expect-bytes", "5"])
     assert code == 0, code
 
-    code, _ = parse_and_check(["--propose", "abc"])
+    code, _ = parse_and_check(["--propose", commit])
     assert code == 0, code
 
-    code, message = parse_and_check(["--propose", "abc", "--commit", "abc"])
+    code, message = parse_and_check(["--propose", commit, "--commit", commit])
     assert code == 2, code
     assert "--commit" in message and "writes nothing" in message, message
+
+    # A ref name is not a commit. The third of these is the exact invocation that recorded
+    # "specCommit": "v2" before both flags carried a type.
+    code, message = parse_and_check(["--propose", "v2"])
+    assert code == 2, code
+    assert "40-character lowercase hex commit SHA" in message, message
+
+    code, _ = parse_and_check(["--commit", "v2"])
+    assert code == 2, code
+
+    code, _ = parse_and_check(
+        [
+            "--commit",
+            "v2",
+            "--expect-sha256",
+            fetch_spec.EXPECTED_SHA256,
+            "--expect-bytes",
+            str(fetch_spec.EXPECTED_BYTES),
+        ]
+    )
+    assert code == 2, code
+
+    code, _ = parse_and_check(["--propose", "../../Radarr/Radarr/master"])
+    assert code == 2, code
 
     assert (
         fetch_spec.constants_drift(
@@ -256,7 +286,7 @@ def check_flag_vectors():
     assert len(drift) == 1 and "SPEC_COMMIT" in drift[0], drift
     assert len(fetch_spec.constants_drift("0" * 40, 1, "x")) == 3
 
-    print("ok  flag contract: six flag vectors refuse or accept as D-04 states, three drift vectors")
+    print("ok  flag contract: ten flag vectors refuse or accept as D-04 states, three drift vectors")
 
 
 def check_image_identity():
