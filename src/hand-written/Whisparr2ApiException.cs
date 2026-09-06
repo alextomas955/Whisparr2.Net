@@ -33,18 +33,6 @@ namespace Whisparr2.Net
     public sealed class Whisparr2ApiException : Exception
     {
         /// <summary>
-        /// The number of response body characters the message is allowed to embed.
-        /// </summary>
-        /// <remarks>
-        /// The body is chosen by the Whisparr instance rather than by this library, so embedding it
-        /// whole would let a large or hostile response flood a consumer's log through a single
-        /// exception. 512 characters is enough to identify a Whisparr error payload and short
-        /// enough to sit on one log line. <see cref="RawContent"/> is never truncated; only the
-        /// fragment inside <see cref="Exception.Message"/> is.
-        /// </remarks>
-        private const int MessageBodyCap = 512;
-
-        /// <summary>
         /// The status code the instance answered with.
         /// </summary>
         public System.Net.HttpStatusCode StatusCode { get; }
@@ -92,8 +80,9 @@ namespace Whisparr2.Net
         /// publishes the server's internal structure into the consumer's log.
         /// </para>
         /// <para>
-        /// Log <see cref="StatusCode"/> and <see cref="Path"/> instead, and read this value only
-        /// where the body is actually needed.
+        /// <see cref="Exception.Message"/> does not embed this value, precisely so that a default
+        /// logger cannot publish it. Read this member only where the body is actually needed, and
+        /// decide there whether it is safe to record.
         /// </para>
         /// </value>
         public string RawContent { get; }
@@ -139,8 +128,15 @@ namespace Whisparr2.Net
         }
 
         /// <summary>
-        /// Composes the message, embedding at most <see cref="MessageBodyCap"/> body characters.
+        /// Composes the message. The body is deliberately absent from it.
         /// </summary>
+        /// <remarks>
+        /// A message is the one part of an exception that every default logger writes, including an
+        /// unhandled-exception handler the consumer never wrote. The body can carry a credential,
+        /// so putting it there would leak through a path the consumer never chose. The message
+        /// reports the body's length and names <see cref="RawContent"/> instead, and a caller who
+        /// wants the body reads that member and decides for itself where it goes.
+        /// </remarks>
         /// <param name="response">The response the message describes.</param>
         /// <param name="summary">One sentence saying which throwing outcome this is.</param>
         /// <returns>The message.</returns>
@@ -159,13 +155,11 @@ namespace Whisparr2.Net
                 : response.ReasonPhrase;
 
             string body = string.IsNullOrEmpty(response.RawContent)
-                ? "(no body)"
-                : response.RawContent.Length > MessageBodyCap
-                    ? response.RawContent.Substring(0, MessageBodyCap) + " (truncated)"
-                    : response.RawContent;
+                ? "no body"
+                : $"{response.RawContent.Length} character body in {nameof(RawContent)}";
 
             return $"Whisparr returned {(int)response.StatusCode} {reason} for {response.Path}. "
-                + $"{summary} Body: {body}";
+                + $"{summary} ({body})";
         }
     }
 }
