@@ -289,6 +289,39 @@ def check_flag_vectors():
     print("ok  flag contract: ten flag vectors refuse or accept as D-04 states, three drift vectors")
 
 
+def check_propose_is_fail_closed():
+    """An empty --propose argument never reaches the write path, by either of two independent tests.
+
+    The hand-built namespace carries all three move flags. With a partial set the partial-move branch
+    fires and produces exit 2 on its own, so the vector would pass with the defect still present. It
+    is built by hand rather than through the parser because the parser now refuses the empty string
+    before check_flag_contract is reached, and this assertion is about check_flag_contract.
+    """
+    code, _ = parse_and_check(["--propose", ""])
+    assert code == 2, code
+
+    parser = fetch_spec.build_parser()
+    args = argparse.Namespace(
+        propose="",
+        commit="0" * 40,
+        expect_sha256=fetch_spec.EXPECTED_SHA256,
+        expect_bytes=fetch_spec.EXPECTED_BYTES,
+        out_file=fetch_spec.DEFAULT_OUT_FILE,
+    )
+    buffer = io.StringIO()
+    with contextlib.redirect_stderr(buffer):
+        try:
+            fetch_spec.check_flag_contract(parser, args)
+        except SystemExit as stop:
+            code = stop.code
+        else:
+            raise AssertionError("check_flag_contract accepted an empty --propose beside a move")
+    message = buffer.getvalue()
+    assert code == 2, code
+    assert "writes nothing" in message and "--commit" in message, message
+    print("ok  propose fail-closed: an empty --propose exits 2 at the parser and in the contract")
+
+
 def check_image_identity():
     """Every SPEC-06 assertion that does not need a running container.
 
@@ -350,6 +383,7 @@ OFFLINE_CHECKS = (
     check_committed_spec,
     check_provenance_complete,
     check_flag_vectors,
+    check_propose_is_fail_closed,
     check_image_identity,
 )
 
