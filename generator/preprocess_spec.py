@@ -412,6 +412,23 @@ def main():
             "ERROR: REFUSED - a non-default input may not be written to the committed output path. "
             "Pass --out-file with a scratch path too. input {} / output {}".format(raw_path, out_path)
         )
+    # The output path alone is not the whole write. The provenance path is derived from the output
+    # directory, so an output anywhere beside the committed provenance rewrites a file the caller
+    # never named.
+    default_provenance = os.path.join(os.path.dirname(default_out), "PROVENANCE.json")
+    if raw_path != default_raw and os.path.normcase(provenance_path) == os.path.normcase(
+        default_provenance
+    ):
+        die(
+            "ERROR: REFUSED - a non-default input may not write beside the committed provenance "
+            "record. Pass --out-file with a scratch directory. input {} / provenance {}".format(
+                raw_path, provenance_path
+            )
+        )
+    # The pin is an input to this script and never one of its outputs. Writing the patched document
+    # over it destroys the identity every other check is measured against.
+    if os.path.normcase(out_path) == os.path.normcase(default_raw):
+        die("ERROR: REFUSED - the pinned input document is not a write target. output " + out_path)
     if not os.path.isfile(raw_path):
         die("ERROR: REFUSED - no input document at " + raw_path + ".")
 
