@@ -43,6 +43,17 @@ Technology stack not yet documented. Will populate after codebase mapping or fir
 Conventions not yet established. Will populate as patterns emerge during development.
 <!-- GSD:conventions-end -->
 
+## Generated code rules
+
+The generated `src/Whisparr2.Net/Client/ClientUtils.cs` carries
+`[assembly: InternalsVisibleTo("Whisparr2.Net.Test")]`, which openapi-generator derives from
+`packageName`. That project does not exist and will not be created. Do not rename a test project to
+match it, do not add a second `InternalsVisibleTo`, and do not hand-edit the generated file to
+remove it. Tests use the public surface.
+
+This section sits outside the marker-bracketed regions above and below, which a documentation
+regeneration replaces wholesale.
+
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 
 ## Architecture
