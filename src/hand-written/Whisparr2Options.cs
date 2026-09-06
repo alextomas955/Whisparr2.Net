@@ -24,6 +24,14 @@ namespace Whisparr2.Net
         /// <summary>
         /// The base URL of the Whisparr instance, for example "http://127.0.0.1:6969".
         /// </summary>
+        /// <remarks>
+        /// Both http and https are accepted, because the ordinary Whisparr deployment is plain http
+        /// on a loopback or LAN address and refusing that would refuse the normal case. The choice
+        /// is the caller's, and it carries a consequence worth stating: the key travels in a request
+        /// header, so over plain http it is on the wire in the clear and anything between the caller
+        /// and the instance can read it. Loopback is fine. Across a network, prefer https or a
+        /// tunnel.
+        /// </remarks>
         /// <value>An absolute http or https URL. Required.</value>
         public required string BaseUrl { get; init; }
 
