@@ -4,8 +4,11 @@ A C# SDK for Whisparr 2, generated from Whisparr 2's own OpenAPI document.
 
 ## Status
 
-The SDK does not exist yet. This repository currently holds the pinned specification and the
-scripts that verify it.
+The client is generated from the pinned specification into `src/Whisparr2.Net/`, and it builds on
+both target frameworks. A small hand-written layer in `src/hand-written/` supplies the registration
+call, the credential shape and the response classification the generated code leaves out. The unit
+suite in `test/Whisparr2.Net.UnitTests/` runs without Docker. The client has not yet been proven
+against a running instance, and that is the work that follows.
 
 ## The naming trap
 
