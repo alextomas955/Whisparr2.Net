@@ -192,6 +192,8 @@ def check_provenance_complete():
     assert len(sha256) == 64 and set(sha256) <= HEX, sha256
     blob = provenance["specBlobSha1"]
     assert len(blob) == 40 and set(blob) <= HEX, blob
+    commit = provenance["specCommit"]
+    assert len(commit) == 40 and set(commit) <= HEX, commit
 
     assert "generatedSpecSha256" not in provenance
     print("ok  provenance: thirteen spec fields present and observed, no patched-spec field")
