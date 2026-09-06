@@ -314,7 +314,7 @@ def check_flag_contract(parser, args):
     """
     supplied = [name for name in MOVE_FLAGS if getattr(args, name) is not None]
 
-    if args.propose and supplied:
+    if args.propose is not None and supplied:
         parser.error(
             "--propose writes nothing and cannot be combined with "
             + ", ".join(flag_name(name) for name in supplied)
@@ -375,7 +375,7 @@ def main():
     args = parser.parse_args()
     check_flag_contract(parser, args)
 
-    if args.propose:
+    if args.propose is not None:
         run_propose(args.propose)
         return
 
