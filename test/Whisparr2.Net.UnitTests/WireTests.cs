@@ -27,6 +27,11 @@ namespace Whisparr2.Net.UnitTests
         /// </summary>
         private const string SentinelKey = "SENTINEL-Key-123";
 
+        /// <summary>
+        /// The same sentinel with a space on each end, for the case that pins the key as supplied.
+        /// </summary>
+        private const string PaddedKey = " " + SentinelKey + " ";
+
         /// <summary>How many calls the concurrency cases issue at once.</summary>
         private const int Concurrency = 8;
 
@@ -99,6 +104,39 @@ namespace Whisparr2.Net.UnitTests
             IReadOnlyList<string> headers = CapturedRequest.HeaderLines(request, "X-Api-Key");
             string only = Assert.Single(headers);
             Assert.Equal("X-Api-Key: Bearer " + SentinelKey, only);
+        }
+
+        /// <summary>
+        /// A key that carries surrounding whitespace reaches the wire with that whitespace intact.
+        /// </summary>
+        /// <remarks>
+        /// The options type says the key is used exactly as supplied and is never trimmed or
+        /// repaired, and that promise has consequences: a key the consumer pasted with a stray
+        /// space is meant to fail loudly against the instance rather than be silently fixed here.
+        /// Every other case supplies a clean key, so a Trim anywhere on the registration path
+        /// would leave them all green. The whole header line is compared, so a trim on either end
+        /// is visible.
+        /// </remarks>
+        [Fact]
+        public async Task Configured_key_reaches_the_wire_exactly_as_supplied()
+        {
+            using LoopbackCapture capture = new();
+
+            ServiceCollection services = new();
+            services.AddWhisparr2(new Whisparr2Options
+            {
+                BaseUrl = capture.BaseUrl,
+                ApiKey = PaddedKey,
+            });
+
+            await using ServiceProvider provider = services.BuildServiceProvider();
+            await provider.GetRequiredService<ISystemApi>().GetSystemStatusAsync();
+
+            string request = await capture.FirstRequest;
+
+            IReadOnlyList<string> headers = CapturedRequest.HeaderLines(request, "X-Api-Key");
+            string only = Assert.Single(headers);
+            Assert.Equal("X-Api-Key: " + PaddedKey, only);
         }
 
         /// <summary>

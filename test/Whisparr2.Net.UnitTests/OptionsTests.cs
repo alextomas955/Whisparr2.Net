@@ -125,6 +125,30 @@ namespace Whisparr2.Net.UnitTests
         }
 
         /// <summary>
+        /// An https base URL is accepted and is what the typed clients are pointed at.
+        /// </summary>
+        /// <remarks>
+        /// Every other case in the suite uses http, because the loopback listener speaks nothing
+        /// else, so a scheme check that had narrowed to http alone would refuse every consumer
+        /// behind TLS and no other case would notice. No request is issued: the registered base
+        /// address is read back instead.
+        /// </remarks>
+        [Fact]
+        public void AddWhisparr2_accepts_an_https_base_url()
+        {
+            const string HttpsBaseUrl = "https://whisparr.example:6969/";
+
+            ServiceCollection services = new();
+            services.AddWhisparr2(new Whisparr2Options { BaseUrl = HttpsBaseUrl, ApiKey = SentinelKey });
+
+            using ServiceProvider provider = services.BuildServiceProvider();
+            IHttpClientFactory factory = provider.GetRequiredService<IHttpClientFactory>();
+            using HttpClient client = factory.CreateClient("Whisparr2.Net.Api.ISystemApi");
+
+            Assert.Equal(new Uri(HttpsBaseUrl), client.BaseAddress);
+        }
+
+        /// <summary>
         /// The refusal happens before any registration, so a rejected configuration leaves the
         /// collection untouched rather than half wired. Without this case the validation could
         /// move below the registration calls and nothing would notice.

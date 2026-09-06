@@ -41,6 +41,7 @@ namespace Whisparr2.Net.UnitTests
         private readonly TcpListener _listener;
         private readonly int _status;
         private readonly string _body;
+        private readonly string _reason;
         private readonly ConcurrentQueue<string> _requests = new();
         private readonly ConcurrentBag<Task> _serving = new();
         private readonly CancellationTokenSource _stopping = new();
@@ -77,10 +78,15 @@ namespace Whisparr2.Net.UnitTests
         /// </summary>
         /// <param name="status">The status code every canned response carries.</param>
         /// <param name="body">The body every canned response carries.</param>
-        public LoopbackCapture(int status = 200, string body = "{}")
+        /// <param name="reason">
+        /// The reason phrase on the status line. An empty string sends the status line with no
+        /// phrase, which is legal and is what a caller sees from an instance that sends none.
+        /// </param>
+        public LoopbackCapture(int status = 200, string body = "{}", string reason = "X")
         {
             _status = status;
             _body = body;
+            _reason = reason;
             _listener = new TcpListener(IPAddress.Loopback, 0);
             _listener.Start();
             Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
@@ -245,7 +251,7 @@ namespace Whisparr2.Net.UnitTests
                 _recorded.Release();
 
                 byte[] payload = Encoding.UTF8.GetBytes(_body);
-                string head = $"HTTP/1.1 {_status} X\r\n"
+                string head = $"HTTP/1.1 {_status} {_reason}\r\n"
                     + "Content-Type: application/json\r\n"
                     + $"Content-Length: {payload.Length}\r\n"
                     + "Connection: close\r\n\r\n";
