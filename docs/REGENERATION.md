@@ -169,7 +169,7 @@ Every refusal exits non-zero and leaves the tree untouched. Find yours by its fi
 
 | First line | Cause |
 | --- | --- |
-| `ERROR: REFUSED - this document declares /api/v3/movie, /api/v3/alttitle and not the expected paths /api/v3/series and /api/v3/episode.` | The fetched document is the Whisparr 3 one from the same upstream repository. |
+| `ERROR: REFUSED - this document declares /api/v3/movie, /api/v3/alttitle and not /api/v3/series, /api/v3/episode.` | The fetched document is the Whisparr 3 one from the same upstream repository. |
 | `fetch_spec.py: error: moving the pin requires --commit, --expect-sha256 and --expect-bytes together;` | A move was attempted without stating all three expected values. |
 | `fetch_spec.py: error: --propose writes nothing and cannot be combined with --commit.` | A read-only proposal was combined with a move flag. |
 | `ERROR: REFUSED - the body is 337327 bytes, expected exactly 282862.` | The fetched byte count disagrees with the pin. |
