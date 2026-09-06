@@ -1,0 +1,15 @@
+{
+  "fetchedAt": "2026-09-06T01:42:06.711992Z",
+  "fetchedFrom": "https://raw.githubusercontent.com/Whisparr/Whisparr/face3be8956e4c3798a9364a0f2ea95948e34c1c/src/Whisparr.Api.V3/openapi.json",
+  "specRepo": "Whisparr/Whisparr",
+  "specRefName": "v2",
+  "specCommit": "face3be8956e4c3798a9364a0f2ea95948e34c1c",
+  "specPath": "src/Whisparr.Api.V3/openapi.json",
+  "specBlobSha1": "a3037cf379826505dc4557e74bf0798f43f2d4b8",
+  "specSha256": "e16d5052c6da3fdb9c54739890412c340c4b485c0a1b53af15f5a6ac837bb0a2",
+  "specBytes": 282862,
+  "specOpenApiVersion": "3.0.1",
+  "specPathCount": 157,
+  "specOperationCount": 228,
+  "specSchemaCount": 134
+}
