@@ -261,6 +261,10 @@ mapped-drive path into this image lists as an empty directory and exits 0, while
 mount succeeds inside the container and never reaches the host. That is silent data loss rather than
 an error, and it is why there is no output-root parameter.
 
+On Windows the script grants itself an inheritable ACL on the staging root before it mounts it.
+Entries the container creates inside the mount inherit that root's ACL, and without the grant the
+host cannot read back what the container wrote.
+
 If you reproduce the `docker run` by hand in Git Bash, prefix it with `MSYS_NO_PATHCONV=1`. Without
 it MSYS rewrites `/local` into a Windows path and the mount target is wrong. Python's `subprocess`
 does not go through MSYS, so the script itself is unaffected.
