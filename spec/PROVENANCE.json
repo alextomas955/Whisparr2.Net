@@ -17,5 +17,6 @@
   "whisparrVersion": "2.2.0.231",
   "whisparrBranch": "v2",
   "whisparrBuildTime": "2026-08-27T00:08:16Z",
-  "whisparrPackageVersion": "v2-f001ed4"
+  "whisparrPackageVersion": "v2-f001ed4",
+  "generatedSpecSha256": "6189fca94cfe499ecdb11c11d194edc165226fed27a6811eec12dd76fcb5c0dc"
 }

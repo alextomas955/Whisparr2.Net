@@ -177,7 +177,7 @@ def check_committed_spec():
 
 
 def check_provenance_complete():
-    """Every spec field is present and observed, and the patched-spec field is absent."""
+    """Every spec field is present and observed, and the patched-spec hash is recorded."""
     provenance = read_provenance()
 
     for key in SPEC_KEYS:
@@ -195,8 +195,9 @@ def check_provenance_complete():
     commit = provenance["specCommit"]
     assert len(commit) == 40 and set(commit) <= HEX, commit
 
-    assert "generatedSpecSha256" not in provenance
-    print("ok  provenance: thirteen spec fields present and observed, no patched-spec field")
+    patched = provenance["generatedSpecSha256"]
+    assert len(patched) == 64 and set(patched) <= HEX, patched
+    print("ok  provenance: thirteen spec fields present and observed, patched-spec hash recorded")
 
 
 def check_url_is_commit_addressed():

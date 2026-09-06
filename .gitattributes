@@ -21,3 +21,8 @@
 # spec delta as "Binary files differ", which destroys the reviewability a spec refresh depends on.
 # linguist-generated drops the file from the language statistics and collapses it in GitHub diffs.
 spec/openapi.raw.json -text linguist-generated
+
+# spec/openapi.generated.json is what generator/preprocess_spec.py writes, and its sha256 is
+# recorded in spec/PROVENANCE.json as generatedSpecSha256. Same reason as the rule above: the hash
+# is computed over bytes that end-of-line conversion on checkout must not be allowed to rewrite.
+spec/openapi.generated.json -text linguist-generated
