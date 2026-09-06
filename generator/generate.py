@@ -199,10 +199,35 @@ def verify_committed_tree(pkg_dir):
     half of the answer that needs neither Docker nor git, so it runs on every generation.
     """
     recorded = read_provenance().get("generatedTreeSha256")
-    present = all(os.path.isdir(os.path.join(pkg_dir, subdir)) for subdir in GENERATED_SUBDIRS)
-    if not recorded or not present:
+    missing = [s for s in GENERATED_SUBDIRS if not os.path.isdir(os.path.join(pkg_dir, s))]
+
+    # The two conditions are separate on purpose. With no digest recorded there is nothing to
+    # compare against and the first generation establishes one. With a digest recorded, a missing
+    # subdirectory is not a bootstrap: it is a tree that has already been damaged, and treating it
+    # as a first run would print that no digest exists, delete whatever survives and absorb any
+    # hand edit among it.
+    if not recorded:
+        if missing and len(missing) != len(GENERATED_SUBDIRS):
+            die(
+                "ERROR: REFUSED - no generatedTreeSha256 is recorded and the tree is partial. "
+                "Nothing in {} was touched.".format(pkg_dir),
+                "    missing    " + ", ".join(missing),
+                "  Either the tree is mid-edit or a previous run was interrupted. Recover the",
+                "  committed bytes with git checkout -- src/Whisparr2.Net, or remove the remaining",
+                "  subdirectories to generate from nothing.",
+            )
         print("  - no generatedTreeSha256 recorded yet, establishing it")
         return
+
+    if missing:
+        die(
+            "ERROR: REFUSED - generatedTreeSha256 is recorded but the tree is incomplete. "
+            "Nothing in {} was touched.".format(pkg_dir),
+            "    missing    " + ", ".join(missing),
+            "  A recorded digest describes a complete tree, so a missing subdirectory means the",
+            "  tree was changed outside this script. Recover the committed bytes with",
+            "  git checkout -- src/Whisparr2.Net .openapi-generator .openapi-generator-ignore.",
+        )
 
     on_disk = tree_sha256(REPO_ROOT)
     if on_disk == recorded:
