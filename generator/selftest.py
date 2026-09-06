@@ -22,6 +22,7 @@ This script is run by hand today. Wiring it into a workflow lands with the phase
 
     python generator/selftest.py
     python generator/selftest.py --network
+    python generator/selftest.py --docker
 """
 
 import argparse
@@ -1139,6 +1140,67 @@ def check_network_propose():
 NETWORK_CHECKS = (check_network_propose,)
 
 
+def run_generate(*arguments):
+    """Invoke the real generation script and capture its output.
+
+    Mirrors run_preprocess_spec above, including the encoding and errors pair, which is set
+    because a non-ASCII byte in captured output otherwise raises UnicodeDecodeError on a Windows
+    console.
+    """
+    completed = subprocess.run(
+        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "generate.py")]
+        + list(arguments),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    return completed.returncode, completed.stdout + completed.stderr
+
+
+def check_generate_check_is_clean():
+    """A fresh generation reproduces the committed tree byte for byte, and writes nothing.
+
+    What this pins is the reproduction itself, and the write-nothing contract of
+    generator/generate.py --check. Recording sizes and digests before the run and asserting them
+    afterwards is what makes this a test of the control rather than of the message: a --check that
+    printed the right sentence while writing into the repository would satisfy the first two
+    assertions and fail the last two. check_preprocess_refuses_scratch_input states the same rule.
+
+    This check is not in OFFLINE_CHECKS. It runs the pinned generator image and takes roughly 30 to
+    60 seconds, and a machine without Docker must still get a green default suite.
+
+    The three sampled sources are the first, the middle and the last of the sorted member list, so
+    a failure names the same files on every run.
+    """
+    sources = [full for relative, full in generate.tree_members(REPO_ROOT)
+               if relative.endswith(".cs")]
+    watched = [
+        os.path.join(REPO_ROOT, "spec", "PROVENANCE.json"),
+        os.path.join(REPO_ROOT, ".openapi-generator", "FILES"),
+        os.path.join(REPO_ROOT, ".openapi-generator-ignore"),
+        sources[0],
+        sources[len(sources) // 2],
+        sources[-1],
+    ]
+    before = {path: (os.path.getsize(path), sha256_file(path)) for path in watched}
+    digest_before = generate.tree_sha256(REPO_ROOT)
+
+    code, output = run_generate("--check")
+
+    assert code == 0, (code, output)
+    assert "match the committed tree byte for byte" in output, output
+    for path in watched:
+        assert (os.path.getsize(path), sha256_file(path)) == before[path], path
+    assert generate.tree_sha256(REPO_ROOT) == digest_before, "the check run changed the tree"
+    print("ok  docker: a fresh generation reproduces the committed tree byte for byte and wrote "
+          "nothing")
+
+
+DOCKER_CHECKS = (check_generate_check_is_clean,)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Self-test the Whisparr 2 pipeline scripts.")
     parser.add_argument(
@@ -1146,11 +1208,18 @@ def main():
         action="store_true",
         help="Also run the checks that fetch real commits from raw.githubusercontent.com.",
     )
+    parser.add_argument(
+        "--docker",
+        action="store_true",
+        help="Also run the checks that regenerate the client through the pinned image.",
+    )
     args = parser.parse_args()
 
     checks = list(OFFLINE_CHECKS)
     if args.network:
         checks.extend(NETWORK_CHECKS)
+    if args.docker:
+        checks.extend(DOCKER_CHECKS)
     for check in checks:
         check()
 
