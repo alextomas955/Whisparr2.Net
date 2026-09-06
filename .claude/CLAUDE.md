@@ -51,6 +51,18 @@ The generated `src/Whisparr2.Net/Client/ClientUtils.cs` carries
 match it, do not add a second `InternalsVisibleTo`, and do not hand-edit the generated file to
 remove it. Tests use the public surface.
 
+`src/hand-written/` holds the hand-written client layer, and nothing in it is generator output.
+Those files compile into the library through a `Compile` glob in
+`src/Whisparr2.Net/Whisparr2.Net.csproj`, even though they sit outside that project's directory. One
+of them declares a partial in the generated `Whisparr2.Net.Client` namespace, and it still lives
+under `src/hand-written/` because nothing under `src/Whisparr2.Net/` survives a regeneration.
+
+`.gitattributes` applies `linguist-generated` to `src/Whisparr2.Net/**` and to no path under
+`src/hand-written/`, so these files are reviewed line by line. `.editorconfig` sets
+`generated_code = true` for `src/Whisparr2.Net/**` only, so analyzer coverage stays on for them. Do
+not add the generator's file-marker header to a file in that directory. It would be a false
+statement, and it would switch off the analyzer coverage those files are meant to keep.
+
 This section sits outside the marker-bracketed regions above and below, which a documentation
 regeneration replaces wholesale.
 
