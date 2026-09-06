@@ -1892,7 +1892,122 @@ def check_generate_check_is_clean():
           "nothing")
 
 
-DOCKER_CHECKS = (check_generate_check_is_clean,)
+def run_conformance():
+    """Invoke the real sweep and capture its output, with the external probe off.
+
+    Mirrors run_generate above, including the encoding and errors pair. The flag is removed from
+    the environment rather than left to whatever the caller exported, because the Docker group must
+    not need a route to the public internet and the probe's one read reaches an external metadata
+    service.
+    """
+    environment = dict(os.environ)
+    environment.pop(conformance.EXTERNAL_FLAG, None)
+    completed = subprocess.run(
+        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                      "conformance.py")],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=environment,
+        check=False,
+    )
+    return completed.returncode, completed.stdout + completed.stderr
+
+
+# The two entries the external probe adds to the committed patch list. The committed file was
+# produced with the probe on, and the check below runs without it, so these two are the whole of the
+# difference a hermetic run is allowed to have. Naming them is what lets the rest of the list be
+# compared entry for entry rather than loosely.
+CONFORMANCE_EXTERNAL_ONLY = (
+    ("SeriesResource", "monitorNewItems"),
+    ("SeriesResource", "seriesType"),
+)
+
+
+def check_conformance_sweep_reproduces_the_patch_list():
+    """A fresh sweep against the pin reproduces the committed patch list, and refuses on it.
+
+    What this pins is the deliverable. The committed document omits properties the running
+    application returns, so the sweep refusing is the correct outcome and a green run would mean it
+    found nothing. The check asserts the refusal and its exact contents instead of an exit code: the
+    suite stays green while the check itself refuses, and one more undeclared property turns the
+    suite red.
+
+    This check is not in OFFLINE_CHECKS. It boots the pinned image, calls ninety reads and issues
+    one write against the container it started, and a machine without Docker must still get a green
+    default suite.
+
+    The run is hermetic, so it reports the eight undeclared properties the instance returns without
+    reaching anything outside it. The committed file carries those eight and the two the external
+    probe adds. Both files are recorded before the run and restored after it, so a check that ran
+    with other work in progress reports the right thing and leaves nothing behind.
+    """
+    output_path = resolve_repo_path(conformance.OUTPUT_PATH)
+    provenance_path = resolve_repo_path(conformance.PROVENANCE_PATH)
+    with open(output_path, "rb") as handle:
+        committed_raw = handle.read()
+    with open(provenance_path, "rb") as handle:
+        provenance_raw = handle.read()
+
+    try:
+        code, output = run_conformance()
+
+        with open(output_path, encoding="utf-8") as handle:
+            fresh = json.load(handle)
+        committed = json.loads(committed_raw.decode("utf-8"))
+
+        # The run refuses. Against this pin the undeclared verdict always fires, and the file it
+        # wrote is the record of what it found.
+        assert code != 0, (code, output)
+        assert "a response carries a property the document does not declare" in output, output
+        assert os.path.basename(conformance.OUTPUT_PATH) in output, output
+
+        assert fresh["externalProbeRan"] is False, "the hermetic run reached outside the container"
+        assert fresh["measuredAgainst"] == committed["measuredAgainst"], fresh["measuredAgainst"]
+        assert fresh["readsSelected"] == committed["readsSelected"], fresh["readsSelected"]
+        assert fresh["readsSchemaChecked"] == committed["readsSchemaChecked"], \
+            fresh["readsSchemaChecked"]
+        assert fresh["writeProbe"] == committed["writeProbe"], fresh["writeProbe"]
+
+        # The whole of the patch list, entry for entry. The two the external probe adds are the
+        # only difference a run without it is allowed to have.
+        external = set(CONFORMANCE_EXTERNAL_ONLY)
+        expected = [entry for entry in committed["undeclaredProperties"]
+                    if (entry["schema"], entry["property"]) not in external]
+        assert len(expected) == len(committed["undeclaredProperties"]) - len(external), expected
+        assert fresh["undeclaredProperties"] == expected, fresh["undeclaredProperties"]
+
+        # Zero against this pin, which is why the three of them are evidenced offline.
+        for verdict in ("typeMismatches", "nullOnNonNullable", "enumViolations"):
+            assert fresh[verdict] == [], (verdict, fresh[verdict])
+
+        # The list of declared properties nothing returned covers only the schemas a run touched,
+        # and the probe touches one this run never reaches, so the committed list is the larger of
+        # the two. Every entry this run reports is in it, and the difference is that schema alone.
+        never = {(entry["schema"], entry["property"])
+                 for entry in committed["declaredNeverReturned"]}
+        strays = [entry for entry in fresh["declaredNeverReturned"]
+                  if (entry["schema"], entry["property"]) not in never]
+        assert not strays, strays
+        assert fresh["declaredNeverReturned"], "no declared property went unreturned at all"
+
+        with open(provenance_path, "rb") as handle:
+            assert handle.read() == provenance_raw, "the sweep wrote the provenance record"
+    finally:
+        # The committed file is the flagged run's, and this run wrote the hermetic one over it.
+        with open(output_path, "wb") as handle:
+            handle.write(committed_raw)
+
+    print("ok  docker: a hermetic sweep reports the {} committed undeclared properties without the "
+          "{} the external probe adds, no type, null or enum finding, and refuses on what it "
+          "found".format(len(expected), len(CONFORMANCE_EXTERNAL_ONLY)))
+
+
+DOCKER_CHECKS = (
+    check_generate_check_is_clean,
+    check_conformance_sweep_reproduces_the_patch_list,
+)
 
 
 def main():
