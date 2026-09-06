@@ -26,3 +26,22 @@ spec/openapi.raw.json -text linguist-generated
 # recorded in spec/PROVENANCE.json as generatedSpecSha256. Same reason as the rule above: the hash
 # is computed over bytes that end-of-line conversion on checkout must not be allowed to rewrite.
 spec/openapi.generated.json -text linguist-generated
+
+# linguist-generated drops these from the language statistics and collapses them in GitHub diffs.
+# src/Whisparr2.Net/ is openapi-generator output and .openapi-generator/FILES is its manifest of
+# that output. Both are generated bulk that no reviewer reads line by line.
+# Deliberately not the binary macro: it expands to -diff -merge -text, and -text would let a
+# checkout rewrite the line endings that generatedTreeSha256 in spec/PROVENANCE.json is computed
+# over.
+src/Whisparr2.Net/** linguist-generated
+.openapi-generator/FILES linguist-generated
+
+# The one exception inside src/Whisparr2.Net/. The wide glob above matches the hand-owned
+# Whisparr2.Net.csproj too, and that file is the one thing in that directory a reviewer must read
+# line by line: its content is the difference between a working .snupkg and a dead one. Later
+# lines win, so this narrower line releases it.
+src/Whisparr2.Net/Whisparr2.Net.csproj -linguist-generated
+
+# .openapi-generator/VERSION is left unmarked deliberately, and is not an oversight. It is one
+# line holding the generator version, and a generator version bump is exactly the diff a reviewer
+# wants shown, so collapsing it would remove the signal rather than reduce noise.
