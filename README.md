@@ -17,4 +17,5 @@ API version and not to the application version.
 
 ## Re-verifying the pin
 
-See `docs/REGENERATION.md`. That document arrives with the regeneration work later in this phase.
+See `docs/REGENERATION.md`. It covers re-verifying the pin offline, moving the pin,
+pre-processing the specification, generating the client and verifying the container image.
