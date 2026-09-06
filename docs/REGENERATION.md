@@ -247,6 +247,22 @@ Every refusal exits non-zero and leaves the tree untouched. Find yours by its fi
 | `ERROR: REFUSED - the instance reports branch 'eros' version '3.4.0.1387'. Required: branch 'v2' and major version 2.` | The booted image is not Whisparr 2. |
 | `ERROR: REFUSED - provenance would record no observed value for: whisparrBuildTime.` | A field the run would record came back null or blank. A null is not an observation. |
 | `ERROR: REFUSED - the container log carries an access-denied exception, so the seed did not land at mode 0666.` | The seeded config landed at the wrong file mode. The identity read still succeeds, so the log is the only trace. |
+| `ERROR: REFUSED - a non-default input may not be written to the committed output path. Pass --out-file with a scratch path too. input <path> / output <path>` | A run over a scratch input was pointed at the committed output. Pass `--out-file` with a scratch path too. |
+| `ERROR: REFUSED - no input document at spec/openapi.raw.json.` | The pinned specification has not been fetched. Run `generator/fetch_spec.py` first. |
+| `ERROR: REFUSED - root security already declares the header scheme alone, so there is nothing to narrow. Nothing was written.` | Upstream narrowed the declared security itself. Delete the transformation rather than weakening it. |
+| `ERROR: REFUSED - paths["/"] is not present, so there is no malformed root path to delete. Nothing was written.` | Upstream removed the malformed root path. Delete the transformation. |
+| `ERROR: REFUSED - the path item /api/v3/series is not a JSON object. Nothing was written.` | A path item in the document is not a JSON object, so no operation identifier is derived from it. |
+| `ERROR: REFUSED - the operation get /api/v3/series is not a JSON object. Nothing was written.` | The same cause as the row above, one level down: an operation is not a JSON object. |
+| `ERROR: REFUSED - every operation already carries an operationId, so there is nothing to derive. Nothing was written.` | Upstream annotated the document. The derivation, the override table and the three assertions all go with it. |
+| `ERROR: REFUSED - 3 override entries match no operation in this spec. Whisparr has moved or removed a path, so the name it pinned is now derived instead. Nothing was written.` | A name the override table pinned is now derived instead. The message lists each stale entry. |
+| `ERROR: REFUSED - the collision assertion failed: 2 operationIds are carried by more than one operation.` | Two operations derived one name, and the generator emits one class per tag. Add an override for one of them. |
+| `ERROR: REFUSED - the identifier shape assertion failed: 1 names do not match [A-Z][A-Za-z0-9]*. Add an override for each. Nothing was written.` | A derived name is not a valid identifier. Add an override for it. |
+| `ERROR: REFUSED - the schemas Version, HttpUri, TimeSpan, DateOnly, DayOfWeek are the ones this rewrite replaces, and this document does not declare DateOnly. Nothing was written.` | Upstream stopped declaring one of the five. Re-measure the rewrite against the new document. |
+| `ERROR: REFUSED - TimeSpan is no longer declared as an object, so the CLR-shaped rewrite no longer applies. Nothing was written.` | One of the four object expansions is no longer an object. Re-measure the rewrite against the new document. |
+| `ERROR: REFUSED - DayOfWeek is no longer declared as a string enum, so the CLR-shaped rewrite no longer applies. Nothing was written.` | The fifth schema is no longer a string enum. Re-measure the rewrite against the new document. |
+| `ERROR: REFUSED - the only reference expected inside these five schemas is DateOnly.dayOfWeek -> DayOfWeek, and this document carries none. Nothing was written.` | The reference graph among the five moved, so the split into one internal site and ten external ones no longer holds. |
+| `ERROR: REFUSED - no property references Version, HttpUri, TimeSpan, DateOnly, DayOfWeek, so there is nothing to rewrite. Nothing was written.` | Nothing outside the five references them, so the rewrite has no site to change. Delete it. |
+| `ERROR: REFUSED - the patched document carries 226 operations. The input carried 228 and T2 removed 1, so 227 were expected. Nothing was written.` | The census disagrees with the input less what the root-path delete removed. Something dropped an operation. |
 
 ## Checking the scripts themselves
 
