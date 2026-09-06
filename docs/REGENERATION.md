@@ -272,6 +272,12 @@ The staged tree is gated before anything committed is deleted. In order:
 Every one of the six runs before the first delete. Step 6 is the pre-flight: it runs after the gate
 has approved the staged tree and immediately before the first unlink.
 
+Step 6 refuses on three states, not one. A committed tree whose bytes no longer match the recorded
+digest is a hand edit. A committed tree missing one of the five subdirectories is a tree already
+damaged, and it refuses rather than treating the absence as a first run. Only a tree with no
+recorded digest and none of the five subdirectories is a first run, and that establishes the
+digest.
+
 A clean run over the current pin stages 221 `.cs` files, reports that all 227 method names the spec
 declares are implemented, copies 221 `.cs` files back, and prints the digest it wrote.
 
