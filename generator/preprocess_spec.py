@@ -158,3 +158,328 @@ def delete_root_path(document):
     removed = sum(1 for method in paths["/"] if method in HTTP_METHODS)
     del paths["/"]
     return removed, []
+
+
+def assign_operation_ids(document):
+    """T3. Derive and assign an operationId for every operation. Returns (count, refusal lines).
+
+    Order matters and it is not the order the assignments read in. Derive first, then test the
+    zero-condition, then run the three assertions, then assign. Testing the zero-condition before
+    deriving would skip the stale-override check on a document that had been annotated upstream,
+    which is exactly the case where an override key is most likely to have moved.
+    """
+    paths = document["paths"]
+
+    operations = []
+    overrides_used = set()
+    shape_problems = []
+    for path, item in paths.items():
+        if not isinstance(item, dict):
+            shape_problems.append(
+                "ERROR: REFUSED - the path item " + path + " is not a JSON object. Nothing was "
+                "written."
+            )
+            continue
+        for method, operation in item.items():
+            if method not in HTTP_METHODS:
+                continue
+            if not isinstance(operation, dict):
+                shape_problems.append(
+                    "ERROR: REFUSED - the operation {} {} is not a JSON object. Nothing was "
+                    "written.".format(method, path)
+                )
+                continue
+            key = method.upper() + " " + path
+            if key in OPERATION_ID_OVERRIDES:
+                operation_id = OPERATION_ID_OVERRIDES[key]
+                overrides_used.add(key)
+            else:
+                tags = operation.get("tags") or []
+                tag = tags[0] if tags and isinstance(tags[0], str) else ""
+                operation_id = derive_operation_id(method, path, tag, returns_json_array(operation))
+            operations.append((key, operation_id, operation))
+    if shape_problems:
+        return 0, shape_problems
+
+    # Phrased "every operation already has one", not "any". A partial upstream annotation pass
+    # gives some operations an operationId and not others, and the pipeline can still handle that
+    # document, so the check stays quiet through it. The first operand guards the empty case, so a
+    # document with no operations at all does not read as already annotated.
+    if operations and all("operationId" in operation for _, _, operation in operations):
+        return 0, [
+            "ERROR: REFUSED - every operation already carries an operationId, so there is nothing "
+            "to derive. Nothing was written."
+        ]
+
+    # An override that matches no operation is the only remaining signal that Whisparr moved a path.
+    stale = [k for k in OPERATION_ID_OVERRIDES if k not in overrides_used]
+    if stale:
+        return 0, [
+            "ERROR: REFUSED - {} override entries match no operation in this spec. Whisparr has "
+            "moved or removed a path, so the name it pinned is now derived instead. Nothing was "
+            "written.".format(len(stale))
+        ] + ["    {} -> {}".format(k, OPERATION_ID_OVERRIDES[k]) for k in stale]
+
+    # Not the generator's FIX_DUPLICATED_OPERATIONID normalizer, which de-duplicates by appending a
+    # positional suffix: that masks this assertion, and inserting an operation upstream then moves
+    # the suffix onto a different method and renames public API with no diff.
+    by_id = {}
+    for key, operation_id, _ in operations:
+        by_id.setdefault(operation_id, []).append(key)
+    collisions = {i: keys for i, keys in by_id.items() if len(keys) > 1}
+    if collisions:
+        return 0, [
+            "ERROR: REFUSED - the collision assertion failed: {} operationIds are carried by more "
+            "than one operation.".format(len(collisions))
+        ] + [
+            "    {} is assigned to: {}".format(i, ", ".join(keys))
+            for i, keys in collisions.items()
+        ] + [
+            "  The generator emits one class per tag, so two operations sharing an operationId are "
+            "two methods with one name on one class. Add an override for one of them. Nothing was "
+            "written."
+        ]
+
+    # fullmatch, and the pattern carries no IGNORECASE: a case-insensitive match would accept
+    # listMovie and pass a name the generator then sanitizes into one of its own choosing. This is
+    # the assertion that catches GetFeedV3CalendarWhisparr.ics.
+    bad_shape = [(k, i) for k, i, _ in operations if not OPERATION_ID_PATTERN.fullmatch(i)]
+    if bad_shape:
+        return 0, [
+            "ERROR: REFUSED - the identifier shape assertion failed: {} names do not match {}. Add "
+            "an override for each. Nothing was written.".format(
+                len(bad_shape), OPERATION_ID_PATTERN.pattern
+            )
+        ] + ["    {} derived the invalid identifier {}".format(k, i) for k, i in bad_shape]
+
+    # Added as a new last key, which is deterministic run to run.
+    for _, operation_id, operation in operations:
+        operation["operationId"] = operation_id
+    return len(operations), []
+
+
+STRING = {"type": "string", "nullable": True}
+DATE = {"type": "string", "format": "date", "nullable": True}
+
+# Four object expansions of CLR types the server serialises as strings, and one string enum whose
+# name collides with System.DayOfWeek. Only the names and the replacements are pinned. The
+# properties that reference them are found by scanning, so an upstream schema gaining an eleventh
+# reference is rewritten rather than skipped.
+OBJECT_SHAPED = {"Version": STRING, "HttpUri": STRING, "TimeSpan": STRING, "DateOnly": DATE}
+# DayOfWeek describes the wire correctly. It is deleted because deleting DateOnly orphans it, and
+# because the name collides with the framework type of the same name and produces
+# "CS0104: 'DayOfWeek' is an ambiguous reference" in the generator's own Client/ClientUtils.cs.
+STRING_ENUM = "DayOfWeek"
+CLR_SCHEMAS = tuple(OBJECT_SHAPED) + (STRING_ENUM,)
+
+# DayOfWeek is reachable only through DateOnly, so deleting DateOnly is what orphans it. Asserted
+# rather than assumed, because it is the one reference the rewrite must not follow.
+INTERNAL_REFERENCE = ("DateOnly", "dayOfWeek", "DayOfWeek")
+
+REF_PREFIX = "#/components/schemas/"
+
+
+def rewrite_clr_schemas(document):
+    """T4. Replace references to the five CLR-shaped schemas with strings, then delete the five.
+
+    Shaped as collect, assert, then mutate. That keeps every refusal ahead of every mutation, and
+    it means the walk never inserts or deletes a key in a dict it is iterating.
+
+    nullable: true is an addition and not a preservation. No reference site carries a key alongside
+    its $ref, so substituting the whole node loses nothing. Dropping nullable under nullable
+    reference types would produce a non-nullable string for a field the server can send as null,
+    which throws on read rather than at compile time.
+    """
+    schemas = (document.get("components") or {}).get("schemas") or {}
+
+    missing = [name for name in CLR_SCHEMAS if name not in schemas]
+    if missing:
+        return 0, [
+            "ERROR: REFUSED - the schemas {} are the ones this rewrite replaces, and this document "
+            "does not declare {}. Nothing was written.".format(
+                ", ".join(CLR_SCHEMAS), ", ".join(missing)
+            )
+        ]
+    # Four of the five are object expansions. The fifth, DayOfWeek, is already declared as a string
+    # carrying an enum, so asserting that all five are objects would refuse the correct document.
+    not_object = [
+        name for name in OBJECT_SHAPED
+        if not isinstance(schemas[name], dict) or schemas[name].get("type") != "object"
+    ]
+    if not_object:
+        return 0, [
+            "ERROR: REFUSED - {} is no longer declared as an object, so the CLR-shaped rewrite no "
+            "longer applies. Nothing was written.".format(", ".join(not_object))
+        ]
+    enum_schema = schemas[STRING_ENUM]
+    if not (
+        isinstance(enum_schema, dict)
+        and enum_schema.get("type") == "string"
+        and enum_schema.get("enum")
+    ):
+        return 0, [
+            "ERROR: REFUSED - DayOfWeek is no longer declared as a string enum, so the CLR-shaped "
+            "rewrite no longer applies. Nothing was written."
+        ]
+
+    targets = set(CLR_SCHEMAS)
+    # Keyed on identity, so the walk knows when the trail it is on runs through one of the five.
+    owner_of = {id(schemas[name]): name for name in CLR_SCHEMAS}
+    inside = []
+    outside = []
+
+    def walk(node, owner):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if isinstance(value, dict):
+                    reference = value.get("$ref")
+                    name = None
+                    if isinstance(reference, str) and reference.startswith(REF_PREFIX):
+                        name = reference[len(REF_PREFIX):]
+                    if name in targets:
+                        if owner is None:
+                            outside.append((node, key, name))
+                        else:
+                            inside.append((owner, key, name))
+                        continue
+                walk(value, owner_of.get(id(value), owner))
+        elif isinstance(node, list):
+            for item in node:
+                walk(item, owner)
+
+    # The whole document, not only the schema section, so an upstream inline reference in a
+    # parameters or requestBody node is caught rather than skipped.
+    walk(document, None)
+
+    if sorted(inside) != [INTERNAL_REFERENCE]:
+        return 0, [
+            "ERROR: REFUSED - the only reference expected inside these five schemas is "
+            "DateOnly.dayOfWeek -> DayOfWeek, and this document carries {}. Nothing was "
+            "written.".format(
+                ", ".join("{}.{} -> {}".format(*site) for site in sorted(inside)) or "none"
+            )
+        ]
+    if not outside:
+        return 0, [
+            "ERROR: REFUSED - no property references {}, so there is nothing to rewrite. Nothing "
+            "was written.".format(", ".join(CLR_SCHEMAS))
+        ]
+
+    # A fresh copy per site. Sharing one dict across ten sites serialises correctly but leaves the
+    # document holding aliased nodes, which is a trap for any later transformation.
+    for parent, key, name in outside:
+        parent[key] = dict(OBJECT_SHAPED.get(name, STRING))
+    for name in CLR_SCHEMAS:
+        del schemas[name]
+    return len(outside), []
+
+
+# Walked by main(), and walked by generator/selftest.py, exactly as that script walks its own check
+# tuple.
+TRANSFORMATIONS = (
+    ("T1", apply_root_security),
+    ("T2", delete_root_path),
+    ("T3", assign_operation_ids),
+    ("T4", rewrite_clr_schemas),
+)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Pre-process the Whisparr 2 OpenAPI document.")
+    parser.add_argument("--raw-spec", default=DEFAULT_RAW_SPEC)
+    parser.add_argument("--out-file", default=DEFAULT_OUT_FILE)
+    args = parser.parse_args()
+
+    raw_path = resolve_repo_path(args.raw_spec)
+    out_path = resolve_repo_path(args.out_file)
+    out_dir = os.path.dirname(out_path)
+    # Derived from the output file's own directory, so a scratch run cannot overwrite the committed
+    # one.
+    provenance_path = os.path.join(out_dir, "PROVENANCE.json")
+
+    default_raw = resolve_repo_path(DEFAULT_RAW_SPEC)
+    default_out = resolve_repo_path(DEFAULT_OUT_FILE)
+
+    print("Pre-process Whisparr 2 openapi -> " + out_path)
+
+    # --- 0. A fixture run must never promote itself onto the committed deliverable ---
+    # The two operands take different comparisons on purpose. "Non-default input" is exact, so on
+    # Linux spec/OPENAPI.RAW.JSON is not spec/openapi.raw.json. "Committed output path" is
+    # case-insensitive on Windows via normcase, because on NTFS a differently-cased spelling IS the
+    # committed file.
+    if raw_path != default_raw and os.path.normcase(out_path) == os.path.normcase(default_out):
+        die(
+            "ERROR: REFUSED - a non-default input may not be written to the committed output path. "
+            "Pass --out-file with a scratch path too. input {} / output {}".format(raw_path, out_path)
+        )
+    if not os.path.isfile(raw_path):
+        die("ERROR: REFUSED - no input document at " + raw_path + ".")
+
+    # --- 1. Parse ---
+    with open(raw_path, "r", encoding="utf-8") as handle:
+        document = json.load(handle)
+    print("  + parsed {} bytes from {}".format(os.path.getsize(raw_path), raw_path))
+
+    # Counted before the transformations run, so the census below checks the output against this
+    # input rather than against a number typed into this file. Whisparr adds and removes operations
+    # between releases; what has to hold is that T2 removed exactly the root path and nothing else.
+    operations_in = sum(
+        1 for item in document["paths"].values() for m in item if m in HTTP_METHODS
+    )
+
+    # --- 2. The four transformations ---
+    # Each reports what it changed and describes what it refuses. Only main() refuses, so each one
+    # can be driven over a synthetic document with nothing written. One refusal per transformation:
+    # a run-level test that something changed passes while three of the four are dead.
+    changes = {}
+    refusals = []
+    for name, transform in TRANSFORMATIONS:
+        count, problems = transform(document)
+        changes[name] = count
+        refusals.extend(problems)
+        if not problems:
+            print("  + {} changed {}".format(name, count))
+    if refusals:
+        die(*refusals)
+
+    # --- 3. The census ---
+    # It runs after the refusal gate, never beside it. If T2 refuses and the census ran anyway it
+    # would pass, because the input count minus zero equals the number T3 annotated.
+    expected_operations = operations_in - changes["T2"]
+    if changes["T3"] != expected_operations:
+        die(
+            "ERROR: REFUSED - the patched document carries {} operations. The input carried {} and "
+            "T2 removed {}, so {} were expected. Nothing was written.".format(
+                changes["T3"], operations_in, changes["T2"], expected_operations
+            )
+        )
+    print("  + census: {} in, {} removed by T2, {} out".format(
+        operations_in, changes["T2"], changes["T3"]))
+
+    # --- 4. Write ---
+    # Every refusal above has already passed, so this is the first write to anything committed.
+    # There is no staging file: json.dumps either serializes the whole document or raises, so a
+    # silently truncated write is not a failure mode that needs guarding here.
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    write_json_lf(out_path, document)
+    print(
+        "  + wrote {} bytes, sha256 {}".format(os.path.getsize(out_path), sha256_file(out_path))
+    )
+
+    # --- 5. The manifest ---
+    # generator/fetch_spec.py:218 pops generatedSpecSha256 on every fetch. Deliberate: a new fetch
+    # invalidates the patched spec, and this script is what puts the field back.
+    if os.path.isfile(provenance_path):
+        promoted_sha = sha256_file(out_path)
+        with open(provenance_path, "r", encoding="utf-8") as handle:
+            provenance = json.load(handle)
+        provenance["generatedSpecSha256"] = promoted_sha
+        write_json_lf(provenance_path, provenance)
+        print("  + wrote generatedSpecSha256 {} to {}".format(promoted_sha, provenance_path))
+
+    print("Done. " + out_path)
+
+
+if __name__ == "__main__":
+    main()
