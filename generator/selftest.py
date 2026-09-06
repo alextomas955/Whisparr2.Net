@@ -199,6 +199,30 @@ def check_provenance_complete():
     print("ok  provenance: thirteen spec fields present and observed, no patched-spec field")
 
 
+def check_url_is_commit_addressed():
+    """The fetch URL carries the commit it was given, and the recorded URL carries the recorded one.
+
+    The refusal at the argparse boundary only decides which values may be spoken. This decides
+    where the value goes. A spec_url that substituted SPEC_REF_NAME for its argument would fetch a
+    moving branch head while provenance still recorded a commit, and every other offline check here
+    passes with that substitution in place.
+    """
+    prefix = fetch_spec.RAW_HOST + fetch_spec.SPEC_REPO + "/"
+    url = fetch_spec.spec_url(fetch_spec.SPEC_COMMIT)
+    assert url.startswith(prefix), url
+    assert url[len(prefix):].split("/", 1)[0] == fetch_spec.SPEC_COMMIT, url
+    assert url.endswith("/" + fetch_spec.SPEC_PATH), url
+
+    other = "0" * 40
+    assert fetch_spec.spec_url(other)[len(prefix):].split("/", 1)[0] == other
+
+    provenance = read_provenance()
+    assert provenance["fetchedFrom"] == fetch_spec.spec_url(provenance["specCommit"]), provenance[
+        "fetchedFrom"
+    ]
+    print("ok  fetch url: the commit argument addresses the URL, and fetchedFrom matches specCommit")
+
+
 def parse_and_check(argv):
     """Run the flag contract over one argv vector. Returns (exit code, stderr text).
 
@@ -407,6 +431,7 @@ OFFLINE_CHECKS = (
     check_atomic_write,
     check_committed_spec,
     check_provenance_complete,
+    check_url_is_commit_addressed,
     check_flag_vectors,
     check_propose_is_fail_closed,
     check_image_identity,
