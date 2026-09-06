@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- No TargetFramework element on purpose. Directory.Build.props sets the plural
+         TargetFrameworks, and setting the singular one alongside it leaves the build green while
+         the test runner reports that no test is available. Omitting it cross-targets, so the whole
+         suite runs once per target framework. -->
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- PackageId is inherited from Directory.Build.props and applies whatever IsPackable says, so
+         without this line restore fails with "Ambiguous project name 'Whisparr2.Net'". -->
+    <PackageId>$(MSBuildProjectName)</PackageId>
+    <!-- The root props turn documentation generation on for the library, and an undocumented
+         public test class then produces CS1591 as an error under TreatWarningsAsErrors: four of
+         them, two members times two target frameworks. A test assembly ships no documentation, so
+         there is nothing for the diagnostic to be about. Turning generation off here is narrower
+         than adding CS1591 to the root NoWarn, which would also stop the diagnostic firing for
+         src/hand-written/, and that is public surface which must stay documented. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The template also offers a coverage collector. Nothing here collects coverage, so it is
+         dropped rather than installed and ignored. -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- This reference, plus direct calls to AddWhisparr2, is what makes an uncompiled hand-written
+       directory a hard build error here instead of a green suite that tested nothing. Do not test
+       through an intermediate abstraction and do not copy the hand-written sources in. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Whisparr2.Net\Whisparr2.Net.csproj" />
+  </ItemGroup>
+
+</Project>
