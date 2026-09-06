@@ -36,6 +36,7 @@ import subprocess
 import sys
 import tempfile
 
+import conformance
 import fetch_spec
 import generate
 import preprocess_spec
@@ -1625,6 +1626,128 @@ def check_integration_suite_addresses_only_its_own_container():
           "forbidden shapes are each refused in their own words".format(len(sources), len(fired)))
 
 
+# Two schemas and five properties, in the spirit of zero_condition_documents() above: an integer, a
+# nullable string, a boolean, a reference to a string enum, and a nullable map of nullable strings.
+# Small enough that a reader can hold the whole expectation in their head, and enough to reach every
+# branch of the walker that reports a failure.
+CONFORMANCE_PAIR_DOCUMENT = {
+    "components": {
+        "schemas": {
+            "Thing": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "id": {"type": "integer", "format": "int32"},
+                    "label": {"type": "string", "nullable": True},
+                    "enabled": {"type": "boolean"},
+                    "kind": {"$ref": "#/components/schemas/ThingKind"},
+                    "strings": {
+                        "type": "object",
+                        "additionalProperties": {"type": "string", "nullable": True},
+                        "nullable": True,
+                    },
+                },
+            },
+            "ThingKind": {"enum": ["standard", "special"], "type": "string"},
+        }
+    }
+}
+
+CONFORMANCE_PAIR_ROOT = {"$ref": "#/components/schemas/Thing"}
+
+# Six pairs. Four produce a finding and two must not, because a walker that flagged everything would
+# satisfy the first four and be useless. The expectation carries the owning schema name: a finding
+# that could not name its schema could not be keyed by schema and property, which is the whole shape
+# of the patch list, and the two pairs that reach an inline subschema are where that is lost.
+CONFORMANCE_PAIRS = (
+    ("an undeclared property",
+     {"id": 1, "javEpisodeFormat": "x"},
+     ("undeclared", "Thing", "$.javEpisodeFormat")),
+    ("a wrong JSON type", {"id": "1"}, ("type", "Thing", "$.id")),
+    ("a null on a property that does not declare nullable", {"id": None},
+     ("null", "Thing", "$.id")),
+    ("an enum value outside the declared set", {"kind": "premium"},
+     ("enum", "ThingKind", "$.kind")),
+    ("a map-shaped site", {"strings": {"a": "b", "c": None}}, None),
+    ("a fully conformant body",
+     {"id": 1, "label": None, "enabled": True, "kind": "standard", "strings": {"a": "b"}},
+     None),
+)
+
+# The seventh case is not a walker case. The content type is classified before a body is parsed, so
+# the assertion is over the classifier, and handing the walker a body it never sees would state the
+# wrong rule. Four that must not be read as JSON, two that must.
+NON_JSON_CONTENT_TYPES = (
+    "text/html",
+    "text/html; charset=utf-8",
+    "text/calendar",
+    "text/plain",
+)
+JSON_CONTENT_TYPES = ("application/json", "application/json; charset=utf-8")
+
+
+def conformance_findings(body):
+    """Every finding the shipped walker records for one body against the pair document."""
+    findings = []
+    conformance.walk(CONFORMANCE_PAIR_DOCUMENT, CONFORMANCE_PAIR_ROOT, body, findings, set())
+    return findings
+
+
+def check_conformance_failure_branches():
+    """The four failing verdicts fire over synthetic pairs, and the three script refusals fire too.
+
+    What this pins is every branch of the sweep that a run against this pin never reaches. The type,
+    null and enum verdicts occur zero times against the pinned image, so this is the only place they
+    are ever seen firing: all three could be deleted and the Docker run stayed green. The shipped
+    module is imported rather than restated, because a copy would pass while the walker was broken.
+
+    Nothing here opens a socket or starts a container.
+    """
+    for name, body, expected in CONFORMANCE_PAIRS:
+        findings = conformance_findings(body)
+        if expected is None:
+            assert findings == [], (name, findings)
+            continue
+        assert len(findings) == 1, (name, findings)
+        verdict, schema, path, _detail = findings[0]
+        assert (verdict, schema, path) == expected, (name, findings[0])
+
+    # The four verdict sentences, from the findings the pairs just produced. Each is a line
+    # docs/REGENERATION.md keys a row on, and a verdict with no sentence would print nothing.
+    lines = conformance.refuse_findings([finding for _name, body, expected in CONFORMANCE_PAIRS
+                                         if expected for finding in conformance_findings(body)])
+    assert len(lines) == 4, lines
+    assert len(set(lines)) == 4, lines
+    assert all(line.startswith(conformance.REFUSAL_PREFIX) for line in lines), lines
+
+    assert not any(conformance.classify_json(entry) for entry in NON_JSON_CONTENT_TYPES)
+    assert all(conformance.classify_json(entry) for entry in JSON_CONTENT_TYPES)
+
+    # The bodiless map names a schema, and against a document that no longer declares it the sweep
+    # would validate a payload against the wrong schema and report every difference as a finding.
+    named = {schema for schema, _shape, _query in conformance.BODILESS_SCHEMA_MAP.values()}
+    declares = {"components": {"schemas": {schema: {"type": "object"} for schema in named}}}
+    refusals = (
+        (conformance.refuse_bodiless_map({"components": {"schemas": {}}},
+                                         conformance.BODILESS_SCHEMA_MAP),
+         conformance.refuse_bodiless_map(declares, conformance.BODILESS_SCHEMA_MAP)),
+        (conformance.refuse_empty_selection(0), conformance.refuse_empty_selection(90)),
+        # 80 answered, 4 non-JSON and 6 bodiless with data leave 70 to schema-check.
+        (conformance.refuse_invariant(70, 80, 4, 8), conformance.refuse_invariant(70, 80, 4, 6)),
+    )
+    for fires, quiet in refusals:
+        assert (fires or "").startswith(conformance.REFUSAL_PREFIX), fires
+        assert fires.endswith(REFUSAL_TAIL), fires
+        assert quiet is None, quiet
+    assert len({fires for fires, _quiet in refusals}) == len(refusals), refusals
+
+    produced = sum(1 for _name, _body, expected in CONFORMANCE_PAIRS if expected)
+    print("ok  conformance branches: {} synthetic pairs, {} of them producing a finding, {} "
+          "content types classified without parsing, {} script refusals fired".format(
+              len(CONFORMANCE_PAIRS), produced,
+              len(NON_JSON_CONTENT_TYPES) + len(JSON_CONTENT_TYPES), len(refusals)))
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -1656,6 +1779,7 @@ OFFLINE_CHECKS = (
     check_preflight_refuses_a_damaged_tree,
     check_write_tree_digest_keeps_the_record,
     check_integration_suite_addresses_only_its_own_container,
+    check_conformance_failure_branches,
 )
 
 # Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
