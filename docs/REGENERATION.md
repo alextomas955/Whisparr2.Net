@@ -78,6 +78,14 @@ correct outcome, not a missing step. The spec file itself is rewritten with iden
 
 Follow the steps in order. None of them is optional.
 
+The steps substitute three placeholders:
+
+- `<sha40>` is the candidate commit, written as 40 lowercase hex characters. An uppercase spelling
+  of the same commit, a value carrying surrounding whitespace, and a ref name such as `v2` are each
+  refused at the commit-taking flags. The refusal table below quotes the message.
+- `<hex64>` is the sha256 of the candidate's bytes, read from the output of step 1.
+- `<n>` is the byte count of the candidate, read from the output of step 1.
+
 1. Propose the candidate commit. This mode fetches read-only, prints the observed size, sha256 and
    blob sha1, and writes nothing.
 
@@ -172,6 +180,7 @@ Every refusal exits non-zero and leaves the tree untouched. Find yours by its fi
 | `ERROR: REFUSED - this document declares /api/v3/movie, /api/v3/alttitle and not /api/v3/series, /api/v3/episode.` | The fetched document is the Whisparr 3 one from the same upstream repository. |
 | `fetch_spec.py: error: moving the pin requires --commit, --expect-sha256 and --expect-bytes together;` | A move was attempted without stating all three expected values. |
 | `fetch_spec.py: error: --propose writes nothing and cannot be combined with --commit.` | A read-only proposal was combined with a move flag. |
+| `fetch_spec.py: error: argument --commit: 'v2' is not a 40-character lowercase hex commit SHA.` | The value is not 40 lowercase hex characters: a ref name such as `v2`, an uppercase spelling of a real commit, a value carrying surrounding whitespace, or a value of any other length. Both `--commit` and `--propose` carry the same check, so the flag the message names is whichever one was used. |
 | `ERROR: REFUSED - the body is 337327 bytes, expected exactly 282862.` | The fetched byte count disagrees with the pin. |
 | `ERROR: REFUSED - sha256 is <observed>, expected <expected>.` | The fetched bytes hash to something other than the pin. The blob sha1 has its own line in the same form. |
 | `ERROR: REFUSED - the instance reports branch 'eros' version '3.4.0.1387'. Required: branch 'v2' and major version 2.` | The booted image is not Whisparr 2. |
