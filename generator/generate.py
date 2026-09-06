@@ -29,6 +29,7 @@ and no promote step at all. generator/fetch_spec.py --propose already follows th
 """
 
 import argparse
+import getpass
 import hashlib
 import json
 import os
@@ -360,6 +361,18 @@ def main():
         # These two files are the entire input, which is why a hand edit to the committed
         # .openapi-generator-ignore is discarded on the next run.
         os.makedirs(os.path.join(stage, "spec"))
+        # Entries the container creates inside the mount inherit the staging root's ACL. A root
+        # made by tempfile.mkdtemp carries no inheritable entry for the invoking user, so on Windows
+        # the host cannot traverse the package root the container wrote: os.listdir raises WinError
+        # 5, the staged-tree gate below reports all five subdirectories missing, and the root cannot
+        # be removed afterwards, so abandoned copies of the whole client accumulate under the
+        # temp directory. Measured: this grant fixes both, and a chmod from inside a second
+        # container does not, because the restriction is an ACL rather than a mode.
+        if os.name == "nt":
+            subprocess.run(
+                ["icacls", stage, "/grant", "{}:(OI)(CI)F".format(getpass.getuser())],
+                capture_output=True, text=True, check=False,
+            )
         os.makedirs(os.path.join(stage, "generator"))
         shutil.copy2(os.path.join(REPO_ROOT, "spec", "openapi.generated.json"), os.path.join(stage, "spec"))
         shutil.copy2(os.path.join(REPO_ROOT, "generator", "gen-config.yaml"), os.path.join(stage, "generator"))
@@ -368,7 +381,8 @@ def main():
         # deleted ---
         # The image runs as uid 0. On a Linux runner that makes every directory it creates inside
         # the bind mount root-owned, and the cleanup below then cannot unlink under them. Windows
-        # bind mounts carry no POSIX ownership, so the flag is added only where it means something.
+        # has no getuid, and the equivalent problem there is solved by the ACL grant on the staging
+        # root rather than by this flag; passing a uid on Windows does not help.
         user_args = [] if os.name == "nt" else ["--user", "{}:{}".format(os.getuid(), os.getgid())]
         # encoding is pinned rather than left to text=True, which decodes with the locale
         # codec. On a Windows console that is cp1252, and this image emits bytes it cannot
