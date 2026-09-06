@@ -306,3 +306,161 @@ def gate_staged_tree(stage, stage_pkg_dir, pkg_dir):
     print("  + every one of the {} method names the spec declares is implemented".format(
         len(expected_methods)))
     return staged_cs
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Regenerate the Whisparr2.Net client tree.")
+    parser.add_argument("--image-digest", default=DEFAULT_IMAGE_DIGEST)
+    parser.add_argument(
+        "--check", action="store_true",
+        help="do not write; exit 1 if the committed tree differs from the render",
+    )
+    args = parser.parse_args()
+
+    image = "openapitools/openapi-generator-cli@" + args.image_digest
+    pkg_dir = os.path.join(REPO_ROOT, "src", "Whisparr2.Net")
+    gen_meta_dir = os.path.join(REPO_ROOT, ".openapi-generator")
+    stage = tempfile.mkdtemp(prefix="whisparr2-generate-")
+    stage_pkg_dir = os.path.join(stage, "src", "Whisparr2.Net")
+
+    print(("Check" if args.check else "Generate") + " Whisparr2.Net client -> " + pkg_dir)
+    print("  - image " + image)
+
+    # False until step 3 starts deleting. The handler branches on it, because whether the repository
+    # is mid-replace is the one fact a caller needs and a bare traceback does not carry.
+    tree_touched = False
+
+    try:
+        # --- 1. Stage the two inputs, mirroring the repository layout ---
+        # These two files are the entire input, which is why a hand edit to the committed
+        # .openapi-generator-ignore is discarded on the next run.
+        os.makedirs(os.path.join(stage, "spec"))
+        os.makedirs(os.path.join(stage, "generator"))
+        shutil.copy2(os.path.join(REPO_ROOT, "spec", "openapi.generated.json"), os.path.join(stage, "spec"))
+        shutil.copy2(os.path.join(REPO_ROOT, "generator", "gen-config.yaml"), os.path.join(stage, "generator"))
+
+        # --- 2. Run the pinned image, then gate the staged tree before anything committed is
+        # deleted ---
+        # The image runs as uid 0. On a Linux runner that makes every directory it creates inside
+        # the bind mount root-owned, and the cleanup below then cannot unlink under them. Windows
+        # bind mounts carry no POSIX ownership, so the flag is added only where it means something.
+        user_args = [] if os.name == "nt" else ["--user", "{}:{}".format(os.getuid(), os.getgid())]
+        # encoding is pinned rather than left to text=True, which decodes with the locale
+        # codec. On a Windows console that is cp1252, and this image emits bytes it cannot
+        # decode: the reader thread dies and the failure branch below then has no output to
+        # print.
+        run = subprocess.run(
+            ["docker", "run", "--rm"] + user_args + ["-v", stage + ":/local", image,
+             "generate", "-c", "/local/generator/gen-config.yaml"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
+        if run.returncode != 0:
+            print((run.stdout or "") + (run.stderr or ""))
+            print("ERROR: REFUSED - the generator exited {} for {}. Nothing in {} was touched.".format(
+                run.returncode, image, pkg_dir))
+            sys.exit(run.returncode)
+        staged_cs = gate_staged_tree(stage, stage_pkg_dir, pkg_dir)
+
+        if not args.check:
+            # Everything that writes sits in this one block. The pre-flight runs after the gate has
+            # approved the staged tree and immediately before the first unlink, which is what makes
+            # it a pre-flight rather than a report.
+            verify_committed_tree(pkg_dir)
+
+            # --- 3. Replace, never merge ---
+            # Copying into an existing target merges: it neither replaces the target nor nests
+            # inside it, so without this delete a stale file inside Api/ survives the copy and
+            # compiles. Set before the first unlink: from here to the end of step 4 the repository
+            # is mid-replace.
+            tree_touched = True
+            # One subdirectory at a time and never pkg_dir, which holds the hand-owned
+            # Whisparr2.Net.csproj beside them.
+            for subdir in GENERATED_SUBDIRS:
+                shutil.rmtree(os.path.join(pkg_dir, subdir), ignore_errors=True)
+            shutil.rmtree(gen_meta_dir, ignore_errors=True)
+
+            # --- 4. Copy back exactly what the generator owns, and nothing else ---
+            # Not the whole staged tree, which would drag spec/ and generator/ over the committed
+            # originals.
+            os.makedirs(pkg_dir, exist_ok=True)
+            for subdir in GENERATED_SUBDIRS:
+                shutil.copytree(os.path.join(stage_pkg_dir, subdir), os.path.join(pkg_dir, subdir))
+            shutil.copytree(os.path.join(stage, ".openapi-generator"), gen_meta_dir)
+            shutil.copy2(os.path.join(stage, ".openapi-generator-ignore"), REPO_ROOT)
+
+            copied_cs = generated_cs_files(pkg_dir)
+            if len(copied_cs) != len(staged_cs):
+                die(
+                    "ERROR: copied {} .cs files but staged {}. The tree under {} is now partially "
+                    "written. Recovery is to re-run generate.py, which deletes and rewrites the "
+                    "whole tree.".format(len(copied_cs), len(staged_cs), pkg_dir)
+                )
+            print("  + copied {} .cs files into {}".format(len(copied_cs), pkg_dir))
+
+            # --- 5. Record what was written ---
+            digest = tree_sha256(REPO_ROOT)
+            write_tree_digest(digest)
+            print("  + wrote generatedTreeSha256 " + digest)
+            print("Done. " + pkg_dir)
+        else:
+            # --- The check half: compare, report, write nothing ---
+            # Both sides come from tree_members, so the relative paths are directly comparable
+            # across the two roots. Bytes are read in binary; a text-mode read would make the
+            # comparison depend on the platform.
+            staged = dict(tree_members(stage))
+            committed = dict(tree_members(REPO_ROOT))
+            differences = []
+            for relative in sorted(set(staged) | set(committed)):
+                if relative not in committed:
+                    differences.append("    {} is generated and is not committed".format(relative))
+                elif relative not in staged:
+                    differences.append("    {} is committed and is not generated".format(relative))
+                else:
+                    with open(staged[relative], "rb") as handle:
+                        rendered = handle.read()
+                    with open(committed[relative], "rb") as handle:
+                        on_disk = handle.read()
+                    if rendered != on_disk:
+                        differences.append("    {} differs from the generated bytes".format(relative))
+            if differences:
+                die(
+                    "ERROR: REFUSED - the committed tree differs from a fresh generation, in "
+                    "{} file(s). Nothing was written.".format(len(differences)),
+                    *differences[:20],
+                    "  Run: python generator/generate.py"
+                )
+            print("  + {} files match the committed tree byte for byte. Nothing was written.".format(
+                len(staged)))
+    except SystemExit:
+        raise
+    except Exception as error:
+        # Without this, a failure between the delete and the count assertion escapes as a raw
+        # traceback that says nothing about the repository, by which point the five subdirectories
+        # are gone. This is the only script here that deletes a committed deliverable.
+        #
+        # A --check run that raises always takes the second branch, because tree_touched is set
+        # inside the block --check never enters. That is a true statement rather than a convenient
+        # one.
+        if tree_touched:
+            present = generated_cs_files(pkg_dir)
+            die(
+                "ERROR: generate.py stopped after it had begun replacing the tree: {}".format(error),
+                "  {} now holds {} .cs files and the tree is incomplete. Recovery is to re-run "
+                "generate.py, or git -C {} checkout -- src/Whisparr2.Net .openapi-generator "
+                ".openapi-generator-ignore".format(pkg_dir, len(present), REPO_ROOT),
+            )
+        die(
+            "ERROR: generate.py stopped before it had begun replacing the tree: {}. Nothing in {} "
+            "was touched.".format(error, pkg_dir)
+        )
+    finally:
+        # Non-fatal on purpose. An error here would replace the pending exit code and rewrite the
+        # verdict of the run above it. A leftover staging root is a nuisance to name, not a reason to
+        # call a correct generation a failure.
+        shutil.rmtree(stage, ignore_errors=True)
+        if os.path.isdir(stage):
+            print("  ! could not remove the staging root " + stage + ". Remove it by hand. The verdict above stands.")
+
+
+if __name__ == "__main__":
+    main()
