@@ -19,6 +19,12 @@ specification. `generator/generate.py` writes `generatedTreeSha256` after it has
 generated client tree. The four acquisitions are independent, so the table names the writer of
 every field: a reader who finds one block wrong knows which script to re-run.
 
+`spec/CONFORMANCE.json` is not part of `spec/PROVENANCE.json`, and no script writes a provenance
+field for it. It carries its own copy of `imageDigest`, `whisparrVersion` and `generatedSpecSha256`,
+so a reader can tell whether the list was measured against the pin that is committed now. It has no
+`.gitattributes` line: nothing records its hash, and the point of the file is that a reviewer reads
+its diff.
+
 A fetch drops `generatedSpecSha256` and pre-processing puts it back. A new capture invalidates the
 patched specification, so the field is removed rather than left describing a document that no longer
 follows from the pin.
@@ -327,6 +333,66 @@ so neither of those discriminates.
 
 Only then does it merge the six image fields into `spec/PROVENANCE.json`. The container is removed
 whether the run succeeded or failed, so nothing is left holding a published port and a live key.
+
+Run it when the pin moves, not per change.
+
+## Check the client against a running instance
+
+One command. It requires Docker.
+
+```
+python3 generator/conformance.py
+```
+
+```
+python generator/conformance.py
+```
+
+It boots the pinned digest under a name unique to the run, waits for the log line the application
+writes once its startup handlers have returned, calls every read it can address without inventing
+state, and validates each JSON body against the schema the document declares for its 200. It writes
+`spec/CONFORMANCE.json` and nothing else. The container is removed whether the run succeeded or
+failed, so nothing is left holding a published port and a live key.
+
+The reads are three tiers, derived from the document rather than written down. Tier 1 is the 77 GETs
+that carry no path parameter. Tier 2 is the 35 by-id GETs whose id a tier 1 collection read can
+supply, and a by-id read whose collection returned no row is left uncalled rather than fed a value
+from source. Tier 3 is the remaining 5, which need a row or a real filename, and the sweep does not
+call them. A run over the current pin selects 90 reads and reports `schema-checked 70 of 117 GETs`,
+so 70 of the 117 GETs the document declares are validated against a declared schema.
+
+Five verdicts. An undeclared property under `additionalProperties: false`, an explicit null against
+a property that does not declare `nullable`, a value of the wrong JSON type and an enum value
+outside the declared set each fail the run. A declared property the instance never returns is
+recorded and does not fail, because the document declares no `required` array anywhere and an
+omission therefore cannot be a violation.
+
+The run refuses against the current pin, and that is the deliverable rather than a broken pipeline.
+The committed document omits properties the running application returns at the same commit, so the
+sweep finds them and the run exits 1. A hermetic run over this pin reports eight undeclared
+properties and no type, null or enum finding. A green run would mean the sweep found nothing, which
+is the one outcome that would be wrong here. It goes green when the document is patched, not before.
+The output file is written before the refusal, because the file is the record of what was found.
+
+`spec/CONFORMANCE.json` records a JSON type name and never an observed value. `GET
+/api/v3/config/host` returns the instance API key in plaintext and its schema declares four more
+credentials beside it, so a list that recorded values would commit a credential on every run.
+
+One read sits behind `WHISPARR2NET_CONFORMANCE_EXTERNAL`. Set it to `1` and the run also calls the
+operation that declares no response body and reaches an external metadata service over the public
+internet. It is off by default, and a hermetic run must leave it off. The file records whether the
+probe ran, so an empty result from a hermetic run is not read as a run that looked and found
+nothing. The committed file came from a flagged run: it carries ten undeclared properties, which are
+the hermetic eight and the two the probe adds.
+
+The integration suite reports its own state in words rather than in an exit code, and three of its
+four states exit 0. A run that produced any result at all prints exactly one summary line per target
+framework, opening with `Passed!`, `Skipped!` or `Failed!`. A run that discovered no test prints
+`No test is available in <dll>` and no summary line at all, so the absence of a summary line is the
+signal. A check written against a summary line reporting a total of zero would never match, because
+that line is never printed. Set `WHISPARR2NET_REQUIRE_DOCKER` to `1` to declare that a run must
+produce live evidence: such a run fails when no daemon is reachable, rather than reporting a green
+skip.
 
 Run it when the pin moves, not per change.
 
