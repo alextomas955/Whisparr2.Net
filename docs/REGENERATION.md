@@ -393,16 +393,20 @@ Every refusal exits non-zero and leaves the tree untouched. Find yours by its fi
 | `ERROR: REFUSED - the staged tree does not match the spec it was generated from, in 3 file(s). Nothing in src/Whisparr2.Net was touched.` | A `Model/` or `Api/` file name the spec implies is missing, or one it does not imply was generated. The message names each file. |
 | `ERROR: REFUSED - the staged tree does not carry the method names the spec declares, in 1 case(s). Nothing in src/Whisparr2.Net was touched.` | The generator renamed an operationId instead of emitting it. The repair is an override entry in `generator/preprocess_spec.py`, never an edit under `src/Whisparr2.Net/`. |
 | `ERROR: REFUSED - Extensions/ holds no .cs file. Nothing in src/Whisparr2.Net was touched.` | One of `Client`, `Extensions` and `Logging` came back with no source file in it. |
+| `ERROR: REFUSED - generatedTreeSha256 is recorded but the tree is incomplete. Nothing in src/Whisparr2.Net was touched.` | A digest is recorded, so the committed tree was complete when it was written, and one of the five subdirectories is now gone. The tree was changed outside this script, so generation refuses rather than treating the absence as a first run. The message names the missing subdirectories. |
+| `ERROR: REFUSED - no generatedTreeSha256 is recorded and the tree is partial. Nothing in src/Whisparr2.Net was touched.` | No digest is recorded and some but not all of the five subdirectories exist, so this is either a tree mid-edit or an interrupted run, not a first generation. Recover with `git checkout -- src/Whisparr2.Net`, or remove the remaining subdirectories to generate from nothing. |
 | `ERROR: REFUSED - the committed tree does not match generatedTreeSha256 in spec/PROVENANCE.json. Nothing in src/Whisparr2.Net was touched.` | A file under the generated tree was changed by hand, and generation refuses rather than deleting the evidence. The lines below it name only the files that were added or deleted, because a single digest cannot localise a content edit. `python generator/generate.py --check` names those. |
 | `ERROR: REFUSED - the committed tree differs from a fresh generation, in 1 file(s). Nothing was written.` | `--check` regenerated the tree and the committed bytes do not match it. The message names each differing file. |
+| `ERROR: generate.py stopped before it had begun replacing the tree: <error>. Nothing in src/Whisparr2.Net was touched.` | An unexpected failure hit before the first delete. The tree is intact and the underlying error is quoted in the line. |
+| `ERROR: generate.py stopped after it had begun replacing the tree: <error>` | An unexpected failure hit during the copy back. This is the other refusal that does not leave the tree untouched. The next line reports how many `.cs` files survive and gives both recovery commands: re-run generation, or `git checkout` the three paths. |
 | `ERROR: copied 218 .cs files but staged 221. The tree under src/Whisparr2.Net is now partially written. Recovery is to re-run generate.py, which deletes and rewrites the whole tree.` | The copy back was interrupted. This is the one refusal that does not leave the tree untouched, and the message carries the recovery command. |
 
 ## Checking the scripts themselves
 
-`python generator/selftest.py` runs 26 offline assertions over the fetch, the pin,
+`python generator/selftest.py` runs 29 offline assertions over the fetch, the pin,
 pre-processing, the image identity and the generation gate, and needs no network and no Docker.
 `python generator/selftest.py --network` adds the assertions that fetch real commits from
-`raw.githubusercontent.com`, for 27. `python generator/selftest.py --docker` adds the full
-regeneration, also for 27; it needs the pinned image and takes about a minute.
-`python generator/selftest.py --network --docker` runs all 28. Every one of them is run by hand
+`raw.githubusercontent.com`, for 30. `python generator/selftest.py --docker` adds the full
+regeneration, also for 30; it needs the pinned image and takes about a minute.
+`python generator/selftest.py --network --docker` runs all 31. Every one of them is run by hand
 today.
