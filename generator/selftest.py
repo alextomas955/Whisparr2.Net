@@ -30,6 +30,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -1347,6 +1348,283 @@ def check_write_tree_digest_keeps_the_record():
           "survive".format(len(committed) - 1))
 
 
+# The gate over what the live suite is allowed to address. Its refusals carry their own tail: the
+# module's REFUSAL_TAIL belongs to the pre-processing refusals and says something else, and one
+# constant carrying two sentences would rewrite every one of them.
+ADDRESSING_REFUSAL_TAIL = "The integration suite may address only the container this run started."
+
+# The port the image listens on inside the container, and its one declaration in the suite.
+CONTAINER_PORT = "6969"
+CONTAINER_PORT_DECLARATION = "public const ushort ContainerPort = " + CONTAINER_PORT + ";"
+
+# The two real Whisparr libraries on this machine are published on the container port plus ten
+# thousand and on the port after it. Derived rather than written out. The rule cannot refuse a
+# number it does not hold, and a public repository has no reason to carry the address of somebody's
+# personal instance in plain digits.
+FORBIDDEN_HOST_PORTS = tuple(str(int(CONTAINER_PORT) + 10000 + step) for step in (0, 1))
+
+# The one derivation an address may come from, and the one docker call the suite may make.
+ADDRESS_DERIVATION = "GetMappedPublicPort"
+DOCKER_SUBCOMMAND = "port"
+DOCKER_CONTAINER_ARGUMENT = "fixture.ContainerId"
+
+# The sweep script boots a container and issues a real delete against it, so two of the same rules
+# hold over it: it may not name either forbidden port, and the name it addresses carries a suffix
+# unique to the run rather than being a fixed literal that a second run would destroy.
+CONTAINER_NAME_ASSIGNMENT = "CONTAINER_NAME = "
+PER_RUN_ELEMENT = "uuid.uuid4()"
+
+URL_LITERAL = re.compile(r"https?://")
+DOCKER_ARGUMENT = re.compile(r"start\.ArgumentList\.Add\(([^)]*)\)")
+DOCKER_PROCESS = re.compile(r'(?:ProcessStartInfo|Process\.Start)[^;]*?"docker"')
+
+INTEGRATION_PROJECT = os.path.join("test", "Whisparr2.Net.IntegrationTests")
+SWEEP_SCRIPT = os.path.join("generator", "conformance.py")
+
+
+def addressing_refusal(text):
+    """One refusal line, opening with the shared prefix and closing with the addressing tail."""
+    return REFUSAL_PREFIX + text + " " + ADDRESSING_REFUSAL_TAIL
+
+
+def statements(text):
+    """(first line number, collapsed text) for every ;-terminated statement in a source file.
+
+    The unit of the address rule is the statement, not the line. A base URL built from the mapped
+    port does not fit on one line at this repository's width, so a line-scoped rule refuses the
+    correct expression. Widening the rule to accept that would be the carve-out this gate must not
+    have; reading the whole statement states the same rule over its real unit, and it still refuses
+    a literal address written on one line.
+    """
+    number = 1
+    buffer = []
+    start = 1
+    for line in text.split("\n"):
+        if not buffer:
+            start = number
+        buffer.append(line.strip())
+        if ";" in line:
+            yield start, " ".join(part for part in buffer if part)
+            buffer = []
+        number += 1
+    if buffer:
+        yield start, " ".join(part for part in buffer if part)
+
+
+def audit_source(relative, text):
+    """Return the refusal lines for one C# source. An empty list means the four rules hold."""
+    refusals = []
+
+    # R1. An address is built through the mapped port of this run's own container, or not at all.
+    for number, statement in statements(text):
+        if URL_LITERAL.search(statement) and ADDRESS_DERIVATION not in statement:
+            refusals.append(addressing_refusal(
+                "{}:{} builds an address that does not come from {}: {}".format(
+                    relative, number, ADDRESS_DERIVATION, statement)))
+
+    refusals.extend(audit_lines(relative, text))
+
+    # R4. One docker subcommand, one argument shape.
+    if DOCKER_PROCESS.search(text):
+        arguments = [argument.strip() for argument in DOCKER_ARGUMENT.findall(text)]
+        first = arguments[0] if arguments else None
+        if first is None:
+            # A call that adds no argument runs whatever the client defaults to, and a gate that
+            # cannot read the subcommand refuses rather than passes.
+            refusals.append(addressing_refusal(
+                "{} starts the docker client and adds no argument, so the subcommand it runs "
+                "cannot be read.".format(relative)))
+        elif first != '"' + DOCKER_SUBCOMMAND + '"':
+            refusals.append(addressing_refusal(
+                "{} runs the docker subcommand {} rather than {}.".format(
+                    relative, first, DOCKER_SUBCOMMAND)))
+        elif len(arguments) < 2 or DOCKER_CONTAINER_ARGUMENT not in arguments[1]:
+            second = arguments[1] if len(arguments) > 1 else "no container"
+            refusals.append(addressing_refusal(
+                "{} runs docker {} against {} rather than against the fixture's own container "
+                "id.".format(relative, DOCKER_SUBCOMMAND, second)))
+
+    return refusals
+
+
+def audit_lines(relative, text):
+    """The two port rules, which are line-scoped because a port literal sits on one line.
+
+    Shared by the C# sources and the sweep script, because naming a real instance is the same
+    mistake in either language.
+    """
+    refusals = []
+    for number, line in enumerate(text.split("\n"), start=1):
+        stripped = line.strip()
+
+        # R2. The owner's real instances are never named, in any context, comments included.
+        for port in FORBIDDEN_HOST_PORTS:
+            if port in line:
+                refusals.append(addressing_refusal(
+                    "{}:{} names host port {}, which is a real Whisparr library on this "
+                    "machine: {}".format(relative, number, port, stripped)))
+
+        # R3. The container port appears in its declaration and nowhere else. One forbidden host
+        # port contains the container port as a substring, and R2 has already reported it by name,
+        # so one mistake produces one refusal.
+        if CONTAINER_PORT in line and CONTAINER_PORT_DECLARATION not in line:
+            if not any(port in line for port in FORBIDDEN_HOST_PORTS):
+                refusals.append(addressing_refusal(
+                    "{}:{} carries {} outside the container-port declaration: {}".format(
+                        relative, number, CONTAINER_PORT, stripped)))
+    return refusals
+
+
+def audit_script(relative, text):
+    """Return the refusal lines for the sweep script. An empty list means both rules hold.
+
+    The address rule is not applied here. The script reads its host port back from the container it
+    created and builds a loopback URL from it, which is the correct shape in Python and carries no
+    mapped-port accessor to name.
+    """
+    refusals = list(audit_lines(relative, text))
+
+    names = [(number, line.strip()) for number, line in enumerate(text.split("\n"), start=1)
+             if CONTAINER_NAME_ASSIGNMENT in line]
+    if not names:
+        refusals.append(addressing_refusal(
+            "{} declares no container name, so the container it addresses cannot be "
+            "read.".format(relative)))
+    for number, line in names:
+        if PER_RUN_ELEMENT not in line:
+            refusals.append(addressing_refusal(
+                "{}:{} names a container without a suffix unique to the run: {}".format(
+                    relative, number, line)))
+    return refusals
+
+
+def integration_sources():
+    """(relative path, absolute path) for every C# source in the integration project.
+
+    bin and obj are skipped. The build writes generated C# under both, and the gate has nothing to
+    say about generator output that no contributor edits.
+    """
+    found = []
+    root = os.path.join(REPO_ROOT, INTEGRATION_PROJECT)
+    for directory, subdirectories, files in os.walk(root):
+        subdirectories[:] = [name for name in subdirectories if name not in ("bin", "obj")]
+        for name in sorted(files):
+            if name.endswith(".cs"):
+                full = os.path.join(directory, name)
+                found.append((os.path.relpath(full, REPO_ROOT).replace(os.sep, "/"), full))
+    return sorted(found)
+
+
+def refuse_no_integration_sources(count):
+    """Refuse when the gate found nothing to read, rather than passing.
+
+    A suite that was deleted, or a project that moved, would otherwise satisfy every rule by having
+    no source to break one.
+    """
+    if count <= 0:
+        return addressing_refusal(
+            "the gate read no C# source under {}, so a deleted suite would satisfy every "
+            "rule.".format(INTEGRATION_PROJECT.replace(os.sep, "/")))
+    return None
+
+
+# One forbidden C# shape per branch. A branch with no synthetic source is a branch nobody knows
+# works. The forbidden host port is derived rather than written, for the same reason the constant
+# above is, and the container name is a placeholder that exists nowhere.
+SYNTHETIC_SOURCES = {
+    # R1: an address written into source rather than read back from this run's container.
+    "R1": 'string baseUrl = "http://127.0.0.1:22451";\n',
+    # R2: a real instance on this machine, named without building a URL, so R1 does not fire first.
+    "R2": "private const int OwnerInstancePort = {};\n".format(FORBIDDEN_HOST_PORTS[1]),
+    # R3: the container port restated outside its declaration.
+    "R3": "private const ushort AlsoTheContainerPort = {};\n".format(CONTAINER_PORT),
+    # R4a: the docker client started with no argument, so the subcommand cannot be read.
+    "R4a": 'ProcessStartInfo start = new("docker");\n',
+    # R4b: a docker subcommand that is not port.
+    "R4b": ('ProcessStartInfo start = new("docker");\n'
+            'start.ArgumentList.Add("rm");\n'
+            "start.ArgumentList.Add(fixture.ContainerId);\n"),
+    # R4c: docker port against something other than this run's container.
+    "R4c": ('ProcessStartInfo start = new("docker");\n'
+            'start.ArgumentList.Add("port");\n'
+            'start.ArgumentList.Add("example-instance");\n'),
+}
+
+# The C# control. Without it a gate that refused everything would satisfy all six shapes above.
+CONTROL_SOURCE = (
+    "public const ushort ContainerPort = 6969;\n"
+    'BaseUrl = "http://" + _container.Hostname + ":"\n'
+    "    + _container.GetMappedPublicPort(ContainerPort).ToString(CultureInfo.InvariantCulture);\n"
+    'ProcessStartInfo start = new("docker");\n'
+    'start.ArgumentList.Add("port");\n'
+    "start.ArgumentList.Add(fixture.ContainerId);\n"
+)
+
+# One forbidden Python shape per branch of the script rules.
+SYNTHETIC_SCRIPTS = {
+    # P1: a real instance on this machine, named in the script that issues a delete.
+    "P1": 'BASE = "http://127.0.0.1:{}"\nCONTAINER_NAME = "x-" + uuid.uuid4().hex\n'.format(
+        FORBIDDEN_HOST_PORTS[0]),
+    # P2: a fixed container name, which a second run would force-remove mid-sweep.
+    "P2": 'CONTAINER_NAME = "example-instance"\n',
+    # P3: no container name declared at all, so the name the run addresses cannot be read.
+    "P3": 'container = "example-instance"\n',
+}
+
+# The Python control, in the shape the sweep script is written in.
+CONTROL_SCRIPT = (
+    'CONTAINER_NAME = "whisparr2-conformance-" + uuid.uuid4().hex[:12]\n'
+    'base = "http://127.0.0.1:{}".format(port)\n'
+)
+
+
+def check_integration_suite_addresses_only_its_own_container():
+    """The gate accepts the committed sources and refuses nine forbidden shapes in nine sentences.
+
+    What this pins is the one property whose failure is irreversible. Every source in the
+    integration project can build an address, the sweep script boots a container and issues a real
+    delete against it, and any address that is not the container the run started is somebody's live
+    library. A suite that wrote into one would pass, print green and have destroyed real data.
+
+    The controls are asserted first. Without them a gate that refused everything would satisfy
+    every forbidden shape below and prove nothing.
+    """
+    assert audit_source("control.cs", CONTROL_SOURCE) == [], \
+        audit_source("control.cs", CONTROL_SOURCE)
+    assert audit_script("control.py", CONTROL_SCRIPT) == [], \
+        audit_script("control.py", CONTROL_SCRIPT)
+
+    fired = {}
+    for auditor, shapes, suffix in ((audit_source, SYNTHETIC_SOURCES, ".cs"),
+                                    (audit_script, SYNTHETIC_SCRIPTS, ".py")):
+        for name, text in sorted(shapes.items()):
+            refusals = auditor(name + suffix, text)
+            assert len(refusals) >= 1, (name, refusals)
+            assert all(line.startswith(REFUSAL_PREFIX) for line in refusals), refusals
+            assert all(line.endswith(ADDRESSING_REFUSAL_TAIL) for line in refusals), refusals
+            fired[name] = refusals[0]
+
+    # Nine branches refusing with one sentence would pass every assertion above and tell a reader
+    # nothing about which of them fired.
+    assert len(set(fired.values())) == len(fired), fired
+
+    sources = integration_sources()
+    empty = refuse_no_integration_sources(len(sources))
+    assert empty is None, empty
+    assert refuse_no_integration_sources(0) is not None
+
+    real = []
+    for relative, path in sources:
+        with open(path, encoding="utf-8") as handle:
+            real.extend(audit_source(relative, handle.read()))
+    with open(os.path.join(REPO_ROOT, SWEEP_SCRIPT), encoding="utf-8") as handle:
+        real.extend(audit_script(SWEEP_SCRIPT.replace(os.sep, "/"), handle.read()))
+    assert real == [], real
+
+    print("ok  suite addressing: {} committed sources and the sweep script hold the rules, and {} "
+          "forbidden shapes are each refused in their own words".format(len(sources), len(fired)))
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -1377,6 +1655,7 @@ OFFLINE_CHECKS = (
     check_staged_tree_gate_refuses,
     check_preflight_refuses_a_damaged_tree,
     check_write_tree_digest_keeps_the_record,
+    check_integration_suite_addresses_only_its_own_container,
 )
 
 # Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
