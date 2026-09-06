@@ -11,7 +11,9 @@ The failure the pre-processing checks guard against is quieter still. Whisparr f
 upstream, a rewrite that was patching it has nothing left to patch, and it keeps running over a
 document it no longer describes with nothing to say so. Each of the four is driven over a document
 where its own zero-condition holds, and each is driven over the pin and made to report the number it
-was measured at.
+was measured at. Three further checks judge the deliverable rather than the functions: the
+committed patched document, a run of the script that must reproduce it byte for byte, and a run
+over a document with nothing left to change, which must exit non-zero and write nothing.
 
 Standard library only. No framework, no requirements file and no configuration file. A bare assert
 and a non-zero exit are what this needs.
@@ -744,6 +746,142 @@ def check_preprocess_refuses_scratch_input():
           "output is byte-identical afterwards")
 
 
+def clr_reference_pointers(document):
+    """Every reference to the five CLR-shaped schemas that lives outside those five, as a pointer.
+
+    clr_reference_sites above returns parent nodes, which can only be read in the document they came
+    from. A pointer can be resolved in a second document, which is what lets the sites measured over
+    the raw pin be read back out of the committed patched file.
+    """
+    schemas = document["components"]["schemas"]
+    targets = set(preprocess_spec.CLR_SCHEMAS)
+    owner_of = {id(schemas[name]): name for name in targets if name in schemas}
+    outside = []
+
+    def walk(node, owner, trail):
+        if isinstance(node, dict):
+            items = node.items()
+        elif isinstance(node, list):
+            items = enumerate(node)
+        else:
+            return
+        for key, value in items:
+            name = None
+            if isinstance(value, dict):
+                reference = value.get("$ref")
+                if isinstance(reference, str) and reference.startswith(preprocess_spec.REF_PREFIX):
+                    name = reference[len(preprocess_spec.REF_PREFIX):]
+            if name in targets:
+                if owner is None:
+                    outside.append((trail + (key,), name))
+                continue
+            walk(value, owner_of.get(id(value), owner), trail + (key,))
+
+    walk(document, None, ())
+    return sorted(outside)
+
+
+def resolve_pointer(document, trail):
+    node = document
+    for key in trail:
+        node = node[key]
+    return node
+
+
+def check_patched_document_on_disk():
+    """The committed patched document carries the four results, read out of the file itself.
+
+    Every other pre-processing check drives a transformation over a document it parsed itself. This
+    one judges the deliverable. The ten reference sites are located in the raw pin and then read at
+    those same positions in the patched file, so the assertion cannot drift into counting nullable
+    strings the document already carried.
+    """
+    with open(resolve_repo_path(preprocess_spec.DEFAULT_OUT_FILE), encoding="utf-8") as handle:
+        patched = json.load(handle)
+
+    assert patched["security"] == preprocess_spec.SECURITY, patched["security"]
+    assert "/" not in patched["paths"], sorted(patched["paths"])[:3]
+
+    operations = operations_of(patched)
+    assert len(operations) == 227, len(operations)
+    identifiers = [operation["operationId"] for _, _, _, operation in operations]
+    assert len(set(identifiers)) == 227, len(set(identifiers))
+    invalid = [i for i in identifiers if not preprocess_spec.OPERATION_ID_PATTERN.fullmatch(i)]
+    assert invalid == [], invalid
+
+    schemas = patched["components"]["schemas"]
+    assert [name for name in preprocess_spec.CLR_SCHEMAS if name in schemas] == []
+    assert len(schemas) == 129, len(schemas)
+
+    pointers = clr_reference_pointers(parsed_raw_spec())
+    assert len(pointers) == 10, len(pointers)
+    dated = [t for t, name in pointers if name == "DateOnly"]
+    assert len(dated) == 1, dated
+    for trail, name in pointers:
+        expected = preprocess_spec.DATE if name == "DateOnly" else preprocess_spec.STRING
+        assert resolve_pointer(patched, trail) == expected, (trail, name)
+
+    print("ok  patched document: the committed file carries {} operations with distinct valid "
+          "names, no root path, {} schemas and {} rewritten sites of which {} is a date".format(
+              len(operations), len(schemas), len(pointers), len(dated)))
+
+
+def check_preprocess_reproduces_committed_output():
+    """The shipped script, run over the pin, writes the committed patched file byte for byte.
+
+    Nothing else here judges main(). Every transformation assertion above drives the four functions
+    directly, so a main() that ran three of them, or a writer that changed its indent or its line
+    ending, leaves the whole suite green while the committed deliverable is no longer what the code
+    produces. The output goes outside the repository, which is also what makes the provenance
+    assertion below meaningful: the record must follow the output file, not the repository default.
+    """
+    committed = resolve_repo_path(preprocess_spec.DEFAULT_OUT_FILE)
+    provenance_path = resolve_repo_path(fetch_spec.PROVENANCE_PATH)
+    before = (os.path.getsize(provenance_path), sha256_file(provenance_path))
+
+    with tempfile.TemporaryDirectory() as directory:
+        scratch = os.path.join(directory, "openapi.generated.json")
+        code, output = run_preprocess_spec("--out-file", scratch)
+        assert code == 0, (code, output)
+        with open(scratch, "rb") as handle:
+            produced = handle.read()
+        assert os.listdir(directory) == ["openapi.generated.json"], os.listdir(directory)
+
+    with open(committed, "rb") as handle:
+        assert produced == handle.read(), len(produced)
+    assert sha256_file(committed) == read_provenance()["generatedSpecSha256"]
+    assert (os.path.getsize(provenance_path), sha256_file(provenance_path)) == before
+
+    print("ok  reproducible: a run over the pin writes {} bytes identical to the committed patched "
+          "spec, and no provenance outside the output directory".format(len(produced)))
+
+
+def check_preprocess_refusal_gate_exits():
+    """A document with nothing left to change exits 1 and writes no output document.
+
+    The zero-condition check above proves the four functions return a refusal line. This proves the
+    refusal reaches the exit code and stops the write, which is the half a caller and a build see.
+    The committed patched document is the input, because all four zero-conditions hold over it at
+    once: security is already narrowed, the root path is already gone, every operation already
+    carries an operationId and the five CLR-shaped schemas are already deleted.
+    """
+    with tempfile.TemporaryDirectory() as directory:
+        scratch = os.path.join(directory, "openapi.generated.json")
+        code, output = run_preprocess_spec(
+            "--raw-spec", preprocess_spec.DEFAULT_OUT_FILE, "--out-file", scratch
+        )
+        assert code == 1, (code, output)
+        assert os.listdir(directory) == [], os.listdir(directory)
+
+    refusals = [line for line in output.splitlines() if line.startswith(REFUSAL_PREFIX)]
+    assert len(refusals) == len(preprocess_spec.TRANSFORMATIONS), refusals
+    assert len(set(refusals)) == len(refusals), refusals
+    assert "wrote" not in output, output
+
+    print("ok  refusal gate: a document with nothing left to change exits 1 with {} refusals and "
+          "writes no output".format(len(refusals)))
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -763,6 +901,9 @@ OFFLINE_CHECKS = (
     check_operation_id_derivation,
     check_clr_schema_partition,
     check_preprocess_refuses_scratch_input,
+    check_patched_document_on_disk,
+    check_preprocess_reproduces_committed_output,
+    check_preprocess_refusal_gate_exits,
 )
 
 # Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
