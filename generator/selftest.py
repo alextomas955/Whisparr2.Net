@@ -37,14 +37,14 @@ import sys
 import tempfile
 
 import conformance
+import container
 import fetch_spec
 import generate
 import preprocess_spec
-import verify_image
 from _common import REPO_ROOT, git_blob_sha1, resolve_repo_path, sha256_file
 
-# The thirteen spec fields fetch_spec.py owns. verify_image.py owns the image block, and this list
-# deliberately does not name it, so a missing image field cannot implicate the fetch.
+# The thirteen spec fields fetch_spec.py owns. The image block is listed separately below, and
+# this list deliberately does not name it, so a missing image field cannot implicate the fetch.
 SPEC_KEYS = (
     "fetchedAt",
     "fetchedFrom",
@@ -61,8 +61,9 @@ SPEC_KEYS = (
     "specSchemaCount",
 )
 
-# The six image fields verify_image.py owns. Separate from SPEC_KEYS because the two blocks have
-# two writers, and a reader who finds one block incomplete needs to know which script to re-run.
+# The six image fields the committed provenance document still carries. Four of them now have no
+# writer at all: the script that recorded what the running image reported is gone. The shape of
+# this block is settled by a later change, not by this list.
 IMAGE_KEYS = (
     "imageTag",
     "imageDigest",
@@ -216,7 +217,14 @@ def check_provenance_complete():
 
     patched = provenance["generatedSpecSha256"]
     assert len(patched) == 64 and set(patched) <= HEX, patched
-    print("ok  provenance: thirteen spec fields present and observed, patched-spec hash recorded")
+
+    # The C# fixture builds its container from this recorded key while the Python sweep runs the
+    # module constant. The two are written independently, and a disagreement puts the suite and the
+    # sweep on different images without either of them noticing.
+    assert provenance["imageDigest"] == container.IMAGE_REF, provenance["imageDigest"]
+
+    print("ok  provenance: thirteen spec fields present and observed, patched-spec hash recorded, "
+          "recorded image digest matches the harness constant")
 
 
 def check_url_is_commit_addressed():
@@ -389,58 +397,6 @@ def check_propose_is_fail_closed():
     assert code == 2, code
     assert "writes nothing" in message and "--commit" in message, message
     print("ok  propose fail-closed: an empty --propose exits 2 at the parser and in the contract")
-
-
-def check_image_identity():
-    """Every SPEC-06 assertion that does not need a running container.
-
-    assert_identity takes a status dict, so the whole identity contract is asserted here with no
-    Docker daemon. The two assertions that do need a daemon, the pinned digest reporting v2 and the
-    seed landing at mode 0666, are what `python generator/verify_image.py` is for, and they run when
-    the pin moves rather than per change.
-    """
-    accepted = {"branch": "v2", "version": "2.2.0.231"}
-    assert verify_image.assert_identity(accepted) == []
-
-    eros = {"branch": "eros", "version": "3.4.0.1387"}
-    refused = verify_image.assert_identity(eros)
-    assert len(refused) == 1, refused
-    assert "'eros'" in refused[0], refused[0]
-    assert "'3.4.0.1387'" in refused[0], refused[0]
-    assert "'v2'" in refused[0], refused[0]
-
-    # The right branch name with the wrong application behind it. Neither half discriminates alone.
-    assert verify_image.assert_identity({"branch": "v2", "version": "3.4.0.1387"}) != []
-    assert verify_image.assert_identity({"version": "2.2.0.231"}) != []
-    assert verify_image.assert_identity({"branch": "v2"}) != []
-    assert verify_image.assert_identity({"branch": "v2", "version": 2}) != []
-    assert verify_image.assert_identity({"branch": "v2", "version": "two.2.0.231"}) != []
-
-    # The verdict must not move when fields that do not discriminate are present. appName is
-    # Whisparr on both applications and the API prefix is /api/v3 on both, so an edit that started
-    # reading either would pass every assertion above while losing the discrimination this check
-    # exists for.
-    decoys = {"appName": "Whisparr", "urlBase": "/api/v3", "instanceName": "Whisparr"}
-    assert verify_image.assert_identity(dict(accepted, **decoys)) == []
-    assert verify_image.assert_identity(dict(eros, **decoys)) == refused
-
-    assert tuple(verify_image.image_provenance(accepted)) == IMAGE_KEYS
-
-    # The recorded values, read from the file rather than from a copy written here.
-    provenance = read_provenance()
-    for key in IMAGE_KEYS:
-        assert key in provenance, key
-        value = provenance[key]
-        assert value is not None, key
-        assert not (isinstance(value, str) and not value.strip()), key
-
-    assert provenance["whisparrBranch"] == verify_image.EXPECTED_BRANCH, provenance["whisparrBranch"]
-    major = provenance["whisparrVersion"].split(".")[0]
-    assert major.isdigit() and int(major) == verify_image.EXPECTED_MAJOR, provenance[
-        "whisparrVersion"
-    ]
-
-    print("ok  image identity: nine status dicts judged, six image fields recorded and observed")
 
 
 # Every refusal line in the pre-processing module opens with the first and closes with the second,
@@ -1890,7 +1846,6 @@ OFFLINE_CHECKS = (
     check_url_is_commit_addressed,
     check_flag_vectors,
     check_propose_is_fail_closed,
-    check_image_identity,
     check_preprocess_zero_conditions,
     check_preprocess_transformations_apply,
     check_override_table,
