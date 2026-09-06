@@ -1,0 +1,286 @@
+{
+  "measuredAgainst": {
+    "imageDigest": "ghcr.io/hotio/whisparr@sha256:c6dae7dc99b52c3f73b64c9eca9bb38db0f646c98a3ea5829c57b1ebdce0d170",
+    "whisparrVersion": "2.2.0.231",
+    "generatedSpecSha256": "6189fca94cfe499ecdb11c11d194edc165226fed27a6811eec12dd76fcb5c0dc"
+  },
+  "readsSelected": 90,
+  "readsSchemaChecked": 70,
+  "externalProbeRan": false,
+  "writeProbe": {
+    "create": 201,
+    "update": 202,
+    "delete": 200
+  },
+  "undeclaredProperties": [
+    {
+      "schema": "DownloadClientConfigResource",
+      "property": "autoRedownloadFailedFromInteractiveSearch",
+      "jsonType": "boolean",
+      "nullObserved": false,
+      "observedOn": [
+        "GET /api/v3/config/downloadclient",
+        "GET /api/v3/config/downloadclient/{id}"
+      ]
+    },
+    {
+      "schema": "HostConfigResource",
+      "property": "passwordConfirmation",
+      "jsonType": "string",
+      "nullObserved": false,
+      "observedOn": [
+        "GET /api/v3/config/host",
+        "GET /api/v3/config/host/{id}"
+      ]
+    },
+    {
+      "schema": "ImportListResource",
+      "property": "monitorNewItems",
+      "jsonType": "string",
+      "nullObserved": false,
+      "observedOn": [
+        "GET /api/v3/importlist/schema"
+      ]
+    },
+    {
+      "schema": "ImportListResource",
+      "property": "searchForMissingEpisodes",
+      "jsonType": "boolean",
+      "nullObserved": false,
+      "observedOn": [
+        "GET /api/v3/importlist/schema"
+      ]
+    },
+    {
+      "schema": "NamingConfigResource",
+      "property": "customColonReplacementFormat",
+      "jsonType": "string",
+      "nullObserved": false,
+      "observedOn": [
+        "GET /api/v3/config/naming",
+        "GET /api/v3/config/naming/{id}"
+      ]
+    },
+    {
+      "schema": "NamingConfigResource",
+      "property": "javEpisodeFormat",
+      "jsonType": "string",
+      "nullObserved": false,
+      "observedOn": [
+        "GET /api/v3/config/naming",
+        "GET /api/v3/config/naming/{id}"
+      ]
+    },
+    {
+      "schema": "NotificationResource",
+      "property": "onImportComplete",
+      "jsonType": "boolean",
+      "nullObserved": false,
+      "observedOn": [
+        "GET /api/v3/notification/schema"
+      ]
+    },
+    {
+      "schema": "NotificationResource",
+      "property": "supportsOnImportComplete",
+      "jsonType": "boolean",
+      "nullObserved": false,
+      "observedOn": [
+        "GET /api/v3/notification/schema"
+      ]
+    }
+  ],
+  "typeMismatches": [],
+  "nullOnNonNullable": [],
+  "enumViolations": [],
+  "declaredNeverReturned": [
+    {
+      "schema": "DiskSpaceResource",
+      "property": "id"
+    },
+    {
+      "schema": "DownloadClientResource",
+      "property": "id"
+    },
+    {
+      "schema": "Field",
+      "property": "helpTextWarning"
+    },
+    {
+      "schema": "HealthResource",
+      "property": "id"
+    },
+    {
+      "schema": "ImportListResource",
+      "property": "id"
+    },
+    {
+      "schema": "ImportListResource",
+      "property": "message"
+    },
+    {
+      "schema": "ImportListResource",
+      "property": "name"
+    },
+    {
+      "schema": "ImportListResource",
+      "property": "rootFolderPath"
+    },
+    {
+      "schema": "IndexerResource",
+      "property": "id"
+    },
+    {
+      "schema": "IndexerResource",
+      "property": "message"
+    },
+    {
+      "schema": "LanguageProfileItemResource",
+      "property": "id"
+    },
+    {
+      "schema": "LocalizationResource",
+      "property": "id"
+    },
+    {
+      "schema": "LogResource",
+      "property": "method"
+    },
+    {
+      "schema": "MetadataResource",
+      "property": "message"
+    },
+    {
+      "schema": "NamingConfigResource",
+      "property": "numberStyle"
+    },
+    {
+      "schema": "NamingConfigResource",
+      "property": "separator"
+    },
+    {
+      "schema": "NotificationResource",
+      "property": "id"
+    },
+    {
+      "schema": "NotificationResource",
+      "property": "link"
+    },
+    {
+      "schema": "NotificationResource",
+      "property": "testCommand"
+    },
+    {
+      "schema": "QueueStatusResource",
+      "property": "id"
+    },
+    {
+      "schema": "SystemResource",
+      "property": "packageUpdateMechanismMessage"
+    },
+    {
+      "schema": "SystemResource",
+      "property": "sqliteVersion"
+    },
+    {
+      "schema": "UpdateResource",
+      "property": "id"
+    }
+  ],
+  "bodilessOperationsReturningData": [
+    {
+      "operation": "GET /api",
+      "contentType": "application/json",
+      "bytes": 41
+    },
+    {
+      "operation": "GET /api/v3/autotagging/schema",
+      "contentType": "application/json",
+      "bytes": 7448
+    },
+    {
+      "operation": "GET /api/v3/customformat/schema",
+      "contentType": "application/json",
+      "bytes": 15746
+    },
+    {
+      "operation": "GET /api/v3/filesystem",
+      "contentType": "application/json",
+      "bytes": 3077
+    },
+    {
+      "operation": "GET /api/v3/config/naming/examples",
+      "contentType": "application/json",
+      "bytes": 154
+    },
+    {
+      "operation": "GET /api/v3/system/routes/duplicate",
+      "contentType": "application/json",
+      "bytes": 7420
+    }
+  ],
+  "nonJsonReads": [
+    {
+      "operation": "GET /login",
+      "contentType": "text/html",
+      "bytes": 9662
+    },
+    {
+      "operation": "GET /logout",
+      "contentType": "text/html",
+      "bytes": 1932
+    },
+    {
+      "operation": "GET /feed/v3/calendar/whisparr.ics",
+      "contentType": "text/calendar",
+      "bytes": 165
+    },
+    {
+      "operation": "GET /api/v3/system/routes",
+      "contentType": "text/plain",
+      "bytes": 184918
+    }
+  ],
+  "readsNotAnswering200": [
+    {
+      "operation": "GET /api/v3/episode",
+      "status": 400
+    },
+    {
+      "operation": "GET /api/v3/episodefile",
+      "status": 400
+    },
+    {
+      "operation": "GET /api/v3/filesystem/type",
+      "status": 500
+    },
+    {
+      "operation": "GET /api/v3/filesystem/mediafiles",
+      "status": 500
+    },
+    {
+      "operation": "GET /api/v3/history/series",
+      "status": 404
+    },
+    {
+      "operation": "GET /api/v3/config/importlist",
+      "status": 404
+    },
+    {
+      "operation": "GET /api/v3/manualimport",
+      "status": 500
+    },
+    {
+      "operation": "GET /api/v3/parse",
+      "status": 204
+    },
+    {
+      "operation": "GET /api/v3/rename",
+      "status": 404
+    },
+    {
+      "operation": "GET /api/v3/series/lookup",
+      "status": 503
+    }
+  ]
+}
