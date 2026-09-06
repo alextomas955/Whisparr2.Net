@@ -257,6 +257,23 @@ def constants_drift(commit, expected_bytes, expected_sha256):
     return drift
 
 
+def sha40(value):
+    """The argparse type of every flag that takes a commit. Returns the value or raises.
+
+    Not case-folded and not stripped. Provenance records one lowercase spelling of a commit, and
+    accepting a second spelling would let two strings stand for one commit in specCommit.
+
+    argparse prefixes the raised message with the flag name and exits 2, so this does not name the
+    flag.
+    """
+    if len(value) != 40 or not set(value) <= set("0123456789abcdef"):
+        raise argparse.ArgumentTypeError(
+            "{!r} is not a 40-character lowercase hex commit SHA. A ref name moves and a commit "
+            "does not, which is the whole reason the pin is a commit.".format(value)
+        )
+    return value
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="fetch_spec.py",
@@ -268,13 +285,14 @@ def build_parser():
         "moving the pin",
         "All three are required together. Supplying only some of them is a refusal, not a bypass.",
     )
-    move.add_argument("--commit", metavar="SHA40")
+    move.add_argument("--commit", metavar="SHA40", type=sha40)
     move.add_argument("--expect-sha256", metavar="HEX64")
     move.add_argument("--expect-bytes", metavar="N", type=int)
 
     parser.add_argument(
         "--propose",
         metavar="SHA40",
+        type=sha40,
         help="Fetch this commit read-only, print observed size, sha256 and blob sha1, write nothing.",
     )
     return parser
