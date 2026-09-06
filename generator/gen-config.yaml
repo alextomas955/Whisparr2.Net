@@ -1,0 +1,140 @@
+# The complete openapi-generator invocation, in one committed file, so a regeneration is
+# reproducible from this repository rather than from someone's shell history.
+#
+# Run it as `generate -c /local/generator/gen-config.yaml` inside the pinned image
+# openapitools/openapi-generator-cli@sha256:2ab0a9680222de65dc9d3baf861aa02b99e1b80c211d8221ebf3ae8f8a102524.
+# That digest is also the DEFAULT_IMAGE_DIGEST constant in generator/generate.py, which is the
+# script that runs it. The npm wrapper has a settings file of its own; that mechanism belongs to
+# the wrapper and the string does not appear anywhere in this image's jar, so `-c` with this file
+# is the supported form here.
+#
+# Generation must always run inside the image, on a dev machine and in CI alike:
+# .openapi-generator/FILES is written with the platform line separator, so a host run and a
+# container run differ in that one file for a reason that has nothing to do with the spec.
+generatorName: csharp
+library: generichost
+inputSpec: /local/spec/openapi.generated.json
+outputDir: /local
+
+# The boolean config key, inverted from the CLI flag of the opposite name. The flag's own spelling
+# is NOT a key here: an unrecognised key is swallowed silently into a dynamic-properties bag and
+# the run then fails with the very validation error it was meant to bypass. Validation also runs
+# before normalization, so this has to be false rather than merely absent.
+validateSpec: false
+
+# RepositoryUrl in the generated csproj is assembled from these three and from nothing else.
+gitHost: github.com
+gitUserId: alextomas955
+gitRepoId: Whisparr2.Net
+
+# Suppression by denylist. Never allowlist supportingFiles: for apis, models and supportingFiles
+# the value is a colon-separated allowlist, and naming one file restricts generation to it, which
+# measurably deleted the entire runtime.
+#
+# apiDocs and modelDocs are off because the markdown this generator writes describes methods that
+# do not exist. Measured 2026-09-05 by generating with them enabled and comparing every documented
+# signature against the code from the same run: not one matched. Every documented name lacks the
+# Async suffix, every declared return type is wrong, docs saying List<MovieResource> where the code
+# has Task<IListCalendarApiResponse>. Parameters differ too, DateTime start = null against
+# Option<DateTime> start = default, which is not even valid C#.
+#
+# The cause is upstream and is not a misconfiguration here. csharp/libraries/generichost ships its
+# own api.mustache and no api_doc.mustache or model_doc.mustache. Docs
+# therefore fall back to the shared csharp/api_doc.mustache, written for the older restsharp and
+# httpclient libraries, which prints the synchronous shape. Verified against openapi-generator
+# master: both files are absent for every csharp library, and the project's own generichost
+# Petstore sample carries the same mismatch, `void AddPet (Pet pet)` in the doc against
+# Task<IAddPetApiResponse> AddPetAsync in the code beside it.
+#
+# apiTests and modelTests are off because the generated suite asserts nothing. Every model test
+# body is a TODO comment and every api test carries [Fact (Skip = "not implemented")], so the whole
+# suite runs green having verified nothing. It also emits its own csproj into src/, which this
+# repository keeps free of test projects, and names the assembly Whisparr2.Net.Test, which does not
+# exist here.
+#
+# A consumer's API reference is the XML documentation the package already ships, which the compiler
+# derives from the assembly and so cannot contradict it.
+globalProperties:
+  apiTests: "false"
+  modelTests: "false"
+  apiDocs: "false"
+  modelDocs: "false"
+
+# The scaffolding this repository owns by hand or does not want at all. This is the config-file
+# equivalent of the ignore file, and unlike the ignore file it is rewritten on every run.
+#
+# "**/*.csproj" is here because the project file is hand-owned rather than generated. The csproj
+# this generator emits carries six placeholder metadata values that Directory.Build.props exists to
+# correct, Authors, Company, Description, Copyright, Version and PackageReleaseNotes. It also
+# hardcodes RepositoryUrl and RepositoryType, and a hardcoded RepositoryUrl overrides the
+# PublishRepositoryUrl auto-detection the props rely on, so the shipped .snupkg carries no commit
+# SHA and the source map is dead.
+#
+# The .openapi-generator-ignore committed at the repository root is a record of what this key
+# produced, never an input. Generation stages only spec/openapi.generated.json and
+# generator/gen-config.yaml into a fresh root, so the generator never reads the committed file and
+# a hand edit to it is discarded silently on the next run. Edit this key instead.
+openapiGeneratorIgnoreList:
+  - README.md
+  - src/*/README.md
+  - .gitignore
+  - appveyor.yml
+  - "*.sln"
+  - "*.slnx"
+  - "docs/**"
+  - api/openapi.yaml
+  - "**/*.csproj"
+
+additionalProperties:
+  packageName: Whisparr2.Net
+  targetFramework: net8.0;net10.0
+  # Arbitrary when it was generated and fixed forever now. Left unset the generator emits a fresh
+  # random GUID on every run, which rewrites the solution and project GUID.
+  #
+  # Measured 2026-09-06, and the honest answer is narrower than it first looked: with this
+  # configuration the pin is currently INERT. Two runs differ in 0 files whether the GUID is pinned
+  # or not, because the only file it reaches is the solution, and both "*.sln" and "*.slnx" are
+  # suppressed by openapiGeneratorIgnoreList above. A run against this configuration writes no
+  # solution file at all: the staging root afterwards holds only .openapi-generator,
+  # .openapi-generator-ignore, generator, spec and src.
+  #
+  # The pin stays, for two reasons. It is what keeps this invocation complete and pinned, and it
+  # becomes load-bearing the moment anyone stops suppressing the solution file. What is NOT true
+  # is that it is currently what makes generation deterministic - the ignore list is. Do not
+  # delete the ignore entries on the assumption that this pin covers them.
+  packageGuid: "{86F64C36-C676-4F36-9AEE-13BABF7F1391}"
+
+# Deliberately absent, each with its reason:
+#   - the three normalizers (duplicate-operationId repair, security-scheme filter, path allowlist)
+#   - the generation-timestamp option, which already defaults to the value this repository wants
+#     for this generator and injects a build-date line when set the other way
+#   - useSourceGeneration, a generichost-only option whose generator default is false. Read from
+#     `config-help -g csharp` inside the pinned image: `Use source generation where available (only
+#     generichost library supports this option). (Default: false)`. It stays at that default here
+#     because turning it on has not been verified against either target framework, and verifying it
+#     is deferred work. The recorded reason is the deliverable, so do not add the key in order to
+#     satisfy the requirement.
+#   - modelNameMappings, because the document this generator reads declares no schema that
+#     collides with a BCL type.
+#
+#     The raw pinned document does declare two: TimeSpan as an object with ticks, days and hours,
+#     and Version as an object with major, minor, build and revision. That is exactly the case a
+#     mapping would exist for, and it is already solved upstream of this file.
+#     generator/preprocess_spec.py rewrites the five CLR-shaped schemas to the strings the server
+#     actually serialises and then deletes them, so TimeSpan and Version are gone from
+#     spec/openapi.generated.json before the generator ever opens it. Measured 2026-09-06 over the
+#     patched document: 129 schemas, neither of the two among them, and the generated tree compiles
+#     with 0 errors and 0 warnings on net8.0 and net10.0 with no mappings at all.
+#
+#     Command and Field are schemas here and neither collides: no System.Command and no
+#     System.Field exists.
+#
+#     The rejected alternative was
+#       modelNameMappings:
+#         TimeSpan: TimeSpanResource
+#         Version: VersionResource
+#     against the raw document. It renames two public model types away from their schema names,
+#     and it fixes only the compile: the server sends a string where the schema declares an object,
+#     so a renamed model still fails to deserialise at runtime. Applying it as well as the rewrite
+#     is worse than either alone, because the mapping then has nothing left to map and survives an
+#     upstream fix with nothing to say so.
