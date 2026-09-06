@@ -25,6 +25,7 @@ import sys
 import tempfile
 
 import fetch_spec
+import verify_image
 from _common import git_blob_sha1, resolve_repo_path, sha256_file
 
 # The thirteen spec fields fetch_spec.py owns. verify_image.py owns the image block, and this list
@@ -43,6 +44,17 @@ SPEC_KEYS = (
     "specPathCount",
     "specOperationCount",
     "specSchemaCount",
+)
+
+# The six image fields verify_image.py owns. Separate from SPEC_KEYS because the two blocks have
+# two writers, and a reader who finds one block incomplete needs to know which script to re-run.
+IMAGE_KEYS = (
+    "imageTag",
+    "imageDigest",
+    "whisparrVersion",
+    "whisparrBranch",
+    "whisparrBuildTime",
+    "whisparrPackageVersion",
 )
 
 HEX = set("0123456789abcdef")
@@ -247,6 +259,58 @@ def check_flag_vectors():
     print("ok  flag contract: six flag vectors refuse or accept as D-04 states, three drift vectors")
 
 
+def check_image_identity():
+    """Every SPEC-06 assertion that does not need a running container.
+
+    assert_identity takes a status dict, so the whole identity contract is asserted here with no
+    Docker daemon. The two assertions that do need a daemon, the pinned digest reporting v2 and the
+    seed landing at mode 0666, are what `python generator/verify_image.py` is for, and they run when
+    the pin moves rather than per change.
+    """
+    accepted = {"branch": "v2", "version": "2.2.0.231"}
+    assert verify_image.assert_identity(accepted) == []
+
+    eros = {"branch": "eros", "version": "3.4.0.1387"}
+    refused = verify_image.assert_identity(eros)
+    assert len(refused) == 1, refused
+    assert "'eros'" in refused[0], refused[0]
+    assert "'3.4.0.1387'" in refused[0], refused[0]
+    assert "'v2'" in refused[0], refused[0]
+
+    # The right branch name with the wrong application behind it. Neither half discriminates alone.
+    assert verify_image.assert_identity({"branch": "v2", "version": "3.4.0.1387"}) != []
+    assert verify_image.assert_identity({"version": "2.2.0.231"}) != []
+    assert verify_image.assert_identity({"branch": "v2"}) != []
+    assert verify_image.assert_identity({"branch": "v2", "version": 2}) != []
+    assert verify_image.assert_identity({"branch": "v2", "version": "two.2.0.231"}) != []
+
+    # The verdict must not move when fields that do not discriminate are present. appName is
+    # Whisparr on both applications and the API prefix is /api/v3 on both, so an edit that started
+    # reading either would pass every assertion above while losing the discrimination this check
+    # exists for.
+    decoys = {"appName": "Whisparr", "urlBase": "/api/v3", "instanceName": "Whisparr"}
+    assert verify_image.assert_identity(dict(accepted, **decoys)) == []
+    assert verify_image.assert_identity(dict(eros, **decoys)) == refused
+
+    assert tuple(verify_image.image_provenance(accepted)) == IMAGE_KEYS
+
+    # The recorded values, read from the file rather than from a copy written here.
+    provenance = read_provenance()
+    for key in IMAGE_KEYS:
+        assert key in provenance, key
+        value = provenance[key]
+        assert value is not None, key
+        assert not (isinstance(value, str) and not value.strip()), key
+
+    assert provenance["whisparrBranch"] == verify_image.EXPECTED_BRANCH, provenance["whisparrBranch"]
+    major = provenance["whisparrVersion"].split(".")[0]
+    assert major.isdigit() and int(major) == verify_image.EXPECTED_MAJOR, provenance[
+        "whisparrVersion"
+    ]
+
+    print("ok  image identity: nine status dicts judged, six image fields recorded and observed")
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -256,6 +320,7 @@ OFFLINE_CHECKS = (
     check_committed_spec,
     check_provenance_complete,
     check_flag_vectors,
+    check_image_identity,
 )
 
 # Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
