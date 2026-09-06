@@ -34,9 +34,10 @@ import sys
 import tempfile
 
 import fetch_spec
+import generate
 import preprocess_spec
 import verify_image
-from _common import git_blob_sha1, resolve_repo_path, sha256_file
+from _common import REPO_ROOT, git_blob_sha1, resolve_repo_path, sha256_file
 
 # The thirteen spec fields fetch_spec.py owns. verify_image.py owns the image block, and this list
 # deliberately does not name it, so a missing image field cannot implicate the fetch.
@@ -921,6 +922,142 @@ def check_preprocess_refuses_committed_write_targets():
     print("ok  write targets: the pin and the committed provenance are refused, all three intact")
 
 
+def check_generated_tree_digest():
+    """The committed tree still hashes to the digest the last generation recorded.
+
+    What this pins is a hand edit under the generated tree that has been committed. Git reports
+    such an edit as clean, and no other mechanism in this repository sees it without Docker. The
+    recorded value is read out of spec/PROVENANCE.json rather than carried here, so this check
+    cannot become a second authority that drifts from the record.
+
+    The member count is asserted as a literal on purpose. It is the size of the set the digest is
+    defined over, and a tree_members that quietly started walking the whole package root would
+    still produce a self-consistent digest.
+    """
+    recorded = generate.read_provenance().get("generatedTreeSha256")
+    assert recorded, "spec/PROVENANCE.json carries no generatedTreeSha256"
+
+    members = generate.tree_members(REPO_ROOT)
+    assert len(members) == 224, len(members)
+
+    on_disk = generate.tree_sha256(REPO_ROOT)
+    assert on_disk == recorded, (on_disk, recorded)
+    print("ok  generated tree: {} files hash to the generatedTreeSha256 the last generation "
+          "recorded".format(len(members)))
+
+
+def check_generated_tree_matches_spec():
+    """The committed tree carries exactly the file names and the method names the spec implies.
+
+    What this pins is the census gate itself. The gate in generator/generate.py runs against a
+    staged tree that exists only during a Docker run, so without this check nothing in the suite a
+    developer actually runs exercises expected_from_spec or api_method_names.
+
+    The numbers in the printed line are derived from the sets rather than typed, because the
+    assertion is the emptiness of the four difference sets and not any particular count.
+    """
+    package_root = os.path.join(REPO_ROOT, "src", "Whisparr2.Net")
+    expected_files, expected_methods = generate.expected_from_spec(
+        os.path.join(REPO_ROOT, "spec", "openapi.generated.json"))
+
+    for subdir, want in sorted(expected_files.items()):
+        have = {f for f in os.listdir(os.path.join(package_root, subdir)) if f.endswith(".cs")}
+        assert want - have == set(), (subdir, sorted(want - have))
+        assert have - want == set(), (subdir, sorted(have - want))
+
+    stems = generate.api_method_names(package_root)
+    assert expected_methods - stems == set(), sorted(expected_methods - stems)
+    assert stems - expected_methods == set(), sorted(stems - expected_methods)
+    print("ok  census: {} Model and {} Api file names and {} method names match the committed "
+          "spec exactly".format(
+              len(expected_files["Model"]), len(expected_files["Api"]), len(expected_methods)))
+
+
+def check_tree_digest_moves():
+    """An edit, an addition, a deletion and a rename each move the digest, over synthetic trees.
+
+    What this pins is the digest definition, not the deliverable. Every other check here stays
+    green against a tree_sha256 that ignored paths, and the rename case is the one a digest over
+    concatenated file bytes alone fails.
+
+    An unmutated copy is asserted to reproduce the baseline as well. Without it a tree_sha256 that
+    returned a fresh value on every call would satisfy all four inequalities.
+
+    Nothing here touches the repository. Every tree is built and destroyed under a temporary
+    directory.
+    """
+    def put(path, text):
+        with open(path, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
+
+    def build(root):
+        """A minimal tree in the shape tree_members walks: the five subdirectories and the three
+        meta members."""
+        package_root = os.path.join(root, "src", "Whisparr2.Net")
+        for subdir in generate.GENERATED_SUBDIRS:
+            os.makedirs(os.path.join(package_root, subdir))
+            put(os.path.join(package_root, subdir, subdir + "Thing.cs"), "// " + subdir + "\n")
+        os.makedirs(os.path.join(root, ".openapi-generator"))
+        put(os.path.join(root, ".openapi-generator", "FILES"),
+            "src/Whisparr2.Net/Api/ApiThing.cs\n")
+        put(os.path.join(root, ".openapi-generator", "VERSION"), "7.25.0\n")
+        put(os.path.join(root, ".openapi-generator-ignore"), "# nothing\n")
+
+    def digest_after(mutate):
+        with tempfile.TemporaryDirectory() as root:
+            build(root)
+            mutate(root)
+            return generate.tree_sha256(root)
+
+    def target(root, name="ModelThing.cs"):
+        return os.path.join(root, "src", "Whisparr2.Net", "Model", name)
+
+    def unchanged(root):
+        pass
+
+    baseline = digest_after(unchanged)
+    assert digest_after(unchanged) == baseline, "the digest is not a function of the tree"
+
+    moved = {
+        "an edit": digest_after(lambda root: put(target(root), "// ModelThing, edited\n")),
+        "an addition": digest_after(lambda root: put(target(root, "ModelExtra.cs"), "// extra\n")),
+        "a deletion": digest_after(lambda root: os.remove(target(root))),
+        "a rename": digest_after(
+            lambda root: os.rename(target(root), target(root, "ModelRenamed.cs"))),
+    }
+    for mutation, digest in sorted(moved.items()):
+        assert digest != baseline, mutation
+    assert len(set(moved.values())) == len(moved), moved
+    print("ok  tree digest: an edit, an addition, a deletion and a rename each move the digest")
+
+
+def check_generated_files_manifest():
+    """.openapi-generator/FILES lists exactly the committed .cs sources, compared both ways.
+
+    What this pins is the manifest against the tree, and its limit is worth stating plainly: it
+    catches an added or a deleted file and no edit, which is why check_generated_tree_digest sits
+    beside it. It is asserted anyway because it costs one set comparison and it names the exact
+    files a single digest cannot.
+    """
+    with open(os.path.join(REPO_ROOT, ".openapi-generator", "FILES"), encoding="utf-8") as handle:
+        listed = [line.strip() for line in handle if line.strip()]
+
+    for line in listed:
+        assert "\\" not in line, line
+        assert ":" not in line, line
+        assert not line.startswith("/"), line
+        assert line.startswith("src/Whisparr2.Net/"), line
+
+    manifest = set(listed)
+    assert len(manifest) == len(listed), "the manifest lists a path twice"
+
+    on_disk = {r for r, _ in generate.tree_members(REPO_ROOT) if r.endswith(".cs")}
+    assert manifest - on_disk == set(), sorted(manifest - on_disk)
+    assert on_disk - manifest == set(), sorted(on_disk - manifest)
+    print("ok  manifest: .openapi-generator/FILES lists exactly the {} committed source "
+          "files".format(len(manifest)))
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -944,6 +1081,10 @@ OFFLINE_CHECKS = (
     check_patched_document_on_disk,
     check_preprocess_reproduces_committed_output,
     check_preprocess_refusal_gate_exits,
+    check_generated_tree_digest,
+    check_generated_tree_matches_spec,
+    check_tree_digest_moves,
+    check_generated_files_manifest,
 )
 
 # Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
