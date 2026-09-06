@@ -1376,7 +1376,21 @@ CONTAINER_NAME_ASSIGNMENT = "CONTAINER_NAME = "
 PER_RUN_ELEMENT = "uuid.uuid4()"
 
 URL_LITERAL = re.compile(r"https?://")
-DOCKER_ARGUMENT = re.compile(r"start\.ArgumentList\.Add\(([^)]*)\)")
+# Any variable name, not one literally called "start". Keying on a name let a second call
+# site under a different name run unread.
+DOCKER_ARGUMENT = re.compile(r"\w+\.ArgumentList\.Add\(([^)]*)\)")
+# The daemon is also reachable without a process. Testcontainers pulls a Docker client library
+# into this project transitively, so the type names are in scope whether or not anyone meant
+# them to be, and a call through it never touches ProcessStartInfo.
+# The first argument of a docker call in the sweep script, which is the subcommand.
+DOCKER_SUBCOMMAND_CALL = re.compile(r"run_docker\(\[\s*([^,\]]+)")
+# The whole argument list of a docker call, so every quoted argument in it can be judged.
+CONTAINER_NAME_CONSTANT = "CONTAINER_NAME"
+DOCKER_CALL_ARGS = re.compile(r"run_docker\(\[([^\]]*)\]")
+DOCKER_QUOTED = re.compile(r'"([^"]*)"')
+DOCKER_CLIENT_API = re.compile(r"DockerClient|Docker\.DotNet|IDockerClient")
+# A shell is a second way to reach the daemon without naming it in an argument list.
+DOCKER_VIA_SHELL = re.compile(r'"(?:cmd|powershell|pwsh|sh|bash)"|/c |-Command ')
 DOCKER_PROCESS = re.compile(r'(?:ProcessStartInfo|Process\.Start)[^;]*?"docker"')
 
 INTEGRATION_PROJECT = os.path.join("test", "Whisparr2.Net.IntegrationTests")
@@ -1425,8 +1439,18 @@ def audit_source(relative, text):
 
     refusals.extend(audit_lines(relative, text))
 
-    # R4. One docker subcommand, one argument shape.
-    if DOCKER_PROCESS.search(text):
+    # R4. One docker call site per file, one subcommand, one argument shape.
+    #
+    # Counted rather than searched. An earlier form ran one findall over the whole file and keyed
+    # on a variable literally named "start", so a file that already held one compliant call
+    # absorbed any number of non-compliant ones, and a second call site under a different name was
+    # never read at all. Both were demonstrated.
+    sites = DOCKER_PROCESS.findall(text)
+    if len(sites) > 1:
+        refusals.append(addressing_refusal(
+            "{} starts the docker client {} times. One call site per file, so every argument list "
+            "in it belongs to a call this rule can read.".format(relative, len(sites))))
+    elif sites:
         arguments = [argument.strip() for argument in DOCKER_ARGUMENT.findall(text)]
         first = arguments[0] if arguments else None
         if first is None:
@@ -1444,6 +1468,18 @@ def audit_source(relative, text):
             refusals.append(addressing_refusal(
                 "{} runs docker {} against {} rather than against the fixture's own container "
                 "id.".format(relative, DOCKER_SUBCOMMAND, second)))
+
+    # R5. The daemon is reached one way only. A client library and a shell both bypass R4 entirely,
+    # and the client library is already on this project's transitive graph.
+    for number, statement in statements(text):
+        if DOCKER_CLIENT_API.search(statement):
+            refusals.append(addressing_refusal(
+                "{}:{} reaches the daemon through a client library rather than through the one "
+                "read-only call this suite is allowed: {}".format(relative, number, statement)))
+        elif DOCKER_VIA_SHELL.search(statement) and "docker" in statement:
+            refusals.append(addressing_refusal(
+                "{}:{} reaches the daemon through a shell, where no argument rule can read the "
+                "subcommand: {}".format(relative, number, statement)))
 
     return refusals
 
@@ -1479,13 +1515,40 @@ def audit_lines(relative, text):
 def audit_script(relative, text):
     """Return the refusal lines for the sweep script. An empty list means both rules hold.
 
-    The address rule is not applied here. The script reads its host port back from the container it
-    created and builds a loopback URL from it, which is the correct shape in Python and carries no
-    mapped-port accessor to name.
+    The C# address rule is not applied here. The script reads its host port back from the container
+    it created and builds a loopback URL from it, which is the correct shape in Python and carries
+    no mapped-port accessor to name.
+
+    Two rules do apply, and they did not before. This script issues a real create, update and
+    delete, so it is the write-capable half of this phase and had the weaker gate of the two.
     """
     refusals = list(audit_lines(relative, text))
 
-    names = [(number, line.strip()) for number, line in enumerate(text.split("\n"), start=1)
+    # Every docker subcommand this script may run. It creates and destroys its own container, so
+    # the set is wider than the suite's single read-only call, but it is a set rather than
+    # anything the script cares to pass.
+    allowed = {'"create"', '"start"', '"logs"', '"port"', '"rm"', '"cp"', '"inspect"'}
+    for number, statement in statements(text):
+        for match in DOCKER_SUBCOMMAND_CALL.finditer(statement):
+            argument = match.group(1).strip()
+            if argument not in allowed:
+                refusals.append(addressing_refusal(
+                    "{}:{} runs the docker subcommand {}, which is not one this script may "
+                    "run.".format(relative, number, argument)))
+        for call in DOCKER_CALL_ARGS.finditer(statement):
+            arguments = [a.strip() for a in call.group(1).split(",")]
+            if not arguments or arguments[0] not in ('"rm"',):
+                continue
+            # rm is the destructive one and the only subcommand whose target must be pinned. A
+            # broader rule over every quoted argument was written first and refused correct
+            # content twice, on a log tail count and on the loopback publish spec. A rule needing
+            # carve-outs is measuring the wrong thing, so it was narrowed to the case that matters.
+            if CONTAINER_NAME_CONSTANT not in call.group(1):
+                refusals.append(addressing_refusal(
+                    "{}:{} removes a container that is not the per-run one this script created: "
+                    "{}".format(relative, number, statement)))
+
+    names = [(number, line.strip()) for number, line in enumerate(text.splitlines(), start=1)
              if CONTAINER_NAME_ASSIGNMENT in line]
     if not names:
         refusals.append(addressing_refusal(
@@ -1496,6 +1559,7 @@ def audit_script(relative, text):
             refusals.append(addressing_refusal(
                 "{}:{} names a container without a suffix unique to the run: {}".format(
                     relative, number, line)))
+
     return refusals
 
 
