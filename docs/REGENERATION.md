@@ -466,13 +466,36 @@ Every refusal exits non-zero and leaves the tree untouched. Find yours by its fi
 | `ERROR: generate.py stopped before it had begun replacing the tree: <error>. Nothing in src/Whisparr2.Net was touched.` | An unexpected failure hit before the first delete. The tree is intact and the underlying error is quoted in the line. |
 | `ERROR: generate.py stopped after it had begun replacing the tree: <error>` | An unexpected failure hit during the copy back. This is the other refusal that does not leave the tree untouched. The next line reports how many `.cs` files survive and gives both recovery commands: re-run generation, or `git checkout` the three paths. |
 | `ERROR: copied 218 .cs files but staged 221. The tree under src/Whisparr2.Net is now partially written. Recovery is to re-run generate.py, which deletes and rewrites the whole tree.` | The copy back was interrupted. This is the one refusal that does not leave the tree untouched, and the message carries the recovery command. |
+| `ERROR: REFUSED - the bodiless-operation map names the schema <schema>, and this document does not declare it. Nothing was written.` | The measured map from a bodiless operation to the schema its payload matches names a schema the document no longer declares. Re-measure the map against the new document. |
+| `ERROR: docker create failed for <image>.` | The pinned digest could not be created as a container. The client output follows the line. Nothing was written. |
+| `ERROR: seeding /config/config.xml failed.` | The seed could not be copied into the created container, so the run has no key to read with. Nothing was written. |
+| `ERROR: docker start failed for <container>.` | The container was created and would not start. The client output follows the line. Nothing was written. |
+| `ERROR: REFUSED - the container did not report readiness within 120s. Nothing was written.` | The application never wrote the readiness line the sweep waits for. The last forty lines of the container log follow it. Both HTTP signals answer earlier than this line, and a sweep started on either reads a half-populated instance. |
+| `ERROR: REFUSED - the read selection reached no operation at all, so nothing was validated. Nothing was written.` | Every selected read failed, and an empty patch list from a run that reached nothing is indistinguishable from an empty one from a clean run. The likely cause is an unreachable instance or a rejected key. |
+| `ERROR: REFUSED - the schema-checked count <n> does not equal the <n> selected reads that answered 200 with JSON and declare a JSON schema. Nothing was written.` | The derived invariant failed, so the selection and the validation disagree about what was checked and no count in the output could be trusted. |
+| `ERROR: REFUSED - a response carries a property the document does not declare, under additionalProperties false. Findings: <n>.` | The finding this check exists for. Each site is named on its own line below, with the schema, the property and the operation. `spec/CONFORMANCE.json` is written before the refusal, because the file is the record of what was found. |
+| `ERROR: REFUSED - a response carries a value of the wrong JSON type. Findings: <n>.` | A body disagrees with the type its schema declares. The output file is written, for the same reason as the row above. |
+| `ERROR: REFUSED - a response carries null for a property that does not declare nullable. Findings: <n>.` | The document declares no `required` array, so an omission is legal and only an explicit null is a violation. The output file is written. |
+| `ERROR: REFUSED - a response carries an enum value outside the declared set. Findings: <n>.` | A string outside a declared enum. The output file is written. |
+| `ERROR: REFUSED - <file>:<line> builds an address that does not come from GetMappedPublicPort: <statement> The integration suite may address only the container this run started.` | A source in the integration suite builds an address that is not the container this run started. The unit of the rule is the statement, not the line. |
+| `ERROR: REFUSED - <file>:<line> names host port <port>, which is a real Whisparr library on this machine: <line> The integration suite may address only the container this run started.` | A source names a host port that a personal instance on the developer's machine is published on. The rule holds in every context, comments included. |
+| `ERROR: REFUSED - <file>:<line> carries <port> outside the container-port declaration: <line> The integration suite may address only the container this run started.` | The port the image listens on inside the container is restated somewhere other than its one declaration. |
+| `ERROR: REFUSED - <file> starts the docker client and adds no argument, so the subcommand it runs cannot be read. The integration suite may address only the container this run started.` | A call that adds no argument runs whatever the client defaults to, and a gate that cannot read the subcommand refuses rather than passes. |
+| `ERROR: REFUSED - <file> runs the docker subcommand <argument> rather than port. The integration suite may address only the container this run started.` | The suite runs a Docker subcommand other than `port`. Reading a mapped port is the only Docker call it may make. |
+| `ERROR: REFUSED - <file> runs docker port against <argument> rather than against the fixture's own container id. The integration suite may address only the container this run started.` | The suite runs `docker port` against something other than the container this run started. |
+| `ERROR: REFUSED - <file> declares no container name, so the container it addresses cannot be read. The integration suite may address only the container this run started.` | The sweep script assigns no container name, so the gate cannot tell which container the run speaks to. |
+| `ERROR: REFUSED - <file>:<line> names a container without a suffix unique to the run: <line> The integration suite may address only the container this run started.` | The sweep script names a fixed container. Two runs sharing a name would have the second force-remove the first mid-sweep. |
+| `ERROR: REFUSED - the gate read no C# source under test/Whisparr2.Net.IntegrationTests, so a deleted suite would satisfy every rule. The integration suite may address only the container this run started.` | The gate found nothing to read. A suite that was deleted, or a project that moved, would otherwise satisfy every rule by having no source to break one. |
+
+The nine addressing rows all close with `The integration suite may address only the container this run started.`, which is the one-grep property the pre-processing refusals already have: one search over that sentence finds every one of them.
 
 ## Checking the scripts themselves
 
-`python generator/selftest.py` runs 29 offline assertions over the fetch, the pin,
-pre-processing, the image identity and the generation gate, and needs no network and no Docker.
-`python generator/selftest.py --network` adds the assertions that fetch real commits from
-`raw.githubusercontent.com`, for 30. `python generator/selftest.py --docker` adds the full
-regeneration, also for 30; it needs the pinned image and takes about a minute.
-`python generator/selftest.py --network --docker` runs all 31. Every one of them is run by hand
-today.
+`python generator/selftest.py` runs 31 offline assertions over the fetch, the pin,
+pre-processing, the image identity, the generation gate, the integration suite's addressing and the
+conformance walker, and needs no network and no Docker.
+`python generator/selftest.py --network` adds the assertion that fetches real commits from
+`raw.githubusercontent.com`, for 32. `python generator/selftest.py --docker` adds the full
+regeneration and a hermetic sweep of a live instance, for 33; both need the pinned image and
+together they take a few minutes. `python generator/selftest.py --network --docker` runs all 34.
+Every one of them is run by hand today.
