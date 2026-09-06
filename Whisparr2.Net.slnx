@@ -4,5 +4,6 @@
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/Whisparr2.Net.UnitTests/Whisparr2.Net.UnitTests.csproj" />
+    <Project Path="test/Whisparr2.Net.IntegrationTests/Whisparr2.Net.IntegrationTests.csproj" />
   </Folder>
 </Solution>
