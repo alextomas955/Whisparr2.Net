@@ -58,6 +58,14 @@ namespace Whisparr2.Net.Api
         /// made, and reading it off a caught exception gives it on the refusal path only.
         /// </para>
         /// <para>
+        /// Measured against the pinned v2-2.2.0-release.231 image: an accepted command answers
+        /// 201, and the document declares only 200, so the generated Ok accessor returns null even
+        /// on the accepted path. EnsureSuccess reads the body on any success status and is what a
+        /// caller wanting the queued resource should use. An unknown command name answers 500 and
+        /// not 400, because the controller looks the name up with Single and does not guard the
+        /// no-match case, so a 500 is not evidence of a bad name on its own.
+        /// </para>
+        /// <para>
         /// The payload members are written flat, as siblings of the name member. The server rewinds
         /// the request stream and deserializes the whole body into a concrete command type, so the
         /// arguments do not belong under CommandResource.Body and putting them there sends a
