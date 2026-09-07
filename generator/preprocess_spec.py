@@ -389,6 +389,7 @@ def rewrite_clr_schemas(document):
 
 CONFORMANCE_FILE = "spec/CONFORMANCE.json"
 PROVENANCE_FILE = "spec/PROVENANCE.json"
+PROVENANCE_NAME = os.path.basename(PROVENANCE_FILE)
 
 STATUS_KIND = "statusCodes"
 SCHEMA_KIND = "responseSchemas"
@@ -478,7 +479,7 @@ def attached_schema(schema_name, shape):
     return {"application/json": {"schema": schema}}
 
 
-def declare_measured_responses(document):
+def declare_measured_responses(document, provenance_path=None):
     """T5. Declare the success code the instance answers and attach the schema it returns.
 
     Returns (change count, refusal lines) like the other four. The two kinds are the two things
@@ -488,9 +489,19 @@ def declare_measured_responses(document):
 
     Nothing measured is restated here. Every status code, operation key and schema name comes out
     of the record.
+
+    provenance_path is the record to validate against, and the caller names it rather than this
+    function resolving one. It is the record describing the committed client, which is the identity
+    spec/CONFORMANCE.json was measured beside. It is not the record main() may write: that one is
+    derived from the output directory and a scratch run has none, so pointing this at it would
+    refuse a run the refusal at step 0 tells the caller to make. Omitting it reads the committed
+    record, which is what a caller driving this over a synthetic document wants.
     """
     conformance = read_json(CONFORMANCE_FILE)
-    provenance = read_json(PROVENANCE_FILE)
+    if provenance_path is None:
+        provenance_path = resolve_repo_path(PROVENANCE_FILE)
+    with open(provenance_path, "r", encoding="utf-8") as handle:
+        provenance = json.load(handle)
 
     # The patch list is a measurement against a running image, so the image is the identity that
     # has to match: this asserts that the measurement and the client describe one artifact.
@@ -592,9 +603,13 @@ def main():
     raw_path = resolve_repo_path(args.raw_spec)
     out_path = resolve_repo_path(args.out_file)
     out_dir = os.path.dirname(out_path)
-    # Derived from the output file's own directory, so a scratch run cannot overwrite the committed
-    # one.
-    provenance_path = os.path.join(out_dir, "PROVENANCE.json")
+    # Two records, two roles, so neither reads as the other. write_provenance_path is the record
+    # this run may write and is derived from the output file's own directory, so a scratch run
+    # cannot overwrite the committed one. A scratch directory holds none, and step 5 below is
+    # guarded on that. measured_provenance_path is the record T5 validates against: the identity
+    # the committed conformance record was measured beside, which is always the committed one.
+    write_provenance_path = os.path.join(out_dir, PROVENANCE_NAME)
+    measured_provenance_path = resolve_repo_path(PROVENANCE_FILE)
 
     default_raw = resolve_repo_path(DEFAULT_RAW_SPEC)
     default_out = resolve_repo_path(DEFAULT_OUT_FILE)
@@ -614,14 +629,14 @@ def main():
     # The output path alone is not the whole write. The provenance path is derived from the output
     # directory, so an output anywhere beside the committed provenance rewrites a file the caller
     # never named.
-    default_provenance = os.path.join(os.path.dirname(default_out), "PROVENANCE.json")
-    if raw_path != default_raw and os.path.normcase(provenance_path) == os.path.normcase(
+    default_provenance = os.path.join(os.path.dirname(default_out), PROVENANCE_NAME)
+    if raw_path != default_raw and os.path.normcase(write_provenance_path) == os.path.normcase(
         default_provenance
     ):
         die(
             "ERROR: REFUSED - a non-default input may not write beside the committed provenance "
             "record. Pass --out-file with a scratch directory. input {} / provenance {}".format(
-                raw_path, provenance_path
+                raw_path, write_provenance_path
             )
         )
     # The pin is an input to this script and never one of its outputs. Writing the patched document
@@ -650,7 +665,12 @@ def main():
     changes = {}
     refusals = []
     for name, transform in TRANSFORMATIONS:
-        count, problems = transform(document)
+        # T5 is the one transformation with an input besides the document, and the record it reads
+        # is named here rather than resolved inside it.
+        if transform is declare_measured_responses:
+            count, problems = transform(document, measured_provenance_path)
+        else:
+            count, problems = transform(document)
         changes[name] = count
         refusals.extend(problems)
         if not problems:
@@ -686,13 +706,14 @@ def main():
     # --- 5. The manifest ---
     # build_spec.merge_spec_provenance pops generatedSpecSha256 on every build. Deliberate: a new
     # capture invalidates the patched spec, and this script is what puts the field back.
-    if os.path.isfile(provenance_path):
+    if os.path.isfile(write_provenance_path):
         promoted_sha = sha256_file(out_path)
-        with open(provenance_path, "r", encoding="utf-8") as handle:
+        with open(write_provenance_path, "r", encoding="utf-8") as handle:
             provenance = json.load(handle)
         provenance["generatedSpecSha256"] = promoted_sha
-        write_json_lf(provenance_path, provenance)
-        print("  + wrote generatedSpecSha256 {} to {}".format(promoted_sha, provenance_path))
+        write_json_lf(write_provenance_path, provenance)
+        print("  + wrote generatedSpecSha256 {} to {}".format(
+            promoted_sha, write_provenance_path))
 
     print("Done. " + out_path)
 
