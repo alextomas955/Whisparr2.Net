@@ -1,116 +1,87 @@
 {
   "measuredAgainst": {
     "imageDigest": "ghcr.io/hotio/whisparr@sha256:c6dae7dc99b52c3f73b64c9eca9bb38db0f646c98a3ea5829c57b1ebdce0d170",
-    "whisparrVersion": "2.2.0.231",
-    "generatedSpecSha256": "6189fca94cfe499ecdb11c11d194edc165226fed27a6811eec12dd76fcb5c0dc"
+    "specCommit": "face3be8956e4c3798a9364a0f2ea95948e34c1c",
+    "generatedSpecSha256": "75fa6b631aed06bbfc2d778b90f8fe95240fb4741570df227e442c2dbce6b4ed"
   },
-  "readsSelected": 90,
-  "readsSchemaChecked": 70,
+  "readsSelected": 91,
+  "readsSchemaChecked": 72,
   "externalProbeRan": true,
   "writeProbe": {
-    "create": 201,
-    "update": 202,
-    "delete": 200
+    "POST /api/v3/tag": 201,
+    "PUT /api/v3/tag/{id}": 202,
+    "DELETE /api/v3/tag/{id}": 200,
+    "POST /api/v3/downloadclient": 201,
+    "PUT /api/v3/downloadclient/bulk": 202,
+    "DELETE /api/v3/downloadclient/bulk": 200,
+    "POST /api/v3/indexer": 201,
+    "PUT /api/v3/indexer/bulk": 202,
+    "DELETE /api/v3/indexer/bulk": 200,
+    "PUT /api/v3/qualitydefinition/update": 202,
+    "PUT /api/v3/episode/monitor": 202,
+    "PUT /api/v3/series/editor": 202,
+    "DELETE /api/v3/series/editor": 200,
+    "DELETE /api/v3/blocklist/bulk": 200,
+    "DELETE /api/v3/queue/bulk": 200,
+    "POST /api/v3/delayprofile": 201,
+    "PUT /api/v3/delayprofile/reorder/{id}": 200,
+    "POST /api/v3/downloadclient/testall": 200,
+    "POST /api/v3/importlist/testall": 200,
+    "POST /api/v3/indexer/testall": 200,
+    "POST /api/v3/metadata/testall": 200,
+    "POST /api/v3/notification/testall": 200,
+    "POST /api/v3/customformat": 201,
+    "PUT /api/v3/customformat/bulk": 202,
+    "DELETE /api/v3/customformat/bulk": 200,
+    "POST /api/v3/metadata/test": 200
   },
-  "undeclaredProperties": [
+  "writesNotProbedNote": "Every write this run could not make a fresh instance answer with success, and the status it did answer. Not a patch list: a status recorded here is the failure that was observed, not a code to declare. Declaring 400 for a test POST would make the generated client report a real validation failure as success, and declaring 500 for an episodefile write would record an upstream null dereference as a status contract.",
+  "writesNotProbed": [
     {
-      "schema": "DownloadClientConfigResource",
-      "property": "autoRedownloadFailedFromInteractiveSearch",
-      "jsonType": "boolean",
-      "nullObserved": false,
-      "observedOn": [
-        "GET /api/v3/config/downloadclient",
-        "GET /api/v3/config/downloadclient/{id}"
-      ]
+      "operation": "POST /api/v3/downloadclient/test",
+      "status": 400,
+      "reason": "the template a fresh instance supplies describes an unconfigured provider that fails its own validation, so the attempt answered 400. The success code is 200, which the document already declares, and the metadata provider answered it directly."
     },
     {
-      "schema": "HostConfigResource",
-      "property": "passwordConfirmation",
-      "jsonType": "string",
-      "nullObserved": false,
-      "observedOn": [
-        "GET /api/v3/config/host",
-        "GET /api/v3/config/host/{id}"
-      ]
+      "operation": "POST /api/v3/importlist/test",
+      "status": 400,
+      "reason": "the template a fresh instance supplies describes an unconfigured provider that fails its own validation, so the attempt answered 400. The success code is 200, which the document already declares, and the metadata provider answered it directly."
     },
     {
-      "schema": "ImportListResource",
-      "property": "monitorNewItems",
-      "jsonType": "string",
-      "nullObserved": false,
-      "observedOn": [
-        "GET /api/v3/importlist/schema"
-      ]
+      "operation": "POST /api/v3/indexer/test",
+      "status": 400,
+      "reason": "the template a fresh instance supplies describes an unconfigured provider that fails its own validation, so the attempt answered 400. The success code is 200, which the document already declares, and the metadata provider answered it directly."
     },
     {
-      "schema": "ImportListResource",
-      "property": "searchForMissingEpisodes",
-      "jsonType": "boolean",
-      "nullObserved": false,
-      "observedOn": [
-        "GET /api/v3/importlist/schema"
-      ]
+      "operation": "POST /api/v3/notification/test",
+      "status": 400,
+      "reason": "the template a fresh instance supplies describes an unconfigured provider that fails its own validation, so the attempt answered 400. The success code is 200, which the document already declares, and the metadata provider answered it directly."
     },
     {
-      "schema": "NamingConfigResource",
-      "property": "customColonReplacementFormat",
-      "jsonType": "string",
-      "nullObserved": false,
-      "observedOn": [
-        "GET /api/v3/config/naming",
-        "GET /api/v3/config/naming/{id}"
-      ]
+      "operation": "PUT /api/v3/episodefile/editor",
+      "status": 500,
+      "reason": "the application dereferences the first element of an empty sequence when no episode file exists, so this answers 500 on a fresh instance. That is an upstream defect, not a status contract."
     },
     {
-      "schema": "NamingConfigResource",
-      "property": "javEpisodeFormat",
-      "jsonType": "string",
-      "nullObserved": false,
-      "observedOn": [
-        "GET /api/v3/config/naming",
-        "GET /api/v3/config/naming/{id}"
-      ]
+      "operation": "PUT /api/v3/episodefile/bulk",
+      "status": 500,
+      "reason": "the application dereferences the first element of an empty sequence when no episode file exists, so this answers 500 on a fresh instance. That is an upstream defect, not a status contract."
     },
     {
-      "schema": "NotificationResource",
-      "property": "onImportComplete",
-      "jsonType": "boolean",
-      "nullObserved": false,
-      "observedOn": [
-        "GET /api/v3/notification/schema"
-      ]
+      "operation": "DELETE /api/v3/episodefile/bulk",
+      "status": 500,
+      "reason": "the application dereferences the first element of an empty sequence when no episode file exists, so this answers 500 on a fresh instance. That is an upstream defect, not a status contract."
     },
     {
-      "schema": "NotificationResource",
-      "property": "supportsOnImportComplete",
-      "jsonType": "boolean",
-      "nullObserved": false,
-      "observedOn": [
-        "GET /api/v3/notification/schema"
-      ]
+      "operation": "PUT /api/v3/importlist/bulk",
+      "reason": "no import-list template creates a row without a working list behind it, so the probe has no id to address this with."
     },
     {
-      "schema": "SeriesResource",
-      "property": "monitorNewItems",
-      "jsonType": "string",
-      "nullObserved": false,
-      "observedOn": [
-        "GET /api/v3/series/lookup"
-      ]
-    },
-    {
-      "schema": "SeriesResource",
-      "property": "seriesType",
-      "jsonType": "string",
-      "nullObserved": false,
-      "observedOn": [
-        "GET /api/v3/series/lookup"
-      ]
+      "operation": "DELETE /api/v3/importlist/bulk",
+      "reason": "no import-list template creates a row without a working list behind it, so the probe has no id to address this with."
     }
   ],
-  "typeMismatches": [],
-  "nullOnNonNullable": [],
-  "enumViolations": [],
+  "declaredNeverReturnedNote": "Recorded and never patched. These are properties a touched schema declares that no body on a fresh instance carried, which is a fact about an empty instance rather than about the document. DownloadClientResource.id is returned the moment a download client exists, and Field.helpTextWarning is returned by any provider field that carries a warning. Treating this list as a patch list would delete both from the generated models.",
   "declaredNeverReturned": [
     {
       "schema": "DiskSpaceResource",
@@ -193,50 +164,6 @@
       "property": "id"
     },
     {
-      "schema": "SeriesResource",
-      "property": "addOptions"
-    },
-    {
-      "schema": "SeriesResource",
-      "property": "certification"
-    },
-    {
-      "schema": "SeriesResource",
-      "property": "episodesChanged"
-    },
-    {
-      "schema": "SeriesResource",
-      "property": "firstAired"
-    },
-    {
-      "schema": "SeriesResource",
-      "property": "id"
-    },
-    {
-      "schema": "SeriesResource",
-      "property": "nextAiring"
-    },
-    {
-      "schema": "SeriesResource",
-      "property": "path"
-    },
-    {
-      "schema": "SeriesResource",
-      "property": "previousAiring"
-    },
-    {
-      "schema": "SeriesResource",
-      "property": "profileName"
-    },
-    {
-      "schema": "SeriesResource",
-      "property": "rootFolderPath"
-    },
-    {
-      "schema": "SeriesStatisticsResource",
-      "property": "releaseGroups"
-    },
-    {
       "schema": "SystemResource",
       "property": "packageUpdateMechanismMessage"
     },
@@ -253,32 +180,44 @@
     {
       "operation": "GET /api",
       "contentType": "application/json",
-      "bytes": 41
+      "bytes": 41,
+      "shape": "object"
     },
     {
       "operation": "GET /api/v3/autotagging/schema",
       "contentType": "application/json",
-      "bytes": 7448
+      "bytes": 7448,
+      "shape": "array"
     },
     {
       "operation": "GET /api/v3/customformat/schema",
       "contentType": "application/json",
-      "bytes": 15746
+      "bytes": 15746,
+      "shape": "array"
     },
     {
       "operation": "GET /api/v3/filesystem",
       "contentType": "application/json",
-      "bytes": 3077
+      "bytes": 3077,
+      "shape": "object"
     },
     {
       "operation": "GET /api/v3/config/naming/examples",
       "contentType": "application/json",
-      "bytes": 154
+      "bytes": 154,
+      "shape": "object"
     },
     {
       "operation": "GET /api/v3/system/routes/duplicate",
       "contentType": "application/json",
-      "bytes": 7420
+      "bytes": 7420,
+      "shape": "object"
+    },
+    {
+      "operation": "GET /api/v3/series/lookup",
+      "contentType": "application/json",
+      "bytes": 32805,
+      "shape": "array"
     }
   ],
   "nonJsonReads": [
@@ -322,10 +261,6 @@
     },
     {
       "operation": "GET /api/v3/history/series",
-      "status": 404
-    },
-    {
-      "operation": "GET /api/v3/config/importlist",
       "status": 404
     },
     {

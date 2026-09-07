@@ -1458,11 +1458,11 @@ def check_integration_suite_addresses_only_its_own_container():
           "forbidden shapes are each refused in their own words".format(len(sources), len(fired)))
 
 
-# Two schemas and seven properties, in the spirit of zero_condition_documents() above: an integer, a
+# Two schemas and eight properties, in the spirit of zero_condition_documents() above: an integer, a
 # nullable string, a boolean, a reference to a string enum, a nullable map of nullable strings, an
 # array of integers, and a single-member allOf wrapper around the enum. Small enough that a reader
-# can hold the whole expectation in their head, and enough to reach every branch of the walker that
-# reports a failure and every branch that recurses.
+# can hold the whole expectation in their head, and enough to reach every branch of the property
+# recorder: the map site, the array, the allOf wrapper and the plain reference.
 CONFORMANCE_PAIR_DOCUMENT = {
     "components": {
         "schemas": {
@@ -1492,8 +1492,8 @@ CONFORMANCE_PAIR_DOCUMENT = {
 
 CONFORMANCE_PAIR_ROOT = {"$ref": "#/components/schemas/Thing"}
 
-# Every property Thing declares, each carrying a conformant value. Used as the last pair below and
-# as the body the seen-property assertions walk.
+# Every property Thing declares, each carrying a value of the declared type. Used as the body the
+# seen-property assertions record from.
 CONFORMANCE_DECLARED_PROPS = ("child", "enabled", "id", "kind", "label", "loose", "strings",
                               "tags")
 
@@ -1508,48 +1508,10 @@ CONFORMANCE_CONFORMANT_BODY = {
     "loose": {"note": "n"},
 }
 
-# Twelve pairs. Ten produce a finding and two must not, because a walker that flagged everything
-# would satisfy the ten and be useless. The expectation carries the owning schema name: a finding
-# that could not name its schema could not be keyed by schema and property, which is the whole shape
-# of the patch list, and the pairs that reach an inline subschema are where that is lost.
-#
-# Six of these exist because the branch they reach survived being deleted while the suite stayed
-# green. A value inside a map, a value inside an array, and a value under an allOf wrapper are each
-# reached only by a recursion the walker could drop while reporting nothing, and a boolean standing
-# where an integer is declared is caught only by a guard that would otherwise read True as a
-# conforming integer. Every one of them is a silent under-report, which is the failure this check
-# exists to prevent.
-CONFORMANCE_PAIRS = (
-    ("an undeclared property",
-     {"id": 1, "javEpisodeFormat": "x"},
-     ("undeclared", "Thing", "$.javEpisodeFormat")),
-    ("a wrong JSON type", {"id": "1"}, ("type", "Thing", "$.id")),
-    ("a null on a property that does not declare nullable", {"id": None},
-     ("null", "Thing", "$.id")),
-    ("an enum value outside the declared set", {"kind": "premium"},
-     ("enum", "ThingKind", "$.kind")),
-    ("a boolean where an integer is declared", {"id": True}, ("type", "Thing", "$.id")),
-    ("a wrong JSON type inside a map-shaped site", {"strings": {"a": 5}},
-     ("type", None, "$.strings.a")),
-    ("a wrong JSON type inside an array", {"tags": ["x"]}, ("type", None, "$.tags[0]")),
-    ("a scalar where an array is declared", {"tags": 5}, ("type", "Thing", "$.tags")),
-    ("a scalar where an object is declared", {"strings": "x"}, ("type", "Thing", "$.strings")),
-    ("an enum violation under an allOf wrapper", {"child": "premium"},
-     ("enum", "ThingKind", "$.child")),
-    # A non-string against a string enum is a type mismatch, not an enum mismatch. The two verdicts
-    # key different rows of the patch list, and the value is wrong in its type before its content.
-    ("a non-string where a string enum is declared", {"kind": 5}, ("type", "ThingKind", "$.kind")),
-    ("a map-shaped site", {"strings": {"a": "b", "c": None}}, None),
-    # Undeclared is reported only where the schema closes itself. Against a schema that does not,
-    # an unknown key is legal, and a walker that flagged it would fill the patch list with
-    # properties the document never meant to exclude.
-    ("an unknown key under a schema that does not close itself", {"loose": {"z": 1}}, None),
-    ("a fully conformant body", CONFORMANCE_CONFORMANT_BODY, None),
-)
-
-# The seventh case is not a walker case. The content type is classified before a body is parsed, so
-# the assertion is over the classifier, and handing the walker a body it never sees would state the
-# wrong rule. Four that must not be read as JSON, two that must.
+# The content type is classified before a body is parsed, so the assertion is over the classifier
+# alone. One read answers 184,918 bytes of Graphviz, and a classifier that read it as JSON would
+# record a shape for a document that was never JSON. Four that must not be read as JSON, two that
+# must.
 NON_JSON_CONTENT_TYPES = (
     "text/html",
     "text/html; charset=utf-8",
@@ -1559,62 +1521,51 @@ NON_JSON_CONTENT_TYPES = (
 JSON_CONTENT_TYPES = ("application/json", "application/json; charset=utf-8")
 
 
-def conformance_findings(body, seen_props=None):
-    """Every finding the shipped walker records for one body against the pair document."""
-    findings = []
-    conformance.walk(CONFORMANCE_PAIR_DOCUMENT, CONFORMANCE_PAIR_ROOT, body, findings,
-                     seen_props if seen_props is not None else set())
-    return findings
+def conformance_seen(body):
+    """The declared properties the shipped recorder finds in one body against the pair document."""
+    seen = set()
+    conformance.record_seen_properties(CONFORMANCE_PAIR_DOCUMENT, CONFORMANCE_PAIR_ROOT, body, seen)
+    return seen
 
 
 def check_conformance_failure_branches():
-    """The four failing verdicts fire over synthetic pairs, and the three script refusals fire too.
+    """The three script refusals each fire and each stay quiet, and the sweep's recorders hold.
 
-    What this pins is every branch of the sweep that a run against this pin never reaches. The type,
-    null and enum verdicts occur zero times against the pinned image, so this is the only place they
-    are ever seen firing: all three could be deleted and the Docker run stayed green. The shipped
-    module is imported rather than restated, because a copy would pass while the walker was broken.
+    What this pins is every branch of the sweep that a run against the pin never reaches. A refusal
+    only ever observed passing is not evidenced, so each is driven once over an input that must fire
+    it and once over an input that must not. The shipped module is imported rather than restated,
+    because a copy would pass while the sweep was broken.
 
     Nothing here opens a socket or starts a container.
     """
-    for name, body, expected in CONFORMANCE_PAIRS:
-        findings = conformance_findings(body)
-        if expected is None:
-            assert findings == [], (name, findings)
-            continue
-        assert len(findings) == 1, (name, findings)
-        verdict, schema, path, _detail = findings[0]
-        assert (verdict, schema, path) == expected, (name, findings[0])
-
-    # The detail a finding carries becomes the jsonType the patch list reports. bool is a subclass
-    # of int in Python, so a type name that did not order the two would record a boolean as an
-    # integer and the consumer would patch the document to the wrong type.
-    assert [conformance.json_type_of(value)
-            for value in (None, True, 1, 1.5, "x", [], {})] == [
-                "null", "boolean", "integer", "number", "string", "array", "object"]
-    assert conformance_findings({"id": True})[0][3] == "boolean"
-
-    # The four verdict sentences, from the findings the pairs just produced. Each is a line
-    # docs/REGENERATION.md keys a row on, and a verdict with no sentence would print nothing.
-    lines = conformance.refuse_findings([finding for _name, body, expected in CONFORMANCE_PAIRS
-                                         if expected for finding in conformance_findings(body)])
-    assert len(lines) == 4, lines
-    assert len(set(lines)) == 4, lines
-    assert all(line.startswith(conformance.REFUSAL_PREFIX) for line in lines), lines
-
     assert not any(conformance.classify_json(entry) for entry in NON_JSON_CONTENT_TYPES)
     assert all(conformance.classify_json(entry) for entry in JSON_CONTENT_TYPES)
 
-    # The bodiless map names a schema, and against a document that no longer declares it the sweep
-    # would validate a payload against the wrong schema and report every difference as a finding.
+    # shape is read straight off the parsed body, and the fifth transformation attaches an array
+    # response or an object response according to that one word. Getting it wrong renames three
+    # generated methods. The media type is recorded without its parameters, and the byte count is
+    # of the raw body rather than of anything parsed out of it.
+    assert [conformance.json_type_of(value)
+            for value in (None, True, 1, 1.5, "x", [], {})] == [
+                "null", "boolean", "integer", "number", "string", "array", "object"]
+    assert conformance.bodiless_entry(
+        "GET /example", "application/json; charset=utf-8", b'[{"id":1}]', [{"id": 1}]) == {
+            "operation": "GET /example", "contentType": "application/json",
+            "bytes": 10, "shape": "array"}
+    assert conformance.bodiless_entry("GET /example", "application/json", b"{}", {})["shape"] == \
+        "object"
+
+    # The bodiless map names the schema the fifth transformation attaches. Against a document that
+    # no longer declares it, the transformation would attach a reference to nothing.
     named = {schema for schema, _shape, _query in conformance.BODILESS_SCHEMA_MAP.values()}
     declares = {"components": {"schemas": {schema: {"type": "object"} for schema in named}}}
     refusals = (
         (conformance.refuse_bodiless_map({"components": {"schemas": {}}},
                                          conformance.BODILESS_SCHEMA_MAP),
          conformance.refuse_bodiless_map(declares, conformance.BODILESS_SCHEMA_MAP)),
-        (conformance.refuse_empty_selection(0), conformance.refuse_empty_selection(90)),
-        # 80 answered, 4 non-JSON and 6 bodiless with data leave 70 to schema-check.
+        (conformance.refuse_empty_selection(0), conformance.refuse_empty_selection(1)),
+        # Whatever the numbers are, the reads recorded against a declared schema must be the
+        # answered reads less the non-JSON ones and less the ones that declare no schema at all.
         (conformance.refuse_invariant(70, 80, 4, 8), conformance.refuse_invariant(70, 80, 4, 6)),
     )
     for fires, quiet in refusals:
@@ -1623,28 +1574,26 @@ def check_conformance_failure_branches():
         assert quiet is None, quiet
     assert len({fires for fires, _quiet in refusals}) == len(refusals), refusals
 
-    # The walker records which declared properties a body carried, and that record is the only
-    # input to the never-returned list. A walker that recorded nothing would report every declared
-    # property as never returned, and every assertion above would still pass.
-    seen = set()
-    assert conformance_findings(CONFORMANCE_CONFORMANT_BODY, seen) == [], seen
+    # The recorder is the only input to the never-returned list. A recorder that recorded nothing
+    # would report every declared property of every touched schema as never returned, and a
+    # never-returned list read as a patch list deletes real properties from the generated models.
+    seen = conformance_seen(CONFORMANCE_CONFORMANT_BODY)
     assert seen == {("Thing", prop) for prop in CONFORMANCE_DECLARED_PROPS} | {("Loose", "note")}, \
         seen
     assert conformance.declared_never_returned(CONFORMANCE_PAIR_DOCUMENT, seen) == [], seen
 
-    partial = set()
-    conformance_findings({"id": 1}, partial)
+    partial = conformance_seen({"id": 1})
     assert partial == {("Thing", "id")}, partial
     assert conformance.declared_never_returned(CONFORMANCE_PAIR_DOCUMENT, partial) == [
         {"schema": "Thing", "property": prop}
         for prop in CONFORMANCE_DECLARED_PROPS if prop != "id"
     ]
 
-    produced = sum(1 for _name, _body, expected in CONFORMANCE_PAIRS if expected)
-    print("ok  conformance branches: {} synthetic pairs, {} of them producing a finding, {} "
-          "content types classified without parsing, {} script refusals fired".format(
-              len(CONFORMANCE_PAIRS), produced,
-              len(NON_JSON_CONTENT_TYPES) + len(JSON_CONTENT_TYPES), len(refusals)))
+    print("ok  conformance branches: {} content types classified without parsing, {} declared "
+          "properties recorded from one body and {} of them reported never returned from another, "
+          "{} script refusals fired and stayed quiet".format(
+              len(NON_JSON_CONTENT_TYPES) + len(JSON_CONTENT_TYPES), len(seen),
+              len(CONFORMANCE_DECLARED_PROPS) - 1, len(refusals)))
 
 
 OFFLINE_CHECKS = (
@@ -1762,32 +1711,49 @@ def run_conformance():
     return completed.returncode, completed.stdout + completed.stderr
 
 
-# The two entries the external probe adds to the committed patch list. The committed file was
-# produced with the probe on, and the check below runs without it, so these two are the whole of the
-# difference a hermetic run is allowed to have. Naming them is what lets the rest of the list be
-# compared entry for entry rather than loosely.
-CONFORMANCE_EXTERNAL_ONLY = (
-    ("SeriesResource", "monitorNewItems"),
-    ("SeriesResource", "seriesType"),
+# The one operation the external probe contributes. The committed file was produced with the probe
+# on and the check below runs without it, so this entry is the whole of the difference a hermetic
+# run is allowed to have. Naming it is what lets every list be compared entry for entry rather than
+# loosely.
+CONFORMANCE_EXTERNAL_ONLY_OPERATION = "GET /api/v3/series/lookup"
+
+# Every key a hermetic run must reproduce exactly. bodilessOperationsReturningData is compared
+# separately, because it is the one list the external probe adds to.
+#
+# declaredNeverReturned is not among them, and cannot be. Measured across two boots of the same
+# digest: one carried LogResource.exception and LogResource.exceptionType because a log row on that
+# boot held an exception, and the other carried HealthResource.id because that boot raised a health
+# issue and the first returned an empty health collection. The list covers the schemas a run
+# touched, so an empty collection removes its schema from the list entirely. It is a record of one
+# boot and never a patch list, which is why nothing downstream reads it.
+CONFORMANCE_REPRODUCED_KEYS = (
+    "measuredAgainst",
+    "readsSelected",
+    "readsSchemaChecked",
+    "nonJsonReads",
+    "readsNotAnswering200",
+    "writeProbe",
+    "writesNotProbed",
 )
 
 
-def check_conformance_sweep_reproduces_the_patch_list():
-    """A fresh sweep against the pin reproduces the committed patch list, and refuses on it.
+def check_conformance_sweep_reproduces_the_record():
+    """A fresh sweep against the pin reproduces the committed record and exits 0.
 
-    What this pins is the deliverable. The committed document omits properties the running
-    application returns, so the sweep refusing is the correct outcome and a green run would mean it
-    found nothing. The check asserts the refusal and its exact contents instead of an exit code: the
-    suite stays green while the check itself refuses, and one more undeclared property turns the
-    suite red.
+    What this pins is the deliverable. The record is what the fifth transformation patches from, so
+    a sweep that quietly recorded something else would move the generated client without moving any
+    committed file a reader looks at. Every key is compared entry for entry rather than by count:
+    a count is a copy of a fact this comparison already fixes.
 
-    This check is not in OFFLINE_CHECKS. It boots the pinned image, calls ninety reads and issues
-    one write against the container it started, and a machine without Docker must still get a green
-    default suite.
+    The two rules the record must not break are asserted here as well as enforced in the sweep. No
+    status the probe observed failing may appear as a success code, and no operation may sit in
+    both the probe map and the unreachable list.
 
-    The run is hermetic, so it reports the eight undeclared properties the instance returns without
-    reaching anything outside it. The committed file carries those eight and the two the external
-    probe adds. Both files are recorded before the run and restored after it, so a check that ran
+    This check is not in OFFLINE_CHECKS. It boots the pinned image, calls every read it can address
+    and issues every write it can reach against the container it started, and a machine without
+    Docker must still get a green default suite.
+
+    Both committed files are recorded before the run and restored after it, so a check that ran
     with other work in progress reports the right thing and leaves nothing behind.
     """
     output_path = resolve_repo_path(conformance.OUTPUT_PATH)
@@ -1804,40 +1770,45 @@ def check_conformance_sweep_reproduces_the_patch_list():
             fresh = json.load(handle)
         committed = json.loads(committed_raw.decode("utf-8"))
 
-        # The run refuses. Against this pin the undeclared verdict always fires, and the file it
-        # wrote is the record of what it found.
-        assert code != 0, (code, output)
-        assert "a response carries a property the document does not declare" in output, output
+        # The run exits 0. It used to refuse on four verdicts, and all four became impossible when
+        # the document started being built from the commit the pinned image runs.
+        assert code == 0, (code, output)
         assert os.path.basename(conformance.OUTPUT_PATH) in output, output
-
         assert fresh["externalProbeRan"] is False, "the hermetic run reached outside the container"
-        assert fresh["measuredAgainst"] == committed["measuredAgainst"], fresh["measuredAgainst"]
-        assert fresh["readsSelected"] == committed["readsSelected"], fresh["readsSelected"]
-        assert fresh["readsSchemaChecked"] == committed["readsSchemaChecked"], \
-            fresh["readsSchemaChecked"]
-        assert fresh["writeProbe"] == committed["writeProbe"], fresh["writeProbe"]
 
-        # The whole of the patch list, entry for entry. The two the external probe adds are the
-        # only difference a run without it is allowed to have.
-        external = set(CONFORMANCE_EXTERNAL_ONLY)
-        expected = [entry for entry in committed["undeclaredProperties"]
-                    if (entry["schema"], entry["property"]) not in external]
-        assert len(expected) == len(committed["undeclaredProperties"]) - len(external), expected
-        assert fresh["undeclaredProperties"] == expected, fresh["undeclaredProperties"]
+        for key in CONFORMANCE_REPRODUCED_KEYS:
+            assert fresh[key] == committed[key], (key, fresh[key])
 
-        # Zero against this pin, which is why the three of them are evidenced offline.
-        for verdict in ("typeMismatches", "nullOnNonNullable", "enumViolations"):
-            assert fresh[verdict] == [], (verdict, fresh[verdict])
+        # The one list the probe adds to, entry for entry including each shape. shape decides
+        # whether the fifth transformation attaches an array response or an object response, and
+        # that choice decides three generated method names.
+        expected = [entry for entry in committed["bodilessOperationsReturningData"]
+                    if entry["operation"] != CONFORMANCE_EXTERNAL_ONLY_OPERATION]
+        assert len(expected) == len(committed["bodilessOperationsReturningData"]) - 1, expected
+        assert fresh["bodilessOperationsReturningData"] == expected, \
+            fresh["bodilessOperationsReturningData"]
+        assert all(entry["shape"] in ("array", "object")
+                   for entry in fresh["bodilessOperationsReturningData"]), \
+            fresh["bodilessOperationsReturningData"]
 
-        # The list of declared properties nothing returned covers only the schemas a run touched,
-        # and the probe touches one this run never reaches, so the committed list is the larger of
-        # the two. Every entry this run reports is in it, and the difference is that schema alone.
-        never = {(entry["schema"], entry["property"])
-                 for entry in committed["declaredNeverReturned"]}
-        strays = [entry for entry in fresh["declaredNeverReturned"]
-                  if (entry["schema"], entry["property"]) not in never]
-        assert not strays, strays
+        # No status observed failing is recorded as a success code, and no operation is recorded
+        # both ways. Declaring 400 for a test POST would make the generated client report a real
+        # validation failure as success.
+        assert all(200 <= status < 300 for status in fresh["writeProbe"].values()), \
+            fresh["writeProbe"]
+        both = {entry["operation"] for entry in fresh["writesNotProbed"]} & set(fresh["writeProbe"])
+        assert not both, both
+        assert all({"operation", "reason"} <= set(entry) for entry in fresh["writesNotProbed"]), \
+            fresh["writesNotProbed"]
+
+        # Not compared entry for entry, for the reason at CONFORMANCE_REPRODUCED_KEYS. A run that
+        # recorded nothing at all would mean the property recorder stopped recording, and every
+        # declared property of every touched schema would read as never returned.
         assert fresh["declaredNeverReturned"], "no declared property went unreturned at all"
+
+        # Both lists a reader could mistake for a patch list carry the reason they are not one.
+        assert fresh["writesNotProbedNote"] == conformance.WRITES_NOT_PROBED_NOTE
+        assert fresh["declaredNeverReturnedNote"] == conformance.DECLARED_NEVER_RETURNED_NOTE
 
         with open(provenance_path, "rb") as handle:
             assert handle.read() == provenance_raw, "the sweep wrote the provenance record"
@@ -1846,14 +1817,16 @@ def check_conformance_sweep_reproduces_the_patch_list():
         with open(output_path, "wb") as handle:
             handle.write(committed_raw)
 
-    print("ok  docker: a hermetic sweep reports the {} committed undeclared properties without the "
-          "{} the external probe adds, no type, null or enum finding, and refuses on what it "
-          "found".format(len(expected), len(CONFORMANCE_EXTERNAL_ONLY)))
+    print("ok  docker: a hermetic sweep reproduces {} keys of the committed record entry for "
+          "entry, {} probed writes with no failure status among them, {} recorded unreachable, and "
+          "{} bodiless operations without the one the external probe adds".format(
+              len(CONFORMANCE_REPRODUCED_KEYS), len(fresh["writeProbe"]),
+              len(fresh["writesNotProbed"]), len(expected)))
 
 
 DOCKER_CHECKS = (
     check_generate_check_is_clean,
-    check_conformance_sweep_reproduces_the_patch_list,
+    check_conformance_sweep_reproduces_the_record,
 )
 
 
