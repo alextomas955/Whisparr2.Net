@@ -130,6 +130,12 @@ namespace Whisparr2.Net
         /// exception and returns null. Prefer the plain variant; the OrDefaultAsync form cannot
         /// tell a failure from an empty result.
         /// </para>
+        /// <para>
+        /// Each generated api is injectable by its interface, and the command api is injectable by
+        /// its class as well. Take <see cref="Api.ICommandApi"/> for the generated operations, and
+        /// <see cref="Api.CommandApi"/> when the caller also needs SendCommandAsync, which is the
+        /// only way to put a command argument on the wire.
+        /// </para>
         /// </remarks>
         public static IServiceCollection AddWhisparr2(this IServiceCollection services, Whisparr2Options options)
         {
@@ -150,6 +156,12 @@ namespace Whisparr2.Net
             services.AddApi(cfg => cfg.AddApiHttpClients(
                 client => client.BaseAddress = baseUri,
                 options.ConfigureHttpClient));
+
+            // SendCommandAsync lives on the concrete class because ICommandApi is generator output
+            // and cannot be extended, so the concrete type is registered to spare every caller a
+            // cast. The factory delegates to the registration above rather than constructing
+            // anything, so the lifetime AddHttpClient set is the lifetime this hands out.
+            services.AddTransient<Api.CommandApi>(sp => (Api.CommandApi)sp.GetRequiredService<Api.ICommandApi>());
 
             return services;
         }
