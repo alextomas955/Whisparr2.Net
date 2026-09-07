@@ -2063,6 +2063,11 @@ def check_conformance_sweep_reproduces_the_record():
         # The committed file is the flagged run's, and this run wrote the hermetic one over it.
         with open(output_path, "wb") as handle:
             handle.write(committed_raw)
+        # Restored too, and not only asserted on. The assertion above reports a sweep that wrote a
+        # file it must not, and without this the record carrying every hash the rest of the
+        # pipeline is measured against would be left modified by the run that reported it.
+        with open(provenance_path, "wb") as handle:
+            handle.write(provenance_raw)
 
     print("ok  docker: a hermetic sweep reproduces {} keys of the committed record entry for "
           "entry, {} probed writes with no failure status among them, {} recorded unreachable, and "
