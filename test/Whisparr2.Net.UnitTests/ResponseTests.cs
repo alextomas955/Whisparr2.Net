@@ -38,11 +38,14 @@ namespace Whisparr2.Net.UnitTests
         /// <summary>The body an update answers 202 with.</summary>
         private const string UpdatedTagBody = "{\"id\":5,\"label\":\"updated-tag\"}";
 
-        /// <summary>The body the ordinary-200 control on the create operation answers with.</summary>
+        /// <summary>The body the undeclared-200 case on the create operation answers with.</summary>
         private const string OkCreateTagBody = "{\"id\":6,\"label\":\"ordinary-create\"}";
 
-        /// <summary>The body the ordinary-200 control on the update operation answers with.</summary>
-        private const string OkUpdateTagBody = "{\"id\":7,\"label\":\"ordinary-update\"}";
+        /// <summary>The body the ordinary-200 control on the by-id read answers with.</summary>
+        private const string OkReadTagBody = "{\"id\":7,\"label\":\"ordinary-read\"}";
+
+        /// <summary>The id the by-id read addresses. This operation takes it as an int.</summary>
+        private const int ReadTagId = 7;
 
         /// <summary>
         /// A one element array, which is what makes the list case evidence.
@@ -283,13 +286,13 @@ namespace Whisparr2.Net.UnitTests
         /// A create answering 201 is a success and its body is reachable.
         /// </summary>
         /// <remarks>
-        /// This is the case the whole layer exists for. All 227 operations declare exactly one
-        /// response code and it is 200, so the generator emitted no created accessor anywhere in
-        /// the tree and the generated success accessor returns null on a real 201, which reads to a
-        /// caller as a failed create. It is also the detector for an ApiResponse partial declared
-        /// in the wrong namespace: outside Whisparr2.Net.Client the pattern match in the generic
-        /// overload never matches, every typed response goes down the generated-accessor path, and
-        /// a successful create returns null. If this case fails with a null or an unexpected typed
+        /// This is the case the whole layer exists for. The document declares 201 for this
+        /// operation because a probe measured the instance answering it, so the response carries
+        /// the created-typed success interface and this asserts that the overload bound to it
+        /// returns the body. It is also the detector for an ApiResponse partial declared in the
+        /// wrong namespace: outside Whisparr2.Net.Client the pattern match in the shared body
+        /// never matches, every typed response goes down the generated-accessor path, and a
+        /// successful create returns null. If this case fails with a null or an unexpected typed
         /// error, check that namespace before anything else.
         /// </remarks>
         [Fact]
@@ -311,9 +314,9 @@ namespace Whisparr2.Net.UnitTests
         /// An update answering 202 is a success and its body is reachable.
         /// </summary>
         /// <remarks>
-        /// The other half of the same defect. A PUT on this instance answers 202, which the
-        /// document does not declare either, and the id on this operation is a string while the
-        /// same id on the delete operation is an int.
+        /// The other half of the same pair, against the accepted-typed overload. A PUT on this
+        /// instance answers 202 and the document now declares it, and the id on this operation is
+        /// a string while the same id on the delete operation is an int.
         /// </remarks>
         [Fact]
         public async Task Accepted_202_body_is_reachable_and_EnsureSuccess_returns_it()
@@ -331,14 +334,18 @@ namespace Whisparr2.Net.UnitTests
         }
 
         /// <summary>
-        /// The control for the create case. An ordinary 200 still returns the body.
+        /// A success status the document does not declare still returns the body.
         /// </summary>
         /// <remarks>
-        /// Not padding. Every other case in this file sends a non-200 or an unreadable body, so a
-        /// change that broke the plain path would pass all of them.
+        /// The create declares 201 and this sends 200, so the status arriving here is the one the
+        /// document does not declare. That inversion is the point: it is the property the pair
+        /// above held before the document was corrected, and it still has live subjects. The write
+        /// probe reaches twenty-six operations and every write it could not reach still declares
+        /// 200 while the instance may answer a 201 or a 202, so a caller meets this case on the
+        /// operations no measurement covers.
         /// </remarks>
         [Fact]
-        public async Task Ok_200_on_the_create_operation_still_returns_the_body()
+        public async Task Undeclared_200_on_the_create_operation_still_returns_the_body()
         {
             using LoopbackCapture capture = new(status: 200, body: OkCreateTagBody);
 
@@ -353,21 +360,29 @@ namespace Whisparr2.Net.UnitTests
         }
 
         /// <summary>
-        /// The same control for the update path.
+        /// The plain-path control. An ordinary 200 on an operation declaring 200 returns the body.
         /// </summary>
+        /// <remarks>
+        /// Not padding. Every other case in this file sends a status the operation does not
+        /// declare, or an unreadable body, so a change that broke the ordinary case would pass all
+        /// of them. It drives the by-id read rather than the update, because the update now
+        /// declares 202 and is no longer a plain-200 path. The read still declares 200 and still
+        /// carries a typed body of the same resource type, which keeps the control on the
+        /// ok-typed overload and next to the writes the pair above drives.
+        /// </remarks>
         [Fact]
-        public async Task Ok_200_on_the_update_operation_still_returns_the_body()
+        public async Task Ok_200_on_the_by_id_read_still_returns_the_body()
         {
-            using LoopbackCapture capture = new(status: 200, body: OkUpdateTagBody);
+            using LoopbackCapture capture = new(status: 200, body: OkReadTagBody);
 
             await using ServiceProvider provider = BuildProvider(capture);
-            IUpdateTagApiResponse response = await provider.GetRequiredService<ITagApi>()
-                .UpdateTagAsync(UpdatedTagId, new TagResource { Id = 7, Label = "ordinary-update" });
+            IGetTagByIdApiResponse response = await provider.GetRequiredService<ITagApi>()
+                .GetTagByIdAsync(ReadTagId);
 
-            TagResource updated = response.EnsureSuccess();
+            TagResource read = response.EnsureSuccess();
 
-            Assert.Equal(7, updated.Id);
-            Assert.Equal("ordinary-update", updated.Label);
+            Assert.Equal(7, read.Id);
+            Assert.Equal("ordinary-read", read.Label);
         }
 
         /// <summary>

@@ -299,13 +299,13 @@ namespace Whisparr2.Net.Api
     /// <summary>
     /// The <see cref="ICreateDownloadClientApiResponse"/>
     /// </summary>
-    public interface ICreateDownloadClientApiResponse : Whisparr2.Net.Client.IApiResponse, IOk<Whisparr2.Net.Model.DownloadClientResource?>
+    public interface ICreateDownloadClientApiResponse : Whisparr2.Net.Client.IApiResponse, ICreated<Whisparr2.Net.Model.DownloadClientResource?>
     {
         /// <summary>
-        /// Returns true if the response is 200 Ok
+        /// Returns true if the response is 201 Created
         /// </summary>
         /// <returns></returns>
-        bool IsOk { get; }
+        bool IsCreated { get; }
     }
 
     /// <summary>
@@ -383,13 +383,13 @@ namespace Whisparr2.Net.Api
     /// <summary>
     /// The <see cref="IPutDownloadClientBulkApiResponse"/>
     /// </summary>
-    public interface IPutDownloadClientBulkApiResponse : Whisparr2.Net.Client.IApiResponse, IOk<Whisparr2.Net.Model.DownloadClientResource?>
+    public interface IPutDownloadClientBulkApiResponse : Whisparr2.Net.Client.IApiResponse, IAccepted<Whisparr2.Net.Model.DownloadClientResource?>
     {
         /// <summary>
-        /// Returns true if the response is 200 Ok
+        /// Returns true if the response is 202 Accepted
         /// </summary>
         /// <returns></returns>
-        bool IsOk { get; }
+        bool IsAccepted { get; }
     }
 
     /// <summary>
@@ -925,50 +925,50 @@ namespace Whisparr2.Net.Api
             partial void OnCreated(global::System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage);
 
             /// <summary>
-            /// Returns true if the response is 200 Ok
+            /// Returns true if the response is 201 Created
             /// </summary>
             /// <returns></returns>
-            public bool IsOk => 200 == (int)StatusCode;
+            public bool IsCreated => 201 == (int)StatusCode;
 
             /// <summary>
-            /// Deserializes the response if the response is 200 Ok
+            /// Deserializes the response if the response is 201 Created
             /// </summary>
             /// <returns></returns>
-            public Whisparr2.Net.Model.DownloadClientResource? Ok()
+            public Whisparr2.Net.Model.DownloadClientResource? Created()
             {
                 bool suppressDefault = false;
                 Whisparr2.Net.Model.DownloadClientResource? result = null;
-                OnOk(ref suppressDefault, ref result);
+                OnCreated(ref suppressDefault, ref result);
                 if (!suppressDefault)
-                    result = DefaultOk();
+                    result = DefaultCreated();
                 return result;
             }
 
-            private Whisparr2.Net.Model.DownloadClientResource? DefaultOk()
+            private Whisparr2.Net.Model.DownloadClientResource? DefaultCreated()
             {
                 // NOTICE: Consider this AsModel template deprecated. Implement the appropriate partial method instead
-                return IsOk
+                return IsCreated
                     ? System.Text.Json.JsonSerializer.Deserialize<Whisparr2.Net.Model.DownloadClientResource>(RawContent, _jsonSerializerOptions)
                     : null;
             }
 
-            partial void OnOk(ref bool suppressDefault, ref Whisparr2.Net.Model.DownloadClientResource? result);
+            partial void OnCreated(ref bool suppressDefault, ref Whisparr2.Net.Model.DownloadClientResource? result);
 
             /// <summary>
-            /// Returns true if the response is 200 Ok and the deserialized response is not null
+            /// Returns true if the response is 201 Created and the deserialized response is not null
             /// </summary>
             /// <param name="result"></param>
             /// <returns></returns>
-            public bool TryOk([NotNullWhen(true)]out Whisparr2.Net.Model.DownloadClientResource? result)
+            public bool TryCreated([NotNullWhen(true)]out Whisparr2.Net.Model.DownloadClientResource? result)
             {
                 result = null;
 
                 try
                 {
-                    result = Ok();
+                    result = Created();
                 } catch (Exception e)
                 {
-                    OnDeserializationErrorDefaultImplementation(e, (HttpStatusCode)200);
+                    OnDeserializationErrorDefaultImplementation(e, (HttpStatusCode)201);
                 }
 
                 return result != null;
@@ -2582,50 +2582,50 @@ namespace Whisparr2.Net.Api
             partial void OnCreated(global::System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage);
 
             /// <summary>
-            /// Returns true if the response is 200 Ok
+            /// Returns true if the response is 202 Accepted
             /// </summary>
             /// <returns></returns>
-            public bool IsOk => 200 == (int)StatusCode;
+            public bool IsAccepted => 202 == (int)StatusCode;
 
             /// <summary>
-            /// Deserializes the response if the response is 200 Ok
+            /// Deserializes the response if the response is 202 Accepted
             /// </summary>
             /// <returns></returns>
-            public Whisparr2.Net.Model.DownloadClientResource? Ok()
+            public Whisparr2.Net.Model.DownloadClientResource? Accepted()
             {
                 bool suppressDefault = false;
                 Whisparr2.Net.Model.DownloadClientResource? result = null;
-                OnOk(ref suppressDefault, ref result);
+                OnAccepted(ref suppressDefault, ref result);
                 if (!suppressDefault)
-                    result = DefaultOk();
+                    result = DefaultAccepted();
                 return result;
             }
 
-            private Whisparr2.Net.Model.DownloadClientResource? DefaultOk()
+            private Whisparr2.Net.Model.DownloadClientResource? DefaultAccepted()
             {
                 // NOTICE: Consider this AsModel template deprecated. Implement the appropriate partial method instead
-                return IsOk
+                return IsAccepted
                     ? System.Text.Json.JsonSerializer.Deserialize<Whisparr2.Net.Model.DownloadClientResource>(RawContent, _jsonSerializerOptions)
                     : null;
             }
 
-            partial void OnOk(ref bool suppressDefault, ref Whisparr2.Net.Model.DownloadClientResource? result);
+            partial void OnAccepted(ref bool suppressDefault, ref Whisparr2.Net.Model.DownloadClientResource? result);
 
             /// <summary>
-            /// Returns true if the response is 200 Ok and the deserialized response is not null
+            /// Returns true if the response is 202 Accepted and the deserialized response is not null
             /// </summary>
             /// <param name="result"></param>
             /// <returns></returns>
-            public bool TryOk([NotNullWhen(true)]out Whisparr2.Net.Model.DownloadClientResource? result)
+            public bool TryAccepted([NotNullWhen(true)]out Whisparr2.Net.Model.DownloadClientResource? result)
             {
                 result = null;
 
                 try
                 {
-                    result = Ok();
+                    result = Accepted();
                 } catch (Exception e)
                 {
-                    OnDeserializationErrorDefaultImplementation(e, (HttpStatusCode)200);
+                    OnDeserializationErrorDefaultImplementation(e, (HttpStatusCode)202);
                 }
 
                 return result != null;

@@ -22,6 +22,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Whisparr2.Net.Client;
 using Whisparr2.Net.Logging;
+using Whisparr2.Net.Model;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Whisparr2.Net.Api
@@ -46,8 +47,8 @@ namespace Whisparr2.Net.Api
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="term"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns><see cref="Task"/>&lt;<see cref="IGetSeriesLookupApiResponse"/>&gt;</returns>
-        Task<IGetSeriesLookupApiResponse> GetSeriesLookupAsync(Option<string> term = default, System.Threading.CancellationToken cancellationToken = default);
+        /// <returns><see cref="Task"/>&lt;<see cref="IListSeriesLookupApiResponse"/>&gt;</returns>
+        Task<IListSeriesLookupApiResponse> ListSeriesLookupAsync(Option<string> term = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -57,14 +58,14 @@ namespace Whisparr2.Net.Api
         /// </remarks>
         /// <param name="term"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns><see cref="Task"/>&lt;<see cref="IGetSeriesLookupApiResponse"/>?&gt;</returns>
-        Task<IGetSeriesLookupApiResponse?> GetSeriesLookupOrDefaultAsync(Option<string> term = default, System.Threading.CancellationToken cancellationToken = default);
+        /// <returns><see cref="Task"/>&lt;<see cref="IListSeriesLookupApiResponse"/>?&gt;</returns>
+        Task<IListSeriesLookupApiResponse?> ListSeriesLookupOrDefaultAsync(Option<string> term = default, System.Threading.CancellationToken cancellationToken = default);
     }
 
     /// <summary>
-    /// The <see cref="IGetSeriesLookupApiResponse"/>
+    /// The <see cref="IListSeriesLookupApiResponse"/>
     /// </summary>
-    public interface IGetSeriesLookupApiResponse : Whisparr2.Net.Client.IApiResponse
+    public interface IListSeriesLookupApiResponse : Whisparr2.Net.Client.IApiResponse, IOk<List<SeriesResource>?>
     {
         /// <summary>
         /// Returns true if the response is 200 Ok
@@ -81,21 +82,21 @@ namespace Whisparr2.Net.Api
         /// <summary>
         /// The event raised after the server response
         /// </summary>
-        public event EventHandler<ApiResponseEventArgs>? OnGetSeriesLookup;
+        public event EventHandler<ApiResponseEventArgs>? OnListSeriesLookup;
 
         /// <summary>
         /// The event raised after an error querying the server
         /// </summary>
-        public event EventHandler<ExceptionEventArgs>? OnErrorGetSeriesLookup;
+        public event EventHandler<ExceptionEventArgs>? OnErrorListSeriesLookup;
 
-        internal void ExecuteOnGetSeriesLookup(SeriesLookupApi.GetSeriesLookupApiResponse apiResponse)
+        internal void ExecuteOnListSeriesLookup(SeriesLookupApi.ListSeriesLookupApiResponse apiResponse)
         {
-            OnGetSeriesLookup?.Invoke(this, new ApiResponseEventArgs(apiResponse));
+            OnListSeriesLookup?.Invoke(this, new ApiResponseEventArgs(apiResponse));
         }
 
-        internal void ExecuteOnErrorGetSeriesLookup(Exception exception)
+        internal void ExecuteOnErrorListSeriesLookup(Exception exception)
         {
-            OnErrorGetSeriesLookup?.Invoke(this, new ExceptionEventArgs(exception));
+            OnErrorListSeriesLookup?.Invoke(this, new ExceptionEventArgs(exception));
         }
     }
 
@@ -140,14 +141,14 @@ namespace Whisparr2.Net.Api
             ApiKeyProvider = apiKeyProvider;
         }
 
-        partial void FormatGetSeriesLookup(ref Option<string> term);
+        partial void FormatListSeriesLookup(ref Option<string> term);
 
         /// <summary>
         /// Validates the request parameters
         /// </summary>
         /// <param name="term"></param>
         /// <returns></returns>
-        private void ValidateGetSeriesLookup(Option<string> term)
+        private void ValidateListSeriesLookup(Option<string> term)
         {
             if (term.IsSet && term.Value == null)
                 throw new ArgumentNullException(nameof(term));
@@ -158,10 +159,10 @@ namespace Whisparr2.Net.Api
         /// </summary>
         /// <param name="apiResponseLocalVar"></param>
         /// <param name="term"></param>
-        private void AfterGetSeriesLookupDefaultImplementation(IGetSeriesLookupApiResponse apiResponseLocalVar, Option<string> term)
+        private void AfterListSeriesLookupDefaultImplementation(IListSeriesLookupApiResponse apiResponseLocalVar, Option<string> term)
         {
             bool suppressDefaultLog = false;
-            AfterGetSeriesLookup(ref suppressDefaultLog, apiResponseLocalVar, term);
+            AfterListSeriesLookup(ref suppressDefaultLog, apiResponseLocalVar, term);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -172,7 +173,7 @@ namespace Whisparr2.Net.Api
         /// <param name="suppressDefaultLog"></param>
         /// <param name="apiResponseLocalVar"></param>
         /// <param name="term"></param>
-        partial void AfterGetSeriesLookup(ref bool suppressDefaultLog, IGetSeriesLookupApiResponse apiResponseLocalVar, Option<string> term);
+        partial void AfterListSeriesLookup(ref bool suppressDefaultLog, IListSeriesLookupApiResponse apiResponseLocalVar, Option<string> term);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -181,10 +182,10 @@ namespace Whisparr2.Net.Api
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
         /// <param name="term"></param>
-        private void OnErrorGetSeriesLookupDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<string> term)
+        private void OnErrorListSeriesLookupDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<string> term)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorGetSeriesLookup(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, term);
+            OnErrorListSeriesLookup(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, term);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -197,19 +198,19 @@ namespace Whisparr2.Net.Api
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
         /// <param name="term"></param>
-        partial void OnErrorGetSeriesLookup(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<string> term);
+        partial void OnErrorListSeriesLookup(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<string> term);
 
         /// <summary>
         ///  
         /// </summary>
         /// <param name="term"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns><see cref="Task"/>&lt;<see cref="IGetSeriesLookupApiResponse"/>&gt;</returns>
-        public async Task<IGetSeriesLookupApiResponse?> GetSeriesLookupOrDefaultAsync(Option<string> term = default, System.Threading.CancellationToken cancellationToken = default)
+        /// <returns><see cref="Task"/>&lt;<see cref="IListSeriesLookupApiResponse"/>&gt;</returns>
+        public async Task<IListSeriesLookupApiResponse?> ListSeriesLookupOrDefaultAsync(Option<string> term = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await GetSeriesLookupAsync(term, cancellationToken).ConfigureAwait(false);
+                return await ListSeriesLookupAsync(term, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -223,16 +224,16 @@ namespace Whisparr2.Net.Api
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="term"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns><see cref="Task"/>&lt;<see cref="IGetSeriesLookupApiResponse"/>&gt;</returns>
-        public async Task<IGetSeriesLookupApiResponse> GetSeriesLookupAsync(Option<string> term = default, System.Threading.CancellationToken cancellationToken = default)
+        /// <returns><see cref="Task"/>&lt;<see cref="IListSeriesLookupApiResponse"/>&gt;</returns>
+        public async Task<IListSeriesLookupApiResponse> ListSeriesLookupAsync(Option<string> term = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
             try
             {
-                ValidateGetSeriesLookup(term);
+                ValidateListSeriesLookup(term);
 
-                FormatGetSeriesLookup(ref term);
+                FormatListSeriesLookup(ref term);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -257,13 +258,22 @@ namespace Whisparr2.Net.Api
 
                     httpRequestMessageLocalVar.RequestUri = uriBuilderLocalVar.Uri;
 
+                    string[] acceptLocalVars = new string[] {
+                        "application/json"
+                    };
+
+                    IEnumerable<MediaTypeWithQualityHeaderValue> acceptHeaderValuesLocalVar = ClientUtils.SelectHeaderAcceptArray(acceptLocalVars);
+
+                    foreach (var acceptLocalVar in acceptHeaderValuesLocalVar)
+                        httpRequestMessageLocalVar.Headers.Accept.Add(acceptLocalVar);
+
                     httpRequestMessageLocalVar.Method = HttpMethod.Get;
 
                     DateTime requestedAtLocalVar = DateTime.UtcNow;
 
                     using (HttpResponseMessage httpResponseMessageLocalVar = await HttpClient.SendAsync(httpRequestMessageLocalVar, cancellationToken).ConfigureAwait(false))
                     {
-                        GetSeriesLookupApiResponse apiResponseLocalVar;
+                        ListSeriesLookupApiResponse apiResponseLocalVar;
 
                         switch ((int)httpResponseMessageLocalVar.StatusCode) {
                             default: {
@@ -274,9 +284,9 @@ namespace Whisparr2.Net.Api
                             }
                         }
 
-                        AfterGetSeriesLookupDefaultImplementation(apiResponseLocalVar, term);
+                        AfterListSeriesLookupDefaultImplementation(apiResponseLocalVar, term);
 
-                        Events.ExecuteOnGetSeriesLookup(apiResponseLocalVar);
+                        Events.ExecuteOnListSeriesLookup(apiResponseLocalVar);
 
                         if (apiResponseLocalVar.StatusCode == (HttpStatusCode) 429)
                             foreach(TokenBase tokenBaseLocalVar in tokenBaseLocalVars)
@@ -288,16 +298,16 @@ namespace Whisparr2.Net.Api
             }
             catch(Exception e)
             {
-                OnErrorGetSeriesLookupDefaultImplementation(e, "/api/v3/series/lookup", uriBuilderLocalVar.Path, term);
-                Events.ExecuteOnErrorGetSeriesLookup(e);
+                OnErrorListSeriesLookupDefaultImplementation(e, "/api/v3/series/lookup", uriBuilderLocalVar.Path, term);
+                Events.ExecuteOnErrorListSeriesLookup(e);
                 throw;
             }
         }
 
         /// <summary>
-        /// The <see cref="GetSeriesLookupApiResponse"/>
+        /// The <see cref="ListSeriesLookupApiResponse"/>
         /// </summary>
-        public partial class GetSeriesLookupApiResponse : Whisparr2.Net.Client.ApiResponse, IGetSeriesLookupApiResponse
+        public partial class ListSeriesLookupApiResponse : Whisparr2.Net.Client.ApiResponse, IListSeriesLookupApiResponse
         {
             /// <summary>
             /// The logger
@@ -305,7 +315,7 @@ namespace Whisparr2.Net.Api
             public ILogger<SeriesLookupApi> Logger { get; }
 
             /// <summary>
-            /// The <see cref="GetSeriesLookupApiResponse"/>
+            /// The <see cref="ListSeriesLookupApiResponse"/>
             /// </summary>
             /// <param name="logger"></param>
             /// <param name="httpRequestMessage"></param>
@@ -314,14 +324,14 @@ namespace Whisparr2.Net.Api
             /// <param name="path"></param>
             /// <param name="requestedAt"></param>
             /// <param name="jsonSerializerOptions"></param>
-            public GetSeriesLookupApiResponse(ILogger<SeriesLookupApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, string rawContent, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, rawContent, path, requestedAt, jsonSerializerOptions)
+            public ListSeriesLookupApiResponse(ILogger<SeriesLookupApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, string rawContent, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, rawContent, path, requestedAt, jsonSerializerOptions)
             {
                 Logger = logger;
                 OnCreated(httpRequestMessage, httpResponseMessage);
             }
 
             /// <summary>
-            /// The <see cref="GetSeriesLookupApiResponse"/>
+            /// The <see cref="ListSeriesLookupApiResponse"/>
             /// </summary>
             /// <param name="logger"></param>
             /// <param name="httpRequestMessage"></param>
@@ -330,7 +340,7 @@ namespace Whisparr2.Net.Api
             /// <param name="path"></param>
             /// <param name="requestedAt"></param>
             /// <param name="jsonSerializerOptions"></param>
-            public GetSeriesLookupApiResponse(ILogger<SeriesLookupApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, System.IO.Stream contentStream, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, contentStream, path, requestedAt, jsonSerializerOptions)
+            public ListSeriesLookupApiResponse(ILogger<SeriesLookupApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, System.IO.Stream contentStream, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, contentStream, path, requestedAt, jsonSerializerOptions)
             {
                 Logger = logger;
                 OnCreated(httpRequestMessage, httpResponseMessage);
@@ -343,6 +353,50 @@ namespace Whisparr2.Net.Api
             /// </summary>
             /// <returns></returns>
             public bool IsOk => 200 == (int)StatusCode;
+
+            /// <summary>
+            /// Deserializes the response if the response is 200 Ok
+            /// </summary>
+            /// <returns></returns>
+            public List<SeriesResource>? Ok()
+            {
+                bool suppressDefault = false;
+                List<SeriesResource>? result = null;
+                OnOk(ref suppressDefault, ref result);
+                if (!suppressDefault)
+                    result = DefaultOk();
+                return result;
+            }
+
+            private List<SeriesResource>? DefaultOk()
+            {
+                // NOTICE: Consider this AsModel template deprecated. Implement the appropriate partial method instead
+                return IsOk
+                    ? System.Text.Json.JsonSerializer.Deserialize<List<SeriesResource>>(RawContent, _jsonSerializerOptions)
+                    : null;
+            }
+
+            partial void OnOk(ref bool suppressDefault, ref List<SeriesResource>? result);
+
+            /// <summary>
+            /// Returns true if the response is 200 Ok and the deserialized response is not null
+            /// </summary>
+            /// <param name="result"></param>
+            /// <returns></returns>
+            public bool TryOk([NotNullWhen(true)]out List<SeriesResource>? result)
+            {
+                result = null;
+
+                try
+                {
+                    result = Ok();
+                } catch (Exception e)
+                {
+                    OnDeserializationErrorDefaultImplementation(e, (HttpStatusCode)200);
+                }
+
+                return result != null;
+            }
 
             private void OnDeserializationErrorDefaultImplementation(Exception exception, HttpStatusCode httpStatusCode)
             {

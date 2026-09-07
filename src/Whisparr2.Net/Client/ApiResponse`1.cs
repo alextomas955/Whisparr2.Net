@@ -216,4 +216,44 @@ namespace Whisparr2.Net.Client
         /// <returns></returns>
         bool TryOk([NotNullWhen(true)]out TType? result);
     }
+
+    /// <summary>
+    /// An interface for responses of type 
+    /// </summary>
+    /// <typeparam name="TType"></typeparam>
+    public interface IAccepted<TType> : IApiResponse
+    {
+        /// <summary>
+        /// Deserializes the response if the response is Accepted
+        /// </summary>
+        /// <returns></returns>
+        TType Accepted();
+
+        /// <summary>
+        /// Returns true if the response is Accepted and the deserialized response is not null
+        /// </summary>
+        /// <param name="result"></param>
+        /// <returns></returns>
+        bool TryAccepted([NotNullWhen(true)]out TType? result);
+    }
+
+    /// <summary>
+    /// An interface for responses of type 
+    /// </summary>
+    /// <typeparam name="TType"></typeparam>
+    public interface ICreated<TType> : IApiResponse
+    {
+        /// <summary>
+        /// Deserializes the response if the response is Created
+        /// </summary>
+        /// <returns></returns>
+        TType Created();
+
+        /// <summary>
+        /// Returns true if the response is Created and the deserialized response is not null
+        /// </summary>
+        /// <param name="result"></param>
+        /// <returns></returns>
+        bool TryCreated([NotNullWhen(true)]out TType? result);
+    }
 }

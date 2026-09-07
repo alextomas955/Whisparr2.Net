@@ -284,10 +284,20 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AutoTaggingSpecificationSchema"
+                  }
+                }
+              }
+            }
           }
         },
-        "operationId": "GetAutoTaggingSchema"
+        "operationId": "ListAutoTaggingSchema"
       }
     },
     "/api/v3/system/backup": {
@@ -997,7 +1007,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Success",
             "content": {
               "text/plain": {
@@ -1136,7 +1146,7 @@
           }
         },
         "responses": {
-          "200": {
+          "202": {
             "description": "Success",
             "content": {
               "application/json": {
@@ -1177,10 +1187,20 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomFormatSpecificationSchema"
+                  }
+                }
+              }
+            }
           }
         },
-        "operationId": "GetCustomFormatSchema"
+        "operationId": "ListCustomFormatSchema"
       }
     },
     "/api/v3/wanted/cutoff": {
@@ -1315,7 +1335,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Success",
             "content": {
               "text/plain": {
@@ -1587,7 +1607,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Success",
             "content": {
               "application/json": {
@@ -1714,7 +1734,7 @@
           }
         },
         "responses": {
-          "200": {
+          "202": {
             "description": "Success",
             "content": {
               "application/json": {
@@ -2134,7 +2154,7 @@
           }
         },
         "responses": {
-          "200": {
+          "202": {
             "description": "Success"
           }
         },
@@ -3414,7 +3434,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Success",
             "content": {
               "application/json": {
@@ -3541,7 +3561,7 @@
           }
         },
         "responses": {
-          "200": {
+          "202": {
             "description": "Success",
             "content": {
               "application/json": {
@@ -5551,7 +5571,7 @@
           }
         },
         "responses": {
-          "200": {
+          "202": {
             "description": "Success"
           }
         },
@@ -7015,7 +7035,7 @@
           }
         },
         "responses": {
-          "200": {
+          "202": {
             "description": "Success"
           }
         },
@@ -7109,10 +7129,20 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesResource"
+                  }
+                }
+              }
+            }
           }
         },
-        "operationId": "GetSeriesLookup"
+        "operationId": "ListSeriesLookup"
       }
     },
     "/content/{path}": {
@@ -7271,7 +7301,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Success",
             "content": {
               "text/plain": {
@@ -7320,7 +7350,7 @@
           }
         },
         "responses": {
-          "200": {
+          "202": {
             "description": "Success",
             "content": {
               "text/plain": {

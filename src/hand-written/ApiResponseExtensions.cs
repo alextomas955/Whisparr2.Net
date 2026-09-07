@@ -68,6 +68,75 @@ namespace Whisparr2.Net
         {
             ArgumentNullException.ThrowIfNull(response);
 
+            return Classify(response, response.Ok);
+        }
+
+        /// <summary>
+        /// Returns the body of a response with any success status, or throws.
+        /// </summary>
+        /// <typeparam name="T">The resource the operation returns.</typeparam>
+        /// <param name="response">The response to classify.</param>
+        /// <returns>The deserialized body, never null.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="response"/> is null.</exception>
+        /// <exception cref="Whisparr2ApiException">
+        /// The status was not a success, or it was a success whose body could not be read. Read
+        /// Whisparr2ApiException.IsSuccessStatusCode to tell those two apart.
+        /// </exception>
+        /// <remarks>
+        /// The overload for a response whose operation declares 201. Without it a caller reaches
+        /// the non-generic overload below, which returns void and hands back no body at all, and
+        /// the mistake compiles.
+        /// </remarks>
+        public static T EnsureSuccess<T>(this ICreated<T?> response)
+            where T : class
+        {
+            ArgumentNullException.ThrowIfNull(response);
+
+            return Classify(response, response.Created);
+        }
+
+        /// <summary>
+        /// Returns the body of a response with any success status, or throws.
+        /// </summary>
+        /// <typeparam name="T">The resource the operation returns.</typeparam>
+        /// <param name="response">The response to classify.</param>
+        /// <returns>The deserialized body, never null.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="response"/> is null.</exception>
+        /// <exception cref="Whisparr2ApiException">
+        /// The status was not a success, or it was a success whose body could not be read. Read
+        /// Whisparr2ApiException.IsSuccessStatusCode to tell those two apart.
+        /// </exception>
+        /// <remarks>
+        /// The overload for a response whose operation declares 202, on the same terms as the
+        /// created one above.
+        /// </remarks>
+        public static T EnsureSuccess<T>(this IAccepted<T?> response)
+            where T : class
+        {
+            ArgumentNullException.ThrowIfNull(response);
+
+            return Classify(response, response.Accepted);
+        }
+
+        /// <summary>
+        /// The body all three typed overloads share.
+        /// </summary>
+        /// <typeparam name="T">The resource the operation returns.</typeparam>
+        /// <param name="response">The response to classify, already known to be non-null.</param>
+        /// <param name="accessor">
+        /// The generated success accessor of the interface the caller reached, used only on the
+        /// foreign path below.
+        /// </param>
+        /// <returns>The deserialized body, never null.</returns>
+        /// <remarks>
+        /// One body rather than three, because three copies of this classification would drift and
+        /// only one of the three has a case in the test project driving every branch. The accessor
+        /// is passed in because it is the one thing that differs between them: each generated
+        /// interface names its own, Ok, Created or Accepted.
+        /// </remarks>
+        private static T Classify<T>(IApiResponse response, Func<T?> accessor)
+            where T : class
+        {
             if (!response.IsSuccessStatusCode)
             {
                 throw new Whisparr2ApiException(response, "The request failed.");
@@ -82,13 +151,14 @@ namespace Whisparr2.Net
                 return apiResponse.ReadAs<T>();
             }
 
-            // Below is the path for an IOk this library did not produce. It cannot reach ReadAs,
-            // because the serializer options that method needs are protected on ApiResponse.
+            // Below is the path for a success interface this library did not produce. It cannot
+            // reach ReadAs, because the serializer options that method needs are protected on
+            // ApiResponse.
             T? body;
 
             try
             {
-                body = response.Ok();
+                body = accessor();
             }
             catch (JsonException e)
             {
