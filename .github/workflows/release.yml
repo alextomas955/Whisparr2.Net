@@ -1,0 +1,145 @@
+# Packs the library on a v* tag and then either publishes it or refuses, naming the reason.
+#
+# The refusal is placed before the push call rather than after it. With an empty key the client
+# warns, sends no API key header, transmits the entire body, receives 401 and exits 1. Nothing
+# publishes, so the no-publish constraint this repository sets holds, but the bytes reach the
+# endpoint first. Letting that 401 be the gate uploads this package to nuget.org on every gated
+# release run.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+# The workflow reads the repository, builds it and packs it. It writes nothing back.
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth 0 so the deterministic-build and source-link metadata resolve against real
+      # history rather than against a shallow clone.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # Both lines are required. net8.0 compiles against reference assemblies, but anything
+      # hosting net8.0 needs the .NET 8 runtime, and roll-forward does not cross a major.
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      # The trigger is a tag and the package version comes from Directory.Build.props, so the two
+      # can disagree. Tagging v0.2.0 without bumping the props file packs the old version, and a
+      # path built from the props value resolves, so every later assertion passes and the wrong
+      # version is published under that tag. nuget.org allows unlisting and not deletion, so this
+      # gate sits before the build: a disagreement stops the run before anything is compiled or
+      # packed, which is what makes the refusal message true. The tag reaches the shell through
+      # env: rather than being interpolated into run:, the way every expression in these
+      # workflows does.
+      - name: Derive the version from the tag and assert the project agrees
+        id: version
+        env:
+          TAG_REF: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG_REF#v}"
+          PROJECT="$(grep -oP '(?<=<Version>)[^<]+' Directory.Build.props)"
+          if [ "$VERSION" != "$PROJECT" ]; then
+            echo "Tag $TAG_REF names version $VERSION and Directory.Build.props sets $PROJECT."
+            echo "The release stops here. Nothing was packed."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: dotnet build Whisparr2.Net.slnx -c Release --nologo
+
+      # A v* tag can be pushed to any commit on any branch, including one that never opened a
+      # pull request, so nothing else makes the tagged commit one build-and-test.yml ran on.
+      # These three steps are the ones that path runs, written the same way, so the release path
+      # and the continuous path assert the same things and cannot drift.
+      #
+      # The two suites are separate steps so a red mark names which one failed.
+      - name: Unit tests
+        run: dotnet test test/Whisparr2.Net.UnitTests -c Release --no-build --nologo
+
+      # WHISPARR2NET_REQUIRE_DOCKER turns an unreachable daemon from a green skip into a
+      # failure. It is quoted so YAML makes it a string, which is what the fixture compares
+      # ordinal, and it sits on this step so a later edit cannot move a test out from under it.
+      - name: Integration tests against a seeded Whisparr container
+        env:
+          WHISPARR2NET_REQUIRE_DOCKER: "1"
+        run: dotnet test test/Whisparr2.Net.IntegrationTests -c Release --no-build --nologo
+        timeout-minutes: 15
+
+      # docs/SURFACE.md is generated from the committed spec. Re-render and diff rather than
+      # assert counts: a Whisparr release that adds an operation should update the document,
+      # not fail the build.
+      - name: Assert the generated document matches the committed spec
+        run: python3 generator/render_docs.py --check
+
+      # --no-build keeps one compilation for the whole job, so the bytes the tests ran against
+      # are the bytes that get packed.
+      - name: Pack
+        run: dotnet pack src/Whisparr2.Net/Whisparr2.Net.csproj -c Release --no-build -o artifacts --nologo
+
+      # The same gate build-and-test.yml runs, so the release path and the continuous path assert
+      # identical package properties and cannot drift. It sits before the publish step because a
+      # package that lost its XML documentation files, or acquired an unresolvable repository url,
+      # must not reach a publish step at all. --expect-version reads the version out of the
+      # nuspec, so the check does not rest on the file name alone.
+      - name: Assert the package ships its documentation and a resolvable repository url
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python3 scripts/assert_package.py \
+            "artifacts/Whisparr2.Net.$PACKAGE_VERSION.nupkg" \
+            --expect-version "$PACKAGE_VERSION"
+
+      # A release run leaves something a human can open rather than only a log line.
+      - name: Upload the packed artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nuget-packages
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+          if-no-files-found: error
+
+      # The gate. Four things about this step are load-bearing.
+      #
+      # The emptiness test is inside run: on an environment variable and is never a step
+      # condition. The secrets context is not available to a step condition, so a guard written
+      # there evaluates false forever and the step reads as skipped when the intent was reached
+      # and stopped.
+      #
+      # The test comes before the push call rather than being delegated to the server's 401,
+      # because the client transmits the whole package body before that answer arrives.
+      #
+      # The refusing branch exits 1 rather than finishing green. A green run whose publish step
+      # did nothing is the shape this repository treats as a defect.
+      #
+      # The key is tested with its whitespace stripped, and the stripped value is what the push
+      # call receives. A key holding only a space, a tab or a newline is not empty to [ -z ], so
+      # an unstripped test lets a secret pasted with a trailing newline through to the push call,
+      # which transmits the whole body. Only emptiness is tested. The value is never echoed, here
+      # or anywhere else.
+      #
+      # The push target is the one path the version gate agreed on, not a glob, so a stray file
+      # in artifacts/ cannot be transmitted alongside the intended package.
+      - name: Publish to nuget.org
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          PACKAGE_PATH: artifacts/Whisparr2.Net.${{ steps.version.outputs.version }}.nupkg
+        run: |
+          KEY="$(printf '%s' "$NUGET_API_KEY" | tr -d '[:space:]')"
+          if [ -z "$KEY" ]; then
+            echo "NUGET_API_KEY is not configured on this repository, or holds only whitespace."
+            echo "The release stops here. No package was transmitted to nuget.org."
+            exit 1
+          fi
+          dotnet nuget push "$PACKAGE_PATH" -k "$KEY" -s https://api.nuget.org/v3/index.json
