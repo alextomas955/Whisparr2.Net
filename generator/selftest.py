@@ -18,7 +18,11 @@ over a document with nothing left to change, which must exit non-zero and write 
 Standard library only. No framework, no requirements file and no configuration file. A bare assert
 and a non-zero exit are what this needs.
 
-This script is run by hand today. Wiring it into a workflow lands with the phase that adds one.
+This script is run by hand, and it stays that way. No workflow in this repository gets a step
+invoking it. Across the repository's history it has no recorded case of catching a regression, and
+the failures it guards cost a follow-up commit rather than being hard to reverse once shipped, which
+is the test applied here before a standing guard is added. It is kept because it is the only test
+coverage the generator scripts have.
 
     python generator/selftest.py
     python generator/selftest.py --docker
