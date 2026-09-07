@@ -1496,14 +1496,15 @@ def audit_lines(relative, text):
                     "{}:{} names host port {}, which is a real Whisparr library on this "
                     "machine: {}".format(relative, number, port, stripped)))
 
-        # R3. The container port appears in its declaration and nowhere else. One forbidden host
-        # port contains the container port as a substring, and R2 has already reported it by name,
-        # so one mistake produces one refusal.
-        if CONTAINER_PORT in line and CONTAINER_PORT_DECLARATION not in line:
-            if not any(port in line for port in FORBIDDEN_HOST_PORTS):
-                refusals.append(addressing_refusal(
-                    "{}:{} carries {} outside the container-port declaration: {}".format(
-                        relative, number, CONTAINER_PORT, stripped)))
+        # R3. The container port appears in its declaration and nowhere else. The match is on digit
+        # boundaries, so a sha256 digest, a GUID or a byte count that happens to contain these four
+        # digits is not a violation. One forbidden host port carries the container port as a
+        # substring, and the boundaries are what leave it to R2 to report by name.
+        if re.search(r"\b" + CONTAINER_PORT + r"\b", line) and \
+                CONTAINER_PORT_DECLARATION not in line:
+            refusals.append(addressing_refusal(
+                "{}:{} carries {} outside the container-port declaration: {}".format(
+                    relative, number, CONTAINER_PORT, stripped)))
     return refusals
 
 
