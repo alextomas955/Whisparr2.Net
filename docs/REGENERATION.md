@@ -565,7 +565,8 @@ line. Find yours by its first line.
 
 | First line | Cause |
 | --- | --- |
-| `ERROR: REFUSED - this document declares <paths> and not <paths>. That is the eros branch of Whisparr/Whisparr, which is Whisparr 3, not Whisparr 2. Nothing was written.` | The captured document is the Whisparr 3 one. The commit that was built sits on the wrong branch. |
+| `ERROR: REFUSED - this document declares <paths>. That is the eros branch of Whisparr/Whisparr, which is Whisparr 3, not Whisparr 2. Nothing was written.` | The captured document declares a path only Whisparr 3 has. The commit that was built sits on the wrong branch. |
+| `ERROR: REFUSED - the captured document does not declare <paths>. Nothing was written.` | The captured document is missing a path Whisparr 2 declares. On its own this is a dropped path rather than the wrong branch. |
 | `ERROR: REFUSED - the build container exited <n>. Nothing was written.` | The build, the tool install or the capture failed inside the container. The last of its output follows the line. |
 | `ERROR: REFUSED - the capture <name> is absent or empty. Nothing was written.` | The container exited 0 and one of the two captures was not written. |
 | `ERROR: REFUSED - the two captures differ. <name> is <n> bytes, sha256 <hex>; <name> is <n> bytes, sha256 <hex>. The build is not reproducible. Nothing was written.` | Two captures from one built assembly disagree, so the document embeds a timestamp, a path or a hash-ordering artifact. |

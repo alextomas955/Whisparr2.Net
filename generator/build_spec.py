@@ -62,15 +62,24 @@ def check_tier2(document):
     paths = document.get("paths") or {}
     required = [p for p in ("/api/v3/series", "/api/v3/episode") if p not in paths]
     forbidden = [p for p in ("/api/v3/movie", "/api/v3/alttitle") if p in paths]
-    if not required and not forbidden:
-        return []
-    return [
-        "ERROR: REFUSED - this document declares {} and not {}. That is the eros branch of "
-        "Whisparr/Whisparr, which is Whisparr 3, not Whisparr 2. Nothing was written.".format(
-            ", ".join(forbidden) or "none of /api/v3/movie or /api/v3/alttitle",
-            ", ".join(required) or "the expected paths /api/v3/series and /api/v3/episode",
+
+    # One line per condition. A commit that merely dropped an expected path declares no eros path,
+    # and a single message covering both would send the reader to the eros branch for a document
+    # that is not it.
+    problems = []
+    if forbidden:
+        problems.append(
+            "ERROR: REFUSED - this document declares {}. That is the eros branch of "
+            "Whisparr/Whisparr, which is Whisparr 3, not Whisparr 2. Nothing was written.".format(
+                ", ".join(forbidden)
+            )
         )
-    ]
+    if required:
+        problems.append(
+            "ERROR: REFUSED - the captured document does not declare {}. Nothing was "
+            "written.".format(", ".join(required))
+        )
+    return problems
 
 
 def container_script():

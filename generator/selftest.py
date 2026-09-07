@@ -101,15 +101,20 @@ def read_conformance():
 
 
 def check_discriminator():
-    """An eros-shaped document is refused, and the refusal names both paths in words."""
+    """An eros-shaped document is refused, one line per condition, each naming its own paths.
+
+    The eros document trips both conditions: it declares the two forbidden paths and declares
+    neither expected one. Only the forbidden-path line names the branch, because a document that
+    merely dropped an expected path is not the eros one.
+    """
     problems = build_spec.check_tier2(document("3.0.1", "3.0.0", EROS_PATHS))
-    assert len(problems) == 1, problems
-    assert "/api/v3/movie" in problems[0], problems[0]
-    assert "/api/v3/series" in problems[0], problems[0]
-    assert "eros" in problems[0], problems[0]
+    assert len(problems) == 2, problems
+    assert "/api/v3/movie" in problems[0] and "eros" in problems[0], problems[0]
+    assert "/api/v3/series" in problems[1] and "eros" not in problems[1], problems[1]
 
     assert build_spec.check_tier2(document("3.0.1", "3.0.0", WHISPARR2_PATHS)) == []
-    print("ok  discriminator: eros refused naming /api/v3/movie and /api/v3/series, v2 accepted")
+    print("ok  discriminator: eros refused in two lines, /api/v3/movie naming the branch and "
+          "/api/v3/series not, v2 accepted")
 
 
 def check_non_discriminator():
