@@ -312,8 +312,8 @@ namespace Whisparr2.Net.IntegrationTests
             response.EnsureSuccessStatusCode();
 
             string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            string? reported = JsonDocument.Parse(body).RootElement
-                .GetProperty("startTime").GetString();
+            using JsonDocument status = JsonDocument.Parse(body);
+            string? reported = status.RootElement.GetProperty("startTime").GetString();
 
             if (reported is null)
             {
