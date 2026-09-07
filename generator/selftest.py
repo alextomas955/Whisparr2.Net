@@ -21,7 +21,6 @@ and a non-zero exit are what this needs.
 This script is run by hand today. Wiring it into a workflow lands with the phase that adds one.
 
     python generator/selftest.py
-    python generator/selftest.py --network
     python generator/selftest.py --docker
 """
 
@@ -39,51 +38,34 @@ import tempfile
 import build_spec
 import conformance
 import container
-import fetch_spec
 import generate
 import preprocess_spec
 from _common import (
     REPO_ROOT,
-    git_blob_sha1,
     resolve_repo_path,
     sha256_file,
     write_bytes_atomic,
 )
 
-# The thirteen spec fields fetch_spec.py owns. The image block is listed separately below, and
-# this list deliberately does not name it, so a missing image field cannot implicate the fetch.
+# The twelve spec fields build_spec.py owns, in the order the provenance record carries them. The
+# two image constants are asserted in check_provenance_complete rather than listed here: they are
+# module constants of the container harness, not a block with a writer of its own.
 SPEC_KEYS = (
-    "fetchedAt",
-    "fetchedFrom",
+    "builtAt",
     "specRepo",
     "specRefName",
     "specCommit",
-    "specPath",
-    "specBlobSha1",
     "specSha256",
     "specBytes",
     "specOpenApiVersion",
     "specPathCount",
     "specOperationCount",
     "specSchemaCount",
-)
-
-# The six image fields the committed provenance document still carries. Four of them now have no
-# writer at all: the script that recorded what the running image reported is gone. The shape of
-# this block is settled by a later change, not by this list.
-IMAGE_KEYS = (
-    "imageTag",
-    "imageDigest",
-    "whisparrVersion",
-    "whisparrBranch",
-    "whisparrBuildTime",
-    "whisparrPackageVersion",
+    "sdkImageDigest",
+    "swashbuckleCliVersion",
 )
 
 HEX = set("0123456789abcdef")
-
-# Git's well-known hash of the empty blob. Reproducible with `git hash-object -t blob /dev/null`.
-EMPTY_BLOB_SHA1 = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
 
 def document(openapi, version, paths):
@@ -105,11 +87,11 @@ EROS_PATHS = ("/", "/api/v3/movie", "/api/v3/alttitle")
 
 
 def read_committed_spec():
-    return resolve_repo_path(fetch_spec.DEFAULT_OUT_FILE)
+    return resolve_repo_path(build_spec.DEFAULT_OUT_FILE)
 
 
 def read_provenance():
-    with open(resolve_repo_path(fetch_spec.PROVENANCE_PATH), encoding="utf-8") as handle:
+    with open(resolve_repo_path(build_spec.PROVENANCE_PATH), encoding="utf-8") as handle:
         return json.load(handle)
 
 
@@ -133,31 +115,6 @@ def check_non_discriminator():
     refused = build_spec.check_tier2(document("3.0.1", "3.0.0", EROS_PATHS))
     assert build_spec.check_tier2(document("3.1.4", "9.9.9", EROS_PATHS)) == refused
     print("ok  non-discriminator: openapi and info.version do not change the verdict")
-
-
-def check_tier1_boundaries():
-    """The pin holds at one byte either side and at zero length."""
-    with open(read_committed_spec(), "rb") as handle:
-        body = handle.read()
-    expected = (
-        fetch_spec.EXPECTED_BYTES,
-        fetch_spec.EXPECTED_SHA256,
-        fetch_spec.EXPECTED_BLOB_SHA1,
-    )
-
-    assert fetch_spec.check_tier1(body, *expected) == []
-    assert fetch_spec.check_tier1(body[:-1], *expected) != []
-    assert fetch_spec.check_tier1(body + b"x", *expected) != []
-
-    empty = fetch_spec.check_tier1(b"", *expected)
-    assert len(empty) == 1 and "empty" in empty[0], empty
-    print("ok  tier 1: the committed body passes, one byte either side and zero length refuse")
-
-
-def check_blob_identity():
-    """git_blob_sha1 reproduces git's own object identity."""
-    assert git_blob_sha1(b"") == EMPTY_BLOB_SHA1
-    print("ok  blob identity: git_blob_sha1 of the empty input is git's empty-blob hash")
 
 
 def check_atomic_write():
@@ -185,8 +142,11 @@ def check_atomic_write():
 def check_committed_spec():
     """Both committed specs on disk still match their own recorded values.
 
-    This is the assertion that catches a CRLF-mangled checkout. With core.autocrlf=true and no
-    .gitattributes rule the checked-out spec carries injected CR bytes and none of the values match.
+    The byte count and the sha256 are what a developer with no network, no Docker and no build
+    re-verifies the committed document with, so both are kept and neither is a lower bound.
+
+    This is also the assertion that catches a CRLF-mangled checkout. With core.autocrlf=true and no
+    .gitattributes rule the checked-out spec carries injected CR bytes and neither value matches.
     """
     provenance = read_provenance()
     path = read_committed_spec()
@@ -195,12 +155,10 @@ def check_committed_spec():
 
     assert len(body) == provenance["specBytes"], (len(body), provenance["specBytes"])
     assert sha256_file(path) == provenance["specSha256"]
-    assert git_blob_sha1(body) == provenance["specBlobSha1"]
 
     patched = resolve_repo_path(preprocess_spec.DEFAULT_OUT_FILE)
     assert sha256_file(patched) == provenance["generatedSpecSha256"], patched
-    print("ok  committed specs: two files judged, bytes, sha256 and blob sha1 on disk match "
-          "provenance")
+    print("ok  committed specs: two files judged, bytes and sha256 on disk match provenance")
 
 
 def check_provenance_complete():
@@ -217,193 +175,26 @@ def check_provenance_complete():
 
     sha256 = provenance["specSha256"]
     assert len(sha256) == 64 and set(sha256) <= HEX, sha256
-    blob = provenance["specBlobSha1"]
-    assert len(blob) == 40 and set(blob) <= HEX, blob
     commit = provenance["specCommit"]
     assert len(commit) == 40 and set(commit) <= HEX, commit
 
     patched = provenance["generatedSpecSha256"]
     assert len(patched) == 64 and set(patched) <= HEX, patched
 
+    # Both image keys are asserted here rather than through a list of their own. They are constants
+    # of the container harness, so there is no writer whose absence a missing key could implicate.
+    for key in ("imageTag", "imageDigest"):
+        value = provenance.get(key)
+        assert isinstance(value, str) and value.strip(), key
+
     # The C# fixture builds its container from this recorded key while the Python sweep runs the
     # module constant. The two are written independently, and a disagreement puts the suite and the
     # sweep on different images without either of them noticing.
     assert provenance["imageDigest"] == container.IMAGE_REF, provenance["imageDigest"]
 
-    print("ok  provenance: thirteen spec fields present and observed, patched-spec hash recorded, "
-          "recorded image digest matches the harness constant")
-
-
-def check_url_is_commit_addressed():
-    """The fetch URL carries the commit it was given, and the recorded URL carries the recorded one.
-
-    The refusal at the argparse boundary only decides which values may be spoken. This decides
-    where the value goes. A spec_url that substituted SPEC_REF_NAME for its argument would fetch a
-    moving branch head while provenance still recorded a commit, and every other offline check here
-    passes with that substitution in place.
-    """
-    prefix = fetch_spec.RAW_HOST + fetch_spec.SPEC_REPO + "/"
-    url = fetch_spec.spec_url(fetch_spec.SPEC_COMMIT)
-    assert url.startswith(prefix), url
-    assert url[len(prefix):].split("/", 1)[0] == fetch_spec.SPEC_COMMIT, url
-    assert url.endswith("/" + fetch_spec.SPEC_PATH), url
-
-    other = "0" * 40
-    assert fetch_spec.spec_url(other)[len(prefix):].split("/", 1)[0] == other
-
-    provenance = read_provenance()
-    assert provenance["fetchedFrom"] == fetch_spec.spec_url(provenance["specCommit"]), provenance[
-        "fetchedFrom"
-    ]
-    print("ok  fetch url: the commit argument addresses the URL, and fetchedFrom matches specCommit")
-
-
-def parse_and_check(argv):
-    """Run the flag contract over one argv vector. Returns (exit code, stderr text).
-
-    argparse writes usage and the message to stderr and raises SystemExit, so the buffer is what
-    carries the message text the assertions read. No subprocess and no network.
-    """
-    parser = fetch_spec.build_parser()
-    buffer = io.StringIO()
-    with contextlib.redirect_stderr(buffer):
-        try:
-            args = parser.parse_args(argv)
-            fetch_spec.check_flag_contract(parser, args)
-        except SystemExit as stop:
-            return stop.code, buffer.getvalue()
-    return 0, buffer.getvalue()
-
-
-def check_flag_vectors():
-    """The ten flag vectors of D-04, three sha40 shape vectors, and three constants-drift
-    vectors of the move path."""
-    destinations = sorted(vars(fetch_spec.build_parser().parse_args([])))
-    assert destinations == ["commit", "expect_bytes", "expect_sha256", "out_file", "propose"], (
-        destinations
-    )
-
-    # A real commit-shaped value, because both commit-taking flags now carry a type that refuses
-    # anything else. A placeholder here would be refused before the contract is reached.
-    commit = "0" * 40
-
-    code, _ = parse_and_check([])
-    assert code == 0, code
-
-    code, message = parse_and_check(["--commit", commit])
-    assert code == 2, code
-    assert "--expect-sha256" in message and "--expect-bytes" in message, message
-    assert message.rstrip().endswith(
-        "Run --propose {} to observe the values first.".format(commit)
-    ), message
-
-    code, message = parse_and_check(["--commit", commit, "--expect-sha256", "d"])
-    assert code == 2, code
-    assert "--expect-bytes" in message, message
-    assert "--expect-sha256" not in message.split("missing", 1)[1], message
-
-    code, _ = parse_and_check(["--commit", commit, "--expect-sha256", "d", "--expect-bytes", "5"])
-    assert code == 0, code
-
-    code, _ = parse_and_check(["--propose", commit])
-    assert code == 0, code
-
-    code, message = parse_and_check(["--propose", commit, "--commit", commit])
-    assert code == 2, code
-    assert "--commit" in message and "writes nothing" in message, message
-
-    # A ref name is not a commit. The third of these is the exact invocation that recorded
-    # "specCommit": "v2" before both flags carried a type.
-    code, message = parse_and_check(["--propose", "v2"])
-    assert code == 2, code
-    assert "40-character lowercase hex commit SHA" in message, message
-
-    code, _ = parse_and_check(["--commit", "v2"])
-    assert code == 2, code
-
-    code, _ = parse_and_check(
-        [
-            "--commit",
-            "v2",
-            "--expect-sha256",
-            fetch_spec.EXPECTED_SHA256,
-            "--expect-bytes",
-            str(fetch_spec.EXPECTED_BYTES),
-        ]
-    )
-    assert code == 2, code
-
-    code, _ = parse_and_check(["--propose", "../../Radarr/Radarr/master"])
-    assert code == 2, code
-
-    # Three spellings of a commit that sha40 refuses, each aimed at one way it could stop doing so.
-    # The uppercase pinned commit is what a case-folding parser would accept. The padded pinned
-    # commit is what a stripping parser would accept. A 41-character value is what a length test
-    # written with < rather than != would accept. The shipped sha40 refuses all three, and these
-    # vectors are here to keep it that way. They go through --propose alone because a value passed
-    # to --commit alone also hits the partial-move refusal of D-04, which exits 2 on its own and so
-    # would pin nothing. Both commit-taking flags carry the same type callable.
-    code, message = parse_and_check(["--propose", fetch_spec.SPEC_COMMIT.upper()])
-    assert code == 2, code
-    assert "40-character lowercase hex commit SHA" in message, message
-
-    code, message = parse_and_check(["--propose", " " + fetch_spec.SPEC_COMMIT + " "])
-    assert code == 2, code
-    assert "40-character lowercase hex commit SHA" in message, message
-
-    code, message = parse_and_check(["--propose", commit + "0"])
-    assert code == 2, code
-    assert "40-character lowercase hex commit SHA" in message, message
-
-    assert (
-        fetch_spec.constants_drift(
-            fetch_spec.SPEC_COMMIT, fetch_spec.EXPECTED_BYTES, fetch_spec.EXPECTED_SHA256
-        )
-        == []
-    )
-    drift = fetch_spec.constants_drift(
-        "0" * 40, fetch_spec.EXPECTED_BYTES, fetch_spec.EXPECTED_SHA256
-    )
-    assert len(drift) == 1 and "SPEC_COMMIT" in drift[0], drift
-    assert len(fetch_spec.constants_drift("0" * 40, 1, "x")) == 3
-
-    print(
-        "ok  flag contract: ten flag vectors as D-04 states, three sha40 shape vectors, "
-        "three drift vectors"
-    )
-
-
-def check_propose_is_fail_closed():
-    """An empty --propose argument never reaches the write path, by either of two independent tests.
-
-    The hand-built namespace carries all three move flags. With a partial set the partial-move branch
-    fires and produces exit 2 on its own, so the vector would pass with the defect still present. It
-    is built by hand rather than through the parser because the parser now refuses the empty string
-    before check_flag_contract is reached, and this assertion is about check_flag_contract.
-    """
-    code, _ = parse_and_check(["--propose", ""])
-    assert code == 2, code
-
-    parser = fetch_spec.build_parser()
-    args = argparse.Namespace(
-        propose="",
-        commit="0" * 40,
-        expect_sha256=fetch_spec.EXPECTED_SHA256,
-        expect_bytes=fetch_spec.EXPECTED_BYTES,
-        out_file=fetch_spec.DEFAULT_OUT_FILE,
-    )
-    buffer = io.StringIO()
-    with contextlib.redirect_stderr(buffer):
-        try:
-            fetch_spec.check_flag_contract(parser, args)
-        except SystemExit as stop:
-            code = stop.code
-        else:
-            raise AssertionError("check_flag_contract accepted an empty --propose beside a move")
-    message = buffer.getvalue()
-    assert code == 2, code
-    assert "writes nothing" in message and "--commit" in message, message
-    print("ok  propose fail-closed: an empty --propose exits 2 at the parser and in the contract")
+    print("ok  provenance: {} spec fields present and observed, both image constants recorded, "
+          "patched-spec hash recorded, recorded image digest matches the harness "
+          "constant".format(len(SPEC_KEYS)))
 
 
 # Every refusal line in the pre-processing module opens with the first and closes with the second,
@@ -672,8 +463,8 @@ def check_clr_schema_partition():
 def run_preprocess_spec(*arguments):
     """Invoke the real pre-processing script and capture its output.
 
-    Mirrors run_fetch_spec below, including the encoding and errors pair, which is set because a
-    non-ASCII byte in captured output otherwise raises UnicodeDecodeError on a Windows console.
+    The encoding and errors pair is set because a non-ASCII byte in captured output otherwise
+    raises UnicodeDecodeError on a Windows console. run_generate below is written the same way.
     """
     completed = subprocess.run(
         [
@@ -804,7 +595,7 @@ def check_preprocess_reproduces_committed_output():
     assertion below meaningful: the record must follow the output file, not the repository default.
     """
     committed = resolve_repo_path(preprocess_spec.DEFAULT_OUT_FILE)
-    provenance_path = resolve_repo_path(fetch_spec.PROVENANCE_PATH)
+    provenance_path = resolve_repo_path(build_spec.PROVENANCE_PATH)
     before = (os.path.getsize(provenance_path), sha256_file(provenance_path))
 
     with tempfile.TemporaryDirectory() as directory:
@@ -863,7 +654,7 @@ def check_preprocess_refuses_committed_write_targets():
     committed = [
         (default_raw, sha256_file(default_raw)),
         (default_out, sha256_file(default_out)),
-        (resolve_repo_path(fetch_spec.PROVENANCE_PATH), sha256_file(resolve_repo_path(fetch_spec.PROVENANCE_PATH))),
+        (resolve_repo_path(build_spec.PROVENANCE_PATH), sha256_file(resolve_repo_path(build_spec.PROVENANCE_PATH))),
     ]
 
     with tempfile.TemporaryDirectory() as directory:
@@ -1845,14 +1636,9 @@ def check_conformance_failure_branches():
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
-    check_tier1_boundaries,
-    check_blob_identity,
     check_atomic_write,
     check_committed_spec,
     check_provenance_complete,
-    check_url_is_commit_addressed,
-    check_flag_vectors,
-    check_propose_is_fail_closed,
     check_preprocess_zero_conditions,
     check_preprocess_transformations_apply,
     check_override_table,
@@ -1875,56 +1661,10 @@ OFFLINE_CHECKS = (
     check_conformance_failure_branches,
 )
 
-# Immutable commits, never branch heads. A branch head moves and a test that fetches one breaks on
-# the next upstream commit.  measured 2026-09-05
-EROS_COMMIT = "cc3fb2abcf60f7c0048eb0294015d291b82bde08"
-SAME_BYTES_COMMIT = "1a6005e594c8e3a30bd6a19d900f60177f68ac10"
-
-
-def run_fetch_spec(*arguments):
-    """Invoke the real script and capture its output.
-
-    encoding and errors are set because a non-ASCII byte in captured output otherwise raises
-    UnicodeDecodeError on a Windows console.
-    """
-    completed = subprocess.run(
-        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "fetch_spec.py")]
-        + list(arguments),
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
-    return completed.returncode, completed.stdout + completed.stderr
-
-
-def check_network_propose():
-    """The proposal mode against real commits: it refuses the trap and it writes nothing."""
-    path = read_committed_spec()
-    before = (os.path.getsize(path), sha256_file(path))
-
-    code, output = run_fetch_spec("--propose", EROS_COMMIT)
-    assert code != 0, code
-    assert "/api/v3/movie" in output and "/api/v3/series" in output, output
-    assert "337327" in output, output
-    # Only this one file. spec/PROVENANCE.json is written by a sibling plan in this same wave, so a
-    # record over the whole directory would fail here for a reason unrelated to the proposal.
-    assert (os.path.getsize(path), sha256_file(path)) == before
-    print("ok  network: the eros commit is refused naming both paths, and nothing was written")
-
-    code, output = run_fetch_spec("--propose", SAME_BYTES_COMMIT)
-    assert code == 0, (code, output)
-    assert "282862" in output, output
-    assert "a3037cf379826505dc4557e74bf0798f43f2d4b8" in output, output
-    print("ok  network: a different commit carrying the same blob reports the pinned values")
-
-    code, output = run_fetch_spec("--commit", fetch_spec.SPEC_COMMIT)
-    assert code == 2, (code, output)
-    print("ok  network: --commit with no expectation flags exits 2")
-
-
-NETWORK_CHECKS = (check_network_propose,)
+# Empty, and no flag extends a run with it. The proposal mode against real commits was the only
+# subject a network check ever had, and the document is built here now rather than fetched. A
+# flag over an empty group reports success without having run anything.
+NETWORK_CHECKS = ()
 
 
 def run_generate(*arguments):
@@ -2106,11 +1846,6 @@ DOCKER_CHECKS = (
 def main():
     parser = argparse.ArgumentParser(description="Self-test the Whisparr 2 pipeline scripts.")
     parser.add_argument(
-        "--network",
-        action="store_true",
-        help="Also run the checks that fetch real commits from raw.githubusercontent.com.",
-    )
-    parser.add_argument(
         "--docker",
         action="store_true",
         help="Also run the checks that regenerate the client through the pinned image.",
@@ -2118,8 +1853,6 @@ def main():
     args = parser.parse_args()
 
     checks = list(OFFLINE_CHECKS)
-    if args.network:
-        checks.extend(NETWORK_CHECKS)
     if args.docker:
         checks.extend(DOCKER_CHECKS)
     for check in checks:
