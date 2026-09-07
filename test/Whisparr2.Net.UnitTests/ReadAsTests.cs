@@ -13,10 +13,10 @@ using Whisparr2.Net.Client;
 namespace Whisparr2.Net.UnitTests
 {
     /// <summary>
-    /// Assertions over the accessor that makes the 79 content-less operations readable.
+    /// Assertions over the accessor that makes the content-less operations readable.
     /// </summary>
     /// <remarks>
-    /// 79 of the 227 operations declare a 200 with no content, so the generator emits no typed
+    /// Many operations declare a success with no content for it, so the generator emits no typed
     /// accessor for them and nothing turns their body into a type. ApiResponse.ReadAs is that
     /// missing step. Every case here drives one of those operations against a real listener
     /// through the same single registration call a consumer makes.
@@ -95,7 +95,7 @@ namespace Whisparr2.Net.UnitTests
         /// A content-less operation that answers text still delivers its payload verbatim.
         /// </summary>
         /// <remarks>
-        /// This is the claim the accessor rests on. Every one of the 79 reads the whole response
+        /// This is the claim the accessor rests on. Every one of them reads the whole response
         /// into RawContent whether or not it is JSON, so the accessor is an extra step over a body
         /// that is already there rather than the only way to reach it. The routes operation answers
         /// a Graphviz DOT graph as text, so nothing here could bind.

@@ -17,19 +17,20 @@ namespace Whisparr2.Net
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The generated success accessor deserializes on exactly 200 and returns null on anything
-    /// else, so a 401, a real 201 and an empty collection are all reported to a caller as null.
-    /// That matters because Whisparr answers 201 to a create and 202 to an update, while its
-    /// document declares 200 and nothing else for all 227 operations. These two methods classify
-    /// the same response into three outcomes instead: a success carrying a body, a success whose
-    /// body cannot be read, and a failure. The last two both throw, and
-    /// Whisparr2ApiException.IsSuccessStatusCode is what tells them apart. A body is read on any
-    /// success status, not on 200 alone.
+    /// The generated success accessor deserializes on exactly the one status code its operation
+    /// declares and returns null on every other status, so a 401 and an empty collection are both
+    /// reported to a caller as null. That still matters after the document was corrected: only the
+    /// writes a probe reached against a running instance declare the code that instance answers,
+    /// and every write it could not reach declares 200 while the instance may answer a 201 or a
+    /// 202. These methods classify the same response into three outcomes instead: a success
+    /// carrying a body, a success whose body cannot be read, and a failure. The last two both
+    /// throw, and Whisparr2ApiException.IsSuccessStatusCode is what tells them apart. A body is
+    /// read on any success status, not on the declared one alone.
     /// </para>
     /// <para>
-    /// The generated Ok, TryOk and IsOk members stay on every response and nothing here can remove
-    /// them. A caller who reads them directly still gets null from a successful create. Call
-    /// EnsureSuccess instead.
+    /// The generated accessor and its Try and Is companions stay on every response and nothing
+    /// here can remove them. A caller who reads them directly still gets null from a success the
+    /// document does not declare. Call EnsureSuccess instead.
     /// </para>
     /// <para>
     /// Every operation also exposes an OrDefaultAsync variant that wraps its whole body in a
@@ -52,15 +53,18 @@ namespace Whisparr2.Net
         /// </exception>
         /// <remarks>
         /// <para>
-        /// This overload covers the 148 response interfaces that carry a typed success accessor.
-        /// The 79 that do not are covered by the non-generic overload below.
+        /// This overload covers the response interfaces whose operation declares 200 with content.
+        /// Each of the other typed success interfaces the generator emits has an overload of its
+        /// own below, and the interfaces carrying no typed accessor at all are covered by the
+        /// non-generic overload at the end.
         /// </para>
         /// <para>
         /// The body is read through ApiResponse.ReadAs rather than through the generated accessor,
-        /// which is what makes a 201 and a 202 readable. Every response class this library produces
-        /// derives from Whisparr2.Net.Client.ApiResponse, 227 of 227, so the pattern match below is
-        /// total in practice. A response some other code implemented against IOk stays on the
-        /// accessor path, which is why the match is a pattern rather than a cast.
+        /// which is what makes a status the document does not declare readable. Every response
+        /// class this library produces derives from Whisparr2.Net.Client.ApiResponse, so the
+        /// pattern match in the shared body is total in practice. A response some other code
+        /// implemented against IOk stays on the accessor path, which is why the match is a pattern
+        /// rather than a cast.
         /// </para>
         /// </remarks>
         public static T EnsureSuccess<T>(this IOk<T?> response)
@@ -195,10 +199,10 @@ namespace Whisparr2.Net
         /// <exception cref="ArgumentNullException"><paramref name="response"/> is null.</exception>
         /// <exception cref="Whisparr2ApiException">The status was not a success.</exception>
         /// <remarks>
-        /// This overload covers the 79 response interfaces that carry no typed success accessor,
-        /// which is where the document declares a 200 with no content. There is no body to return
-        /// through the accessor, so a success is simply a normal return. Where such an operation
-        /// does send a body, read it with ApiResponse.ReadAs or straight off RawContent.
+        /// This overload covers the response interfaces that carry no typed success accessor,
+        /// which is where the document declares a success with no content for it. There is no body
+        /// to return through the accessor, so a success is simply a normal return. Where such an
+        /// operation does send a body, read it with ApiResponse.ReadAs or straight off RawContent.
         /// </remarks>
         public static void EnsureSuccess(this IApiResponse response)
         {
@@ -220,8 +224,8 @@ namespace Whisparr2.Net.Client
     /// </summary>
     /// <remarks>
     /// <para>
-    /// 79 of the 227 operations declare a 200 and declare no content for it, so the generator emits
-    /// no typed accessor for them. The body is not lost: every one of those operations reads the
+    /// Many operations declare a success and declare no content for it, so the generator emits no
+    /// typed accessor for them. The body is not lost: every one of those operations reads the
     /// whole response with ReadAsStringAsync and stores it, so RawContent already carries whatever
     /// the server sent. What is missing is a way to turn that string into a type using the client's
     /// own serializer options.

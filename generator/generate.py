@@ -61,8 +61,10 @@ GENERATED_META_MEMBERS = (
 )
 # The generated implementation of one operation, as generichost writes it. The interface
 # declaration above it carries no "public async", and the OrDefault twin is excluded by the
-# stem it leaves behind. Measured over both repositories' trees on 2026-09-06: 454 matches
-# here for 227 operations, 544 in the sibling for 272, exactly two per operation in both.
+# stem it leaves behind, so the pattern matches exactly two declarations per operation. What the
+# gate below compares is the stem set against the spec, not a count, so no figure for this
+# repository is written here. Measured in the sibling repository on 2026-09-06: 544 matches for
+# 272 operations, the same two per operation.
 API_METHOD = re.compile(r"^\s*public async Task<[^>]*>\s+([A-Za-z0-9_]+)Async\(", re.M)
 
 

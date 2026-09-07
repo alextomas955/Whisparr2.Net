@@ -138,13 +138,13 @@ namespace Whisparr2.Net.UnitTests
         }
 
         /// <summary>
-        /// One of the 79 operations that carry no typed accessor can still report a failure.
+        /// An operation that carries no typed accessor can still report a failure.
         /// </summary>
         /// <remarks>
         /// IGetSystemRoutesApiResponse has nothing after IApiResponse in its base list, so there is
         /// no IOk for a type argument to be inferred from and only the non-generic overload can
-        /// bind. Without this case those 79 operations have no evidence that EnsureSuccess reaches
-        /// them at all.
+        /// bind. Without this case the operations carrying no typed accessor have no evidence
+        /// that EnsureSuccess reaches them at all.
         /// </remarks>
         [Fact]
         public async Task Content_less_operation_failure_throws_through_the_non_generic_overload()
@@ -415,10 +415,10 @@ namespace Whisparr2.Net.UnitTests
         /// A list body binds through the generic overload with the element's fields asserted.
         /// </summary>
         /// <remarks>
-        /// This is the only place a list type argument is exercised, and it stands for the 34 of
-        /// the 148 typed operations whose accessor returns one. The array carries one element on
-        /// purpose: an empty array binds the list shell without entering the element converter, so
-        /// it is not evidence that an element deserializes.
+        /// This is the only place a list type argument is exercised, and it stands for every
+        /// typed operation whose accessor returns one. The array carries one element on purpose:
+        /// an empty array binds the list shell without entering the element converter, so it is
+        /// not evidence that an element deserializes.
         /// </remarks>
         [Fact]
         public async Task List_body_deserializes_with_asserted_field_values()

@@ -61,7 +61,7 @@ namespace Whisparr2.Net
             string header = "",
             CancellationToken cancellation = default)
         {
-            // All 227 generated operations ask for this one header today. A provider that answered
+            // Every generated operation asks for this one header today. A provider that answered
             // any header name would silently satisfy a regenerated tree that had moved the
             // credential into the query string, where every call would still succeed while the key
             // reached server access logs, proxy logs and browser history. Whisparr accepts the key
