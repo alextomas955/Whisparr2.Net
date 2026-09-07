@@ -15,10 +15,6 @@ from typing import NoReturn
 # generator/ sits directly under the repository root.
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# raw.githubusercontent.com serves without one, but api.github.com refuses an unidentified client,
-# and the drift check reads the contents API. Set here so both callers send the same string.
-USER_AGENT = "Whisparr2.Net-pipeline"
-
 
 def resolve_repo_path(path):
     """Absolute path, resolved against the repository root when relative."""
@@ -28,15 +24,6 @@ def resolve_repo_path(path):
 def sha256_file(path):
     with open(path, "rb") as handle:
         return hashlib.sha256(handle.read()).hexdigest()
-
-
-def git_blob_sha1(data):
-    """Git's own object identity for a blob, recomputed locally.
-
-    Git hashes 'blob <length>\\0' followed by the raw bytes. This is the value `git hash-object`
-    prints, so a reader with git and no Python reproduces it.
-    """
-    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
 
 
 def write_json_lf(path, obj):

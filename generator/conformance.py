@@ -45,7 +45,6 @@ OUTPUT_PATH = "spec/CONFORMANCE.json"
 # Both HTTP readiness signals answer before the instance has settled, so readiness is the log line
 # and nothing else. Matched on its prefix: the tail reads False on a network-less boot.
 READY_MARKER = "ManagedHttpDispatcher: IPv4 is available"
-READY_TIMEOUT_SEC = 120
 
 # Off by default. The read behind it reaches an external metadata service over the public internet,
 # and on a runner with no route out it fails for a reason that has nothing to do with the spec.
@@ -896,7 +895,7 @@ def main():
         # The only address this run speaks to, read back from the container it just created.
         port = container.host_port(CONTAINER_NAME, container.CONTAINER_PORT)
         base = "http://127.0.0.1:{}".format(port)
-        elapsed = wait_for_marker(CONTAINER_NAME, READY_TIMEOUT_SEC)
+        elapsed = wait_for_marker(CONTAINER_NAME, container.READY_TIMEOUT_SEC)
         print("  + started {} on host port {}, ready in {:.2f}s".format(
             CONTAINER_NAME, port, elapsed))
 

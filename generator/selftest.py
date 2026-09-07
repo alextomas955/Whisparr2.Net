@@ -1876,11 +1876,6 @@ OFFLINE_CHECKS = (
     check_conformance_failure_branches,
 )
 
-# Empty, and no flag extends a run with it. The proposal mode against real commits was the only
-# subject a network check ever had, and the document is built here now rather than fetched. A
-# flag over an empty group reports success without having run anything.
-NETWORK_CHECKS = ()
-
 
 def run_generate(*arguments):
     """Invoke the real generation script and capture its output.
