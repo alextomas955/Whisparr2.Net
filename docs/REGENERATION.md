@@ -25,8 +25,11 @@ the provenance record through the offline self-test, which asserts that the reco
 module's constant are the same image.
 
 `spec/CONFORMANCE.json` is not part of `spec/PROVENANCE.json`, and no script writes a provenance
-field for it. It carries its own copy of `imageDigest` and `specCommit`, so a reader can tell
-whether the record was measured against the pin that is committed now. It records no hash of the
+field for it. It records `imageDigest` as the image reference the sweep passed to Docker, and
+`specCommit` from the provenance record, so a reader can tell whether the record was measured
+against the pin that is committed now. The digest is the run's own rather than a copy of the
+provenance field, because copying it would leave the fifth transformation comparing one field
+against itself. The sweep refuses before it boots when the two disagree. It records no hash of the
 patched document, because the fifth pre-processing transformation rewrites that document from this
 very record: any hash recorded would be the hash of the document as it stood before the record was
 applied to it. It has no `.gitattributes` line: nothing records its hash, and the point of the file
@@ -604,6 +607,7 @@ line. Find yours by its first line.
 | `ERROR: generate.py stopped before it had begun replacing the tree: <error>. Nothing in <path> was touched.` | An unexpected failure hit before the first delete. The tree is intact and the underlying error is quoted in the line. |
 | `ERROR: generate.py stopped after it had begun replacing the tree: <error>` | An unexpected failure hit during the copy back. This is one of the two refusals that does not leave the tree untouched. The next line reports how many `.cs` files survive and gives both recovery commands: re-run generation, or `git checkout` the three paths. |
 | `ERROR: copied <n> .cs files but staged <n>. The tree under <path> is now partially written. Recovery is to re-run generate.py, which deletes and rewrites the whole tree.` | The copy back was interrupted. This is the other refusal that does not leave the tree untouched, and the message carries the recovery command. |
+| `ERROR: REFUSED - this run boots <image> and spec/PROVENANCE.json records <image>, so the measurement and the client would describe different images. Nothing was written.` | The pinned digest in `generator/container.py` and the digest `spec/PROVENANCE.json` records are not the same image, so the record this sweep would write is a measurement of one application and the document it patches describes another. Checked before anything boots. |
 | `ERROR: REFUSED - the bodiless-operation map names the schema <name>, and this document does not declare it. Nothing was written.` | The sweep's map from a bodiless operation to the schema its payload matches names a schema the document no longer declares. Checked before anything boots. |
 | `ERROR: REFUSED - <operation> returned a <shape> and the bodiless-operation map expects a <shape>. Nothing was written.` | A mapped operation returned an object where the map expects an array, or the reverse, so T5 would attach the wrong one and the generated method would be named for it. |
 | `ERROR: docker create failed for <image>.` | The pinned digest could not be created as a container. The client output follows the line. Nothing was written. |

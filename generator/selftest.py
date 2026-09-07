@@ -1758,7 +1758,7 @@ def conformance_seen(body):
 
 
 def check_conformance_failure_branches():
-    """The three script refusals each fire and each stay quiet, and the sweep's recorders hold.
+    """The five script refusals each fire and each stay quiet, and the sweep's recorders hold.
 
     What this pins is every branch of the sweep that a run against the pin never reaches. A refusal
     only ever observed passing is not evidenced, so each is driven once over an input that must fire
@@ -1816,6 +1816,10 @@ def check_conformance_failure_branches():
         # Whatever the numbers are, the reads recorded against a declared schema must be the
         # answered reads less the non-JSON ones and less the ones that declare no schema at all.
         (conformance.refuse_invariant(70, 80, 4, 8), conformance.refuse_invariant(70, 80, 4, 6)),
+        # The image this run would boot against the image the client is described by. Driven with
+        # the real pair, so the quiet side also reports that the pin and the record agree today.
+        (conformance.refuse_measured_image(container.IMAGE_REF, "sha256:" + "0" * 64),
+         conformance.refuse_measured_image(container.IMAGE_REF, container.IMAGE_REF)),
     )
     for fires, quiet in refusals:
         assert (fires or "").startswith(conformance.REFUSAL_PREFIX), fires
