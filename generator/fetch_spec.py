@@ -16,12 +16,18 @@ import argparse
 import hashlib
 import json
 import os
-import tempfile
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
-from _common import USER_AGENT, die, git_blob_sha1, resolve_repo_path, write_json_lf
+from _common import (
+    USER_AGENT,
+    die,
+    git_blob_sha1,
+    resolve_repo_path,
+    write_bytes_atomic,
+    write_json_lf,
+)
 
 SPEC_REPO = "Whisparr/Whisparr"  # measured 2026-09-05
 # Recorded in provenance only, and never used to build a URL. A ref name moves, and the whole point
@@ -160,26 +166,6 @@ def describe(body, document):
         "specOperationCount": operations,
         "specSchemaCount": len(schemas),
     }
-
-
-def write_bytes_atomic(path, data):
-    """Write data to path so an interrupted run never leaves a truncated file.
-
-    The temporary file is created in the same directory as path, because os.replace is atomic only
-    within one filesystem. Either the complete new bytes land or the previous file is unchanged.
-    """
-    directory = os.path.dirname(os.path.abspath(path))
-    handle = tempfile.NamedTemporaryFile(dir=directory, prefix=".tmp-", delete=False)
-    try:
-        handle.write(data)
-        handle.flush()
-        os.fsync(handle.fileno())
-        handle.close()
-    except BaseException:
-        handle.close()
-        os.remove(handle.name)
-        raise
-    os.replace(handle.name, path)
 
 
 def build_spec_provenance(commit, url, body, document):

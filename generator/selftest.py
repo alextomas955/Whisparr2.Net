@@ -36,12 +36,19 @@ import subprocess
 import sys
 import tempfile
 
+import build_spec
 import conformance
 import container
 import fetch_spec
 import generate
 import preprocess_spec
-from _common import REPO_ROOT, git_blob_sha1, resolve_repo_path, sha256_file
+from _common import (
+    REPO_ROOT,
+    git_blob_sha1,
+    resolve_repo_path,
+    sha256_file,
+    write_bytes_atomic,
+)
 
 # The thirteen spec fields fetch_spec.py owns. The image block is listed separately below, and
 # this list deliberately does not name it, so a missing image field cannot implicate the fetch.
@@ -108,23 +115,23 @@ def read_provenance():
 
 def check_discriminator():
     """An eros-shaped document is refused, and the refusal names both paths in words."""
-    problems = fetch_spec.check_tier2(document("3.0.1", "3.0.0", EROS_PATHS))
+    problems = build_spec.check_tier2(document("3.0.1", "3.0.0", EROS_PATHS))
     assert len(problems) == 1, problems
     assert "/api/v3/movie" in problems[0], problems[0]
     assert "/api/v3/series" in problems[0], problems[0]
     assert "eros" in problems[0], problems[0]
 
-    assert fetch_spec.check_tier2(document("3.0.1", "3.0.0", WHISPARR2_PATHS)) == []
+    assert build_spec.check_tier2(document("3.0.1", "3.0.0", WHISPARR2_PATHS)) == []
     print("ok  discriminator: eros refused naming /api/v3/movie and /api/v3/series, v2 accepted")
 
 
 def check_non_discriminator():
     """openapi and info.version do not affect the verdict, in either direction."""
-    accepted = fetch_spec.check_tier2(document("3.0.1", "3.0.0", WHISPARR2_PATHS))
-    assert fetch_spec.check_tier2(document("3.1.4", "9.9.9", WHISPARR2_PATHS)) == accepted
+    accepted = build_spec.check_tier2(document("3.0.1", "3.0.0", WHISPARR2_PATHS))
+    assert build_spec.check_tier2(document("3.1.4", "9.9.9", WHISPARR2_PATHS)) == accepted
 
-    refused = fetch_spec.check_tier2(document("3.0.1", "3.0.0", EROS_PATHS))
-    assert fetch_spec.check_tier2(document("3.1.4", "9.9.9", EROS_PATHS)) == refused
+    refused = build_spec.check_tier2(document("3.0.1", "3.0.0", EROS_PATHS))
+    assert build_spec.check_tier2(document("3.1.4", "9.9.9", EROS_PATHS)) == refused
     print("ok  non-discriminator: openapi and info.version do not change the verdict")
 
 
@@ -163,7 +170,7 @@ def check_atomic_write():
 
         # Not a bytes-like object, so handle.write raises before os.replace is reached.
         try:
-            fetch_spec.write_bytes_atomic(path, object())
+            write_bytes_atomic(path, object())
         except TypeError:
             pass
         else:
