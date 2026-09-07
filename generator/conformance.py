@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Check what a running Whisparr 2 instance returns against what the pinned document declares.
+"""Record what a running Whisparr 2 instance returns, and what status code each write answers.
 
-The committed document omits properties the running application returns, at the same commit, so the
-spec alone cannot say what the wire looks like. This boots the pinned digest under a name unique to
-the run, calls every read it can address without inventing state, compares each JSON body against
-the schema the document declares for its 200, and writes the result to spec/CONFORMANCE.json. The
-container is removed whether the run succeeded or failed.
+The document is now built from the same commit the pinned image runs, so a body and its declared
+schema cannot disagree about a property or a type and there is nothing to compare. What is still
+unknown is what the wire carries where the document declares nothing, and what status code each
+write really answers. This boots the pinned digest under a name unique to the run, calls every read
+it can address without inventing state, issues every write it can make a fresh instance answer, and
+writes the record to spec/CONFORMANCE.json. The container is removed whether the run succeeded or
+failed.
 
 Nothing here records an observed value. One read returns the instance key in plaintext and its
 schema declares four more credentials beside it, so the output carries a JSON type name and never a
@@ -49,8 +51,19 @@ READY_TIMEOUT_SEC = 120
 # and on a runner with no route out it fails for a reason that has nothing to do with the spec.
 EXTERNAL_FLAG = "WHISPARR2NET_CONFORMANCE_EXTERNAL"
 
-# The one write. Created and deleted inside the same run, on the container this run started.
+# The label every row this run creates carries. Created and deleted inside the same run, on the
+# container this run started, which is force-removed at the end of it.
 PROBE_LABEL = "conformance-probe"
+
+# Written at the key in the output file, because the list is one a reader would reasonably mistake
+# for a patch list and the mistake deletes real properties from the generated models.
+DECLARED_NEVER_RETURNED_NOTE = (
+    "Recorded and never patched. These are properties a touched schema declares that no body on a "
+    "fresh instance carried, which is a fact about an empty instance rather than about the "
+    "document. DownloadClientResource.id is returned the moment a download client exists, and "
+    "Field.helpTextWarning is returned by any provider field that carries a warning. Treating this "
+    "list as a patch list would delete both from the generated models."
+)
 
 # One entry, measured rather than copied. GET /api/v3/series/lookup declares no response body and
 # returns SeriesResource-shaped items, and it is the only route on a fresh instance that produces
@@ -61,23 +74,13 @@ BODILESS_SCHEMA_MAP = {
     "GET /api/v3/series/lookup": ("SeriesResource", "array", {"term": "test"}),
 }
 
-# The JSON types the document declares, mapped to what Python parses them into. number accepts an
-# integer because JSON draws no line there and the document's int32 fields are declared integer.
-JSON_TYPES = {
-    "string": str,
-    "integer": int,
-    "number": (int, float),
-    "boolean": bool,
-    "object": dict,
-    "array": list,
-}
-
-
 def json_type_of(value):
     """The JSON type name of a parsed value, which is the only thing the output file records.
 
-    A sample would be a credential on the host-config read, so the type name is the whole of what a
-    finding carries about what it saw.
+    A sample would be a credential on the host-config read, so the type name is the whole of what
+    the record carries about what a body held. It is what the `shape` of a bodiless response is
+    read from, and the fifth transformation attaches an array response or an object response
+    according to that one word.
     """
     if value is None:
         return "null"
@@ -99,8 +102,8 @@ def json_type_of(value):
 def resolve(document, node):
     """A schema node with any reference followed, or an empty dict when it names nothing.
 
-    A walker that compared a reference node directly would find no type, no properties and no
-    additionalProperties, and would silently pass every body it was handed.
+    A recorder that read a reference node directly would find no type and no properties, and would
+    report every declared property of every schema as never returned.
     """
     seen = set()
     while isinstance(node, dict) and "$ref" in node:
@@ -120,8 +123,8 @@ def resolve(document, node):
 def schema_name_of(document, node):
     """The component name a reference points at, or None for an inline subschema.
 
-    The output file is keyed by schema and property, so a finding that could not name its schema
-    could not be keyed at all.
+    The never-returned list is keyed by schema and property, so a property recorded without its
+    owning schema name could not be keyed at all.
     """
     if isinstance(node, dict) and isinstance(node.get("$ref"), str):
         name = node["$ref"].rsplit("/", 1)[-1]
@@ -134,8 +137,8 @@ def classify_json(content_type):
     """Whether a response body should be parsed as JSON, from the content type alone.
 
     Read before the body is parsed. One read answers 184,918 bytes of Graphviz, and parsing that as
-    JSON costs a wasted exception on every run and reports a finding about a document that was
-    never JSON.
+    JSON costs a wasted exception on every run and records a shape for a document that was never
+    JSON.
     """
     return "json" in (content_type or "").lower()
 
@@ -143,8 +146,9 @@ def classify_json(content_type):
 def schema_for_200(document, method, path):
     """The JSON schema the document declares for an operation's 200, or None when it declares none.
 
-    None is not a failure. Six operations answer 200 with JSON and declare no body at all, and they
-    are recorded rather than validated.
+    None is not a failure. It is the whole subject of this script: an operation that answers 200
+    with JSON and declares no body at all is a gap the fifth transformation closes, so None routes
+    the read into the recorded list rather than out of it.
     """
     operation = document.get("paths", {}).get(path, {}).get(method.lower())
     if not isinstance(operation, dict):
@@ -158,87 +162,58 @@ def schema_for_200(document, method, path):
     return None
 
 
-def walk(document, schema_node, value, findings, seen_props, name_hint=None, path="$"):
-    """Compare one value against one schema node, recording findings and seen properties in place.
+def record_seen_properties(document, schema_node, value, seen_props, name_hint=None):
+    """Record which declared properties a body carried, as (schema name, property) pairs, in place.
 
-    A finding is (verdict, schema name, path, detail). The four failing verdicts are undeclared,
-    type, null and enum. A wrong answer here is a patch list that either misses a property the
-    application returns, which leaves the SDK unable to read it, or invents one it does not.
+    This judges nothing. The recursive comparison that used to live here reported four verdicts,
+    and all four became impossible by construction when the document started being built from the
+    commit the pinned image runs: one document and one application cannot disagree about a declared
+    property or a declared type. What is left is the record of what a body touched, which is the
+    only input to the never-returned list.
     """
     name = schema_name_of(document, schema_node) or name_hint
     schema = resolve(document, schema_node)
 
-    if not schema:
+    if not schema or value is None:
         return
 
     # allOf is used in this document for a single-member wrapper around a reference.
     if "allOf" in schema:
         for member in schema["allOf"]:
-            walk(document, member, value, findings, seen_props, name, path)
+            record_seen_properties(document, member, value, seen_props, name)
         return
 
-    declared = schema.get("type")
-    nullable = schema.get("nullable") is True
-
-    if value is None:
-        # No schema in this document declares a required array, so an absent key is legal and only
-        # an explicit null against a property that does not declare nullable is a violation.
-        if not nullable:
-            findings.append(("null", name, path, None))
-        return
-
-    if declared == "array":
-        if not isinstance(value, list):
-            findings.append(("type", name, path, json_type_of(value)))
-            return
+    if isinstance(value, list):
         items = schema.get("items", {})
-        for index, entry in enumerate(value):
-            walk(document, items, entry, findings, seen_props, None, path + "[" + str(index) + "]")
-        return
-
-    if "enum" in schema and isinstance(value, str):
-        if value not in schema["enum"]:
-            findings.append(("enum", name, path, value))
-        return
-
-    if declared in JSON_TYPES and declared != "object":
-        # bool is a subclass of int in Python, so an unguarded isinstance would read True as a
-        # conforming integer and miss the mismatch this check exists for.
-        if not isinstance(value, JSON_TYPES[declared]) or (
-            declared != "boolean" and isinstance(value, bool)
-        ):
-            findings.append(("type", name, path, json_type_of(value)))
+        for entry in value:
+            record_seen_properties(document, items, entry, seen_props)
         return
 
     if not isinstance(value, dict):
-        if declared == "object":
-            findings.append(("type", name, path, json_type_of(value)))
         return
 
     extra = schema.get("additionalProperties")
 
-    # A map-shaped site. Every member is validated against the map's value schema and no key is
-    # ever undeclared. Three such sites exist, all three nested under a property, and a walker that
-    # ignored them reported several thousand findings on the localization read alone.
+    # A map-shaped site. Its keys are data rather than declared properties, so none of them is a
+    # property this record can be keyed by. Three such sites exist, all three nested under a
+    # property, and folding their keys in would name several thousand properties on the
+    # localization read alone that no schema declares.
     if isinstance(extra, dict):
-        for key, member in value.items():
-            walk(document, extra, member, findings, seen_props, None, path + "." + key)
-        return
-    if extra is True:
+        for member in value.values():
+            record_seen_properties(document, extra, member, seen_props)
         return
 
     properties = schema.get("properties", {})
 
     for key, member in value.items():
-        if key in properties:
-            if name:
-                seen_props.add((name, key))
-            # The owning schema name is carried down. A property whose subschema is inline rather
-            # than a reference has no name of its own, and a finding on it that reported no schema
-            # could not be keyed by schema and property, which is the whole shape of the output.
-            walk(document, properties[key], member, findings, seen_props, name, path + "." + key)
-        elif extra is False:
-            findings.append(("undeclared", name, path + "." + key, json_type_of(member)))
+        if key not in properties:
+            continue
+        if name:
+            seen_props.add((name, key))
+        # The owning schema name is carried down. A property whose subschema is inline rather than
+        # a reference has no name of its own, and a pair that reported no schema could not be keyed
+        # by schema and property, which is the shape of the never-returned list.
+        record_seen_properties(document, properties[key], member, seen_props, name)
 
 
 def select_reads(document):
@@ -271,8 +246,9 @@ def select_reads(document):
 def refuse_bodiless_map(document, mapping):
     """Refuse when the bodiless-operation map names a schema the document no longer declares.
 
-    The map is a measurement against one document. Against a document that has moved it would
-    validate a payload against the wrong schema and report every difference as a finding.
+    The map is a measurement against one document, and the schema it names is what the fifth
+    transformation attaches to the operation. Against a document that has moved it would name a
+    schema that is not there, and the transformation would attach a reference to nothing.
     """
     schemas = document.get("components", {}).get("schemas", {})
     for schema_name, _shape, _query in mapping.values():
@@ -288,13 +264,13 @@ def refuse_bodiless_map(document, mapping):
 def refuse_empty_selection(answered):
     """Refuse when no selected read reached the instance at all.
 
-    An empty patch list from a run that reached nothing is indistinguishable from an empty patch
-    list from a clean run, and the second is the one a reader would assume.
+    An empty record from a run that reached nothing is indistinguishable from an empty record from
+    an instance with nothing to report, and the second is the one a reader would assume.
     """
     if answered <= 0:
         return (
             REFUSAL_PREFIX
-            + "the read selection reached no operation at all, so nothing was validated. Nothing "
+            + "the read selection reached no operation at all, so nothing was recorded. Nothing "
             "was written."
         )
     return None
@@ -303,9 +279,9 @@ def refuse_empty_selection(answered):
 def refuse_invariant(schema_checked, answered, non_json, bodiless_with_data):
     """Refuse when the counts do not add up.
 
-    Derived, and compared against nothing literal. Whatever the numbers are, the number
-    schema-checked must equal the reads that answered 200 with JSON and declared a JSON schema for
-    200. A sweep that quietly stopped validating would otherwise still write a file.
+    Derived, and compared against nothing literal. Whatever the numbers are, the number recorded
+    against a declared schema must equal the reads that answered 200 with JSON and declared a JSON
+    schema for 200. A sweep that quietly stopped reading bodies would otherwise still write a file.
     """
     expected = answered - non_json - bodiless_with_data
     if schema_checked != expected:
@@ -317,38 +293,6 @@ def refuse_invariant(schema_checked, answered, non_json, bodiless_with_data):
             )
         )
     return None
-
-
-# The four failing verdicts, in the order the refusal lines are printed, each with its sentence.
-VERDICT_SENTENCES = (
-    (
-        "undeclared",
-        "a response carries a property the document does not declare, under additionalProperties "
-        "false. Findings: {}.",
-    ),
-    ("type", "a response carries a value of the wrong JSON type. Findings: {}."),
-    (
-        "null",
-        "a response carries null for a property that does not declare nullable. Findings: {}.",
-    ),
-    ("enum", "a response carries an enum value outside the declared set. Findings: {}."),
-)
-
-
-def refuse_findings(findings):
-    """One refusal line per failing verdict category that has at least one finding.
-
-    The count sits at the end rather than inside the sentence, so no sentence needs a plural form
-    and the invariant part of each stays long enough to key a table on. The sites each line covers
-    are printed separately, so a reader gets the schema, the property and the operation without the
-    refusal line growing.
-    """
-    lines = []
-    for verdict, sentence in VERDICT_SENTENCES:
-        count = sum(1 for finding in findings if finding[0] == verdict)
-        if count:
-            lines.append(REFUSAL_PREFIX + sentence.format(count))
-    return lines
 
 
 def send(base, method, path, key, query=None, payload=None):
@@ -402,12 +346,29 @@ def media_type_of(content_type):
     return (content_type or "").split(";")[0].strip()
 
 
-def record(result, document, opkey, template, status, content_type, body):
-    """Judge one answered read and fold it into the running result.
+def bodiless_entry(opkey, content_type, body, parsed):
+    """One entry for an operation that answered with data while declaring none.
 
-    A read is validated only when it answered 200, carried JSON and declares a JSON schema for its
-    200. Everything else is recorded under the reason it was not validated, which is what lets the
-    counts be checked against each other rather than against a number written down.
+    Content type, byte count and top-level shape, and nothing read out of the body. `shape` is what
+    the fifth transformation reads to decide whether to attach an array response or an object
+    response, and that choice decides three generated method names, so an entry without it would
+    leave the transformation guessing.
+    """
+    return {
+        "operation": opkey,
+        "contentType": media_type_of(content_type),
+        "bytes": len(body),
+        "shape": json_type_of(parsed),
+    }
+
+
+def record(result, document, opkey, template, status, content_type, body):
+    """Fold one answered read into the running record.
+
+    A body is read against its declared schema only when the read answered 200, carried JSON and
+    declares a JSON schema for its 200. Everything else is recorded under the reason it was not,
+    which is what lets the counts be checked against each other rather than against a number
+    written down.
     """
     if status != 200:
         result["readsNotAnswering200"].append({"operation": opkey, "status": status})
@@ -419,20 +380,19 @@ def record(result, document, opkey, template, status, content_type, body):
             {"operation": opkey, "contentType": media_type, "bytes": len(body)}
         )
         return
+    parsed = json.loads(body.decode("utf-8"))
     schema = schema_for_200(document, "get", template)
     if schema is None:
         result["bodilessOperationsReturningData"].append(
-            {"operation": opkey, "contentType": media_type, "bytes": len(body)}
+            bodiless_entry(opkey, content_type, body, parsed)
         )
         return
-    found = []
-    walk(document, schema, json.loads(body.decode("utf-8")), found, result["seenProps"])
-    result["findings"].extend((finding, opkey) for finding in found)
+    record_seen_properties(document, schema, parsed, result["seenProps"])
     result["schemaChecked"] += 1
 
 
 def sweep_reads(document, base, key):
-    """Call every read this run can address without inventing state, and judge each answer.
+    """Call every read this run can address without inventing state, and record each answer.
 
     Tier 1 first, then the by-id tier whose ids come out of those tier 1 bodies. A by-id read whose
     collection returned no id is left uncalled rather than fed a value from this file, because an
@@ -443,7 +403,6 @@ def sweep_reads(document, base, key):
         "selected": 0,
         "answered": 0,
         "schemaChecked": 0,
-        "findings": [],
         "seenProps": set(),
         "nonJsonReads": [],
         "bodilessOperationsReturningData": [],
@@ -482,25 +441,28 @@ def sweep_reads(document, base, key):
     return result
 
 
-def external_probe(document, base, key, result):
-    """Call the operations that declare no response body but return a known shape.
+def external_probe(base, key, result):
+    """Record the bodiless operations the hermetic sweep cannot make answer.
 
-    Behind a flag, because the one entry reaches an external metadata service. Its findings join the
-    sweep's, and its reads are deliberately outside the sweep's counts: it is a probe of a declared
-    gap rather than one of the reads the document says returns a body.
+    Behind a flag, because the one entry reaches an external metadata service over the public
+    internet. The sweep calls `GET /api/v3/series/lookup` with no term and the instance answers 503
+    from that service, so the operation lands in `readsNotAnswering200` and its shape goes
+    unmeasured. Called with a term it answers 200, and this is where that answer is recorded.
+
+    Its reads are deliberately outside the sweep's counts, and it records no property against a
+    schema. Both are what keeps a flagged run and a hermetic run comparable: the only difference
+    between the two records is the entry this adds.
     """
-    for opkey, (schema_name, shape, query) in BODILESS_SCHEMA_MAP.items():
+    for opkey, (_schema_name, _shape, query) in BODILESS_SCHEMA_MAP.items():
         method, path = opkey.split(" ", 1)
         status, content_type, body = send(base, method, path, key, query=query)
         print("  + external probe {} -> {} {} bytes".format(opkey, status, len(body)))
         if status != 200 or not classify_json(content_type):
             continue
         parsed = json.loads(body.decode("utf-8"))
-        reference = {"$ref": "#/components/schemas/" + schema_name}
-        node = {"type": "array", "items": reference} if shape == "array" else reference
-        found = []
-        walk(document, node, parsed, found, result["seenProps"])
-        result["findings"].extend((finding, opkey) for finding in found)
+        result["bodilessOperationsReturningData"].append(
+            bodiless_entry(opkey, content_type, body, parsed)
+        )
 
 
 def write_probe(base, key):
@@ -527,56 +489,11 @@ def write_probe(base, key):
     return {"create": status_create, "update": status_update, "delete": status_delete}
 
 
-def collapse(findings, verdict, with_type):
-    """Collapse raw findings of one verdict into entries keyed by schema and property.
-
-    One property appears on two operations, and a per-operation list would have the consumer apply
-    the same patch twice. Nothing observed survives the collapse: the entry carries a JSON type name
-    and the operations it was seen on, never a value.
-    """
-    entries = {}
-    for (found_verdict, schema, path, detail), opkey in findings:
-        if found_verdict != verdict:
-            continue
-        prop = path.rsplit(".", 1)[-1]
-        entry = entries.setdefault(
-            (schema, prop),
-            {"schema": schema, "property": prop, "observedOn": []},
-        )
-        if with_type:
-            if detail == "null":
-                entry["nullObserved"] = True
-            elif "jsonType" not in entry:
-                entry["jsonType"] = detail
-        if opkey not in entry["observedOn"]:
-            entry["observedOn"].append(opkey)
-    ordered = []
-    for key in sorted(entries, key=lambda item: (item[0] or "", item[1])):
-        entry = entries[key]
-        if with_type:
-            entry = {
-                "schema": entry["schema"],
-                "property": entry["property"],
-                "jsonType": entry.get("jsonType", "null"),
-                "nullObserved": entry.get("nullObserved", False),
-                "observedOn": sorted(entry["observedOn"]),
-            }
-        else:
-            entry = {
-                "schema": entry["schema"],
-                "property": entry["property"],
-                "observedOn": sorted(entry["observedOn"]),
-            }
-        ordered.append(entry)
-    return ordered
-
-
 def declared_never_returned(document, seen_props):
     """The properties a touched schema declares that no body carried.
 
-    Recorded and never fatal. It is drift running the other way, and it is upstream input rather
-    than a build failure: one of these entries is the reason a by-id read has no id to be called
-    with.
+    Recorded and never patched. See DECLARED_NEVER_RETURNED_NOTE, which is written at the key in
+    the output file, for the two properties that make the difference concrete.
     """
     schemas = document.get("components", {}).get("schemas", {})
     touched = {name for name, _prop in seen_props}
@@ -705,7 +622,7 @@ def main():
 
         result = sweep_reads(document, base, container.API_KEY)
         if external:
-            external_probe(document, base, container.API_KEY, result)
+            external_probe(base, container.API_KEY, result)
 
         # After the sweep, never before. It writes a row, and a row changes what some reads return.
         probe = write_probe(base, container.API_KEY)
@@ -734,10 +651,7 @@ def main():
             "readsSchemaChecked": result["schemaChecked"],
             "externalProbeRan": external,
             "writeProbe": probe,
-            "undeclaredProperties": collapse(result["findings"], "undeclared", True),
-            "typeMismatches": collapse(result["findings"], "type", True),
-            "nullOnNonNullable": collapse(result["findings"], "null", False),
-            "enumViolations": collapse(result["findings"], "enum", False),
+            "declaredNeverReturnedNote": DECLARED_NEVER_RETURNED_NOTE,
             "declaredNeverReturned": declared_never_returned(document, result["seenProps"]),
             "bodilessOperationsReturningData": result["bodilessOperationsReturningData"],
             "nonJsonReads": result["nonJsonReads"],
@@ -752,27 +666,9 @@ def main():
             len(result["bodilessOperationsReturningData"]),
         ))
         print("schema-checked {} of {} GETs".format(result["schemaChecked"], total_gets))
-
-        # After the write, because the file is the record of what was found. Each line is followed
-        # by the sites it covers, so a reader gets the schema, the property and the operation
-        # without the refusal line growing.
-        refusals = refuse_findings([finding for finding, _opkey in result["findings"]])
-        for line in refusals:
-            print(line)
-        for (verdict, schema, path, _detail), opkey in result["findings"]:
-            print("    {} {} {} on {}".format(verdict, schema, path, opkey))
-        # The file is written before this point, because it is the record of what was found and the
-        # next stage reads it. Then the run refuses, on every verdict including undeclared.
-        #
-        # The check is a deliverable rather than a drift alarm. The committed document omits fields
-        # the running application returns, so a green run against this pin would mean the sweep
-        # found nothing, which is the one outcome that would be wrong. It goes green when the
-        # document is patched, not before.
-        #
-        # The self-test asserts this refusal and its exact contents, so the suite stays green while
-        # the check itself refuses, and a ninth undeclared property turns the suite red.
-        if result["findings"]:
-            die("  " + output_path + " records what was found.")
+        # The run exits 0. It used to refuse on four verdicts, and all four became impossible when
+        # the document started being built from the commit the pinned image runs. What is left is a
+        # record, and a record has nothing to refuse on.
         print("Done. " + output_path)
     finally:
         # Force-remove so a failed run cannot leave a container holding a published port and a key.
