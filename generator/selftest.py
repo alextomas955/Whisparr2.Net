@@ -1160,7 +1160,7 @@ def call_gate(function, *arguments):
 
 
 def check_staged_tree_gate_refuses():
-    """gate_staged_tree accepts a tree that matches its spec and refuses six mutations of it.
+    """gate_staged_tree accepts a tree that matches its spec and refuses seven mutations of it.
 
     What this pins is the census gate as a gate. check_generated_tree_matches_spec drives
     expected_from_spec and api_method_names over the committed tree, so the derivation is covered,
@@ -1168,8 +1168,9 @@ def check_staged_tree_gate_refuses():
     and the suite stayed green. It runs against a staged tree that exists only during a Docker run,
     which is why the tree here is synthetic.
 
-    The control is asserted first. Without it a gate that refused everything would satisfy all six
-    mutations.
+    The control is asserted first. Without it a gate that refused everything would satisfy all
+    seven mutations. Six of them are in the table below and the renamed operationId is driven
+    separately after it, because the file names still match in that case.
     """
     def gated(mutate, list_stem="ListThing"):
         with tempfile.TemporaryDirectory() as root:
