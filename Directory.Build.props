@@ -52,7 +52,7 @@
        to compare against. -->
   <PropertyGroup>
     <PackageId>Whisparr2.Net</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>alextomas955</Authors>
     <Description>C# SDK for Whisparr 2, generated from Whisparr's own OpenAPI document.</Description>
     <Copyright>Copyright (c) 2026 alextomas955</Copyright>

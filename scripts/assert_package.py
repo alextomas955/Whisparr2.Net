@@ -49,7 +49,7 @@ REPOSITORY_URL = "https://github.com/alextomas955/Whisparr2.Net"
 # One entry per target framework in Directory.Build.props. Adding or dropping a target framework
 # has to move both together.
 DOCUMENTATION_ENTRIES = ("lib/net8.0/Whisparr2.Net.xml", "lib/net10.0/Whisparr2.Net.xml")
-# Each documentation file currently declares 7,794 members. A floor against a stub, not an
+# Each documentation file currently declares 7,791 members. A floor against a stub, not an
 # equality, so an ordinary change to the library does not trip it.
 MIN_MEMBERS = 1000
 

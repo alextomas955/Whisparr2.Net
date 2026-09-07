@@ -36,6 +36,21 @@ namespace Whisparr2.Net.UnitTests
         private const int Concurrency = 8;
 
         /// <summary>
+        /// The command the dispatch case sends. It takes an argument, which is the reason the
+        /// dispatch exists.
+        /// </summary>
+        private const string DispatchedCommandName = "RefreshSeries";
+
+        /// <summary>The series the dispatch case names.</summary>
+        private const int DispatchedSeriesId = 7;
+
+        /// <summary>
+        /// The canned 201 body the dispatch case reads back. It carries no JSON null member on
+        /// purpose: the generated converter throws for a member that is present and null.
+        /// </summary>
+        private const string CommandAcceptedBody = "{\"id\":42,\"name\":\"RefreshSeries\"}";
+
+        /// <summary>
         /// A base URL for the case that resolves clients without issuing a request. Port 1 is not
         /// a port anything on this machine serves, and nothing here connects to it in any case.
         /// </summary>
@@ -104,6 +119,37 @@ namespace Whisparr2.Net.UnitTests
             IReadOnlyList<string> headers = CapturedRequest.HeaderLines(request, "X-Api-Key");
             string only = Assert.Single(headers);
             Assert.Equal("X-Api-Key: Bearer " + SentinelKey, only);
+        }
+
+        /// <summary>
+        /// The command dispatch carries the credential in the same shape every generated operation
+        /// does.
+        /// </summary>
+        /// <remarks>
+        /// The dispatch assembles its own request instead of going through a generated operation,
+        /// so no other case in this class covers the credential it puts on the wire. It reads the
+        /// token through the same provider, and a provider call naming the wrong header would throw
+        /// rather than send a key, so what this case adds is that the request the dispatch built
+        /// carries the key once, without a scheme prefix and outside the query string.
+        /// </remarks>
+        [Fact]
+        public async Task Command_dispatch_carries_the_configured_key_as_X_Api_Key()
+        {
+            using LoopbackCapture capture = new(status: 201, body: CommandAcceptedBody);
+
+            await using ServiceProvider provider = BuildProvider(capture);
+            await provider.GetRequiredService<CommandApi>()
+                .SendCommandAsync(DispatchedCommandName, new { seriesId = DispatchedSeriesId });
+
+            string request = await capture.FirstRequest;
+
+            Assert.Contains("POST /api/v3/command HTTP/1.1", request, StringComparison.Ordinal);
+
+            string only = Assert.Single(CapturedRequest.HeaderLines(request, "X-Api-Key"));
+            Assert.Equal("X-Api-Key: " + SentinelKey, only);
+
+            Assert.DoesNotContain("Bearer", request, StringComparison.Ordinal);
+            Assert.DoesNotContain("apikey", request, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

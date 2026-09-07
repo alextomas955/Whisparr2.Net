@@ -4,6 +4,7 @@
 #nullable enable
 
 using Microsoft.Extensions.DependencyInjection;
+using Whisparr2.Net.Api;
 using Whisparr2.Net.Client;
 using Whisparr2.Net.Extensions;
 
@@ -200,6 +201,48 @@ namespace Whisparr2.Net.UnitTests
             Assert.All(
                 messages,
                 message => Assert.DoesNotContain(SentinelKey, message, StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// The command api resolves by its class and not only by its interface.
+        /// </summary>
+        /// <remarks>
+        /// SendCommandAsync is declared on the class, because the generated ICommandApi is not
+        /// partial and cannot carry it. Without this registration every caller of the dispatch
+        /// writes a cast.
+        /// </remarks>
+        [Fact]
+        public void AddWhisparr2_registers_the_concrete_command_api()
+        {
+            ServiceCollection services = new();
+            services.AddWhisparr2(new Whisparr2Options { BaseUrl = ValidBaseUrl, ApiKey = SentinelKey });
+
+            using ServiceProvider provider = services.BuildServiceProvider();
+
+            Assert.NotNull(provider.GetRequiredService<CommandApi>());
+        }
+
+        /// <summary>
+        /// Two resolutions of the command api are two instances.
+        /// </summary>
+        /// <remarks>
+        /// The class registration delegates to the interface registration rather than constructing
+        /// anything, so it hands out whatever lifetime AddHttpClient set, which is transient. One
+        /// shared instance would mean that lifetime had changed, and a changed lifetime is what
+        /// would put a second HttpClient path under the command api.
+        /// </remarks>
+        [Fact]
+        public void Resolved_command_api_instances_are_not_shared()
+        {
+            ServiceCollection services = new();
+            services.AddWhisparr2(new Whisparr2Options { BaseUrl = ValidBaseUrl, ApiKey = SentinelKey });
+
+            using ServiceProvider provider = services.BuildServiceProvider();
+
+            ICommandApi fromInterface = provider.GetRequiredService<ICommandApi>();
+            CommandApi fromClass = provider.GetRequiredService<CommandApi>();
+
+            Assert.NotSame(fromInterface, fromClass);
         }
 
         /// <summary>

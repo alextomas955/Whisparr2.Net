@@ -40,9 +40,8 @@ pack is the only command a reader has to remember.
 
 Both parts are load-bearing. `<clear />` is needed so the local source is not merged with whatever
 the machine's user-level NuGet configuration defines, which would leave the restore depending on one
-developer's machine. `nuget.org` must then be added back explicitly, because the package's four
-transitive `Microsoft.Extensions.*` dependencies resolve from there and nothing else in the local
-folder can supply them.
+developer's machine. `nuget.org` must then be added back explicitly, because the package's three
+transitive dependencies resolve from there and nothing else in the local folder can supply them.
 
 ### The project file
 
@@ -55,7 +54,7 @@ folder can supply them.
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Whisparr2.Net" Version="0.1.0" />
+    <PackageReference Include="Whisparr2.Net" Version="0.2.0" />
   </ItemGroup>
 </Project>
 ```
@@ -130,7 +129,7 @@ element, so it inherits nothing regardless of where the directory sits.
 
 ## The observed run
 
-Measured 2026-09-07, on the digest `spec/PROVENANCE.json` pins.
+Measured 2026-09-07 against the 0.2.0 pack, on the digest `spec/PROVENANCE.json` pins.
 
 ```
 dotnet pack src/Whisparr2.Net/Whisparr2.Net.csproj -c Release -o artifacts --nologo
@@ -141,11 +140,15 @@ dotnet run -c Release
 The build restored against the flat folder:
 
 ```
-Restored ...\whisparr2-consumer\consumer.csproj (in 305 ms).
+Restored ...\whisparr2-consumer\consumer.csproj (in 276 ms).
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 ```
+
+Nothing named Polly appears anywhere in the restored graph or in the build output. That is the
+observation behind the dependency removal in 0.2.0: before it, three Polly assemblies landed beside
+this program.
 
 The program printed:
 

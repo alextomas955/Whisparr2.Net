@@ -216,6 +216,11 @@ happens, so they are written down.
   an instance is currently running. The per-command arguments are described nowhere in the spec
   either, and `CommandResource` is `additionalProperties: false`, so the generated create operation
   cannot put a command argument on the wire at all.
+  `CommandApi.SendCommandAsync(name, payload)` is the hand-written method that can. It writes a flat
+  JSON object whose payload members are siblings of `name`, which is the shape the instance binds.
+  Measured against the pinned image, an accepted command answers 201 and an unknown command name
+  answers 500 rather than 400, so a bad name cannot be told from a command that failed inside the
+  application by status alone.
 - `POST /api/v3/release` pushes a release to a download client. It reaches outside the instance,
   starts a real download and writes to the file system the instance manages, so its effect outlives
   the request and deleting anything through the API does not undo it.

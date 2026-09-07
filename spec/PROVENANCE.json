@@ -14,5 +14,5 @@
   "imageTag": "ghcr.io/hotio/whisparr:v2-2.2.0-release.231",
   "imageDigest": "ghcr.io/hotio/whisparr@sha256:c6dae7dc99b52c3f73b64c9eca9bb38db0f646c98a3ea5829c57b1ebdce0d170",
   "generatedSpecSha256": "0ae4731b2b11f850bef835f26bac716cdcb80c132675f68cec0a5cc8d4f33fff",
-  "generatedTreeSha256": "35061484154ccbef5b35f0e88658b6630868f7fd83046d6c15c75b6086164c6e"
+  "generatedTreeSha256": "41ca71b835dbbf140f45bcb9c1194d3d05060aac9b649fe39a5ffc6c13d489c0"
 }
