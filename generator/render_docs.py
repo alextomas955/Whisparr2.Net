@@ -48,8 +48,8 @@ SURFACE = Path(resolve_repo_path("docs/SURFACE.md"))
 SURFACE_NAME = "docs/SURFACE.md"
 
 # Printed verbatim by a passing --check. A silent success is indistinguishable in a run log from a
-# step that never executed, and the build workflow greps a run log for these exact bytes as the
-# evidence that the gate ran at all. Changing the wording means changing it in both places together.
+# step that never executed, so this line is the evidence in a run log that the gate ran at all. No
+# workflow step reads it back. A reader checking a run does so by hand.
 CHECK_PASSES_LINE = "%s matches the render of the committed spec." % SURFACE_NAME
 
 HTTP_METHODS = ("get", "put", "post", "delete", "patch", "head", "options", "trace")

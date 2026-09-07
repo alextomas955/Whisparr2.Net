@@ -114,8 +114,8 @@ def main():
         sys.exit(1)
 
     # Fixed wording. A silent success is indistinguishable in a run log from a step that never
-    # executed, and build-and-test.yml greps the log for these exact bytes as the evidence that
-    # this gate ran. Changing the wording means changing it in both places together.
+    # executed, so this line is the evidence in a run log that this gate ran. No workflow step
+    # reads it back. A reader checking a run does so by hand.
     print("PASSED: all package assertions held.")
 
 
