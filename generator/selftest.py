@@ -40,6 +40,7 @@ import build_spec
 import conformance
 import generate
 import preprocess_spec
+import render_docs
 from _common import (
     REPO_ROOT,
     resolve_repo_path,
@@ -1842,6 +1843,126 @@ def check_conformance_failure_branches():
               len(CONFORMANCE_DECLARED_PROPS) - 1, len(refusals)))
 
 
+def run_render_docs(*arguments):
+    """Invoke the real surface renderer and capture its output.
+
+    Mirrors run_preprocess_spec and run_generate above, including the encoding and errors pair,
+    which is set because a non-ASCII byte in captured output otherwise raises UnicodeDecodeError on
+    a Windows console.
+    """
+    completed = subprocess.run(
+        [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                      "render_docs.py")]
+        + list(arguments),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    return completed.returncode, completed.stdout + completed.stderr
+
+
+def check_render_docs_reproduces_the_committed_document():
+    """The committed document is what the committed spec renders to.
+
+    What this pins is the deliverable. Every count and every table row in docs/SURFACE.md is
+    derived, so a spec that moved without a re-render leaves the document describing an API the
+    library no longer generates. Caught here rather than on a runner.
+    """
+    code, output = run_render_docs("--check")
+
+    assert code == 0, (code, output)
+    assert render_docs.CHECK_PASSES_LINE in output, output
+    print("ok  surface render: the committed document reproduces from the committed spec")
+
+
+def check_render_docs_check_sees_a_hand_edit():
+    """A hand edit to the rendered document fails --check, and --check writes nothing.
+
+    The inversion of the check above. A gate only ever observed passing is not evidenced, and this
+    is the branch that makes the document's derivation enforceable rather than a claim.
+
+    The edited bytes are asserted to survive the failing run. That is what makes the write-nothing
+    contract a property of the code rather than of the flag: a --check that repaired the document it
+    was asked to compare would satisfy the exit code and lose the edit.
+    """
+    path = resolve_repo_path("docs/SURFACE.md")
+    with open(path, "rb") as handle:
+        committed = handle.read()
+    edited = committed + b"a line nobody rendered\n"
+
+    try:
+        with open(path, "wb") as handle:
+            handle.write(edited)
+
+        code, output = run_render_docs("--check")
+
+        assert code == 1, (code, output)
+        assert "docs/SURFACE.md" in output, output
+        with open(path, "rb") as handle:
+            assert handle.read() == edited, "the failing check wrote to the document"
+    finally:
+        with open(path, "wb") as handle:
+            handle.write(committed)
+
+    # Outside the finally on purpose. An assertion inside it replaces the exception a failing
+    # assertion above already raised, which hides the real failure.
+    with open(path, "rb") as handle:
+        assert handle.read() == committed, path
+    print("ok  surface render: one appended line fails --check, which wrote nothing and left the "
+          "edit in place")
+
+
+def check_render_docs_judgement_lists_are_checked_against_the_spec():
+    """All three judgement lists refuse on an entry the spec no longer declares, and stay quiet.
+
+    This is the branch a render against the committed spec never reaches. The three lists hold
+    facts about Whisparr that no field of the spec states, so an entry that disappeared upstream
+    would otherwise leave prose in the document describing an operation nobody can call.
+
+    The shipped module is imported rather than restated, because a copy would pass while the
+    renderer was broken. All three lists are driven: a refusal only ever observed passing is not
+    evidenced.
+
+    Nothing here opens a socket or starts a container.
+    """
+    with open(resolve_repo_path("spec/openapi.generated.json"), encoding="utf-8") as handle:
+        spec = json.load(handle)
+    declared = {(method.upper(), path)
+                for path, item in spec["paths"].items()
+                for method in item if method in render_docs.HTTP_METHODS}
+
+    render_docs.validate_judgement_lists(declared)
+
+    undeclared = "/a-path-the-spec-does-not-declare"
+    for name, stale in (
+        ("WEB_INTERFACE_PATHS", (undeclared,)),
+        ("CREDENTIAL_ROWS", (("GET", undeclared, "Nothing. It does not exist."),)),
+        ("DESCRIBED_BY_NAME", (("GET", undeclared),)),
+    ):
+        held = getattr(render_docs, name)
+        captured = io.StringIO()
+        try:
+            setattr(render_docs, name, stale)
+            with contextlib.redirect_stdout(captured):
+                render_docs.validate_judgement_lists(declared)
+        except SystemExit as refusal:
+            assert refusal.code == 1, refusal.code
+        else:
+            raise AssertionError("%s accepted an entry the spec does not declare" % name)
+        finally:
+            setattr(render_docs, name, held)
+
+        refusal_line = captured.getvalue().strip()
+        assert name in refusal_line, refusal_line
+        assert refusal_line.startswith(conformance.REFUSAL_PREFIX), refusal_line
+        assert refusal_line.endswith(REFUSAL_TAIL), refusal_line
+
+    print("ok  surface render: 3 judgement lists each refuse an undeclared entry and stay quiet "
+          "over the committed spec")
+
+
 OFFLINE_CHECKS = (
     check_discriminator,
     check_non_discriminator,
@@ -1870,6 +1991,9 @@ OFFLINE_CHECKS = (
     check_write_tree_digest_keeps_the_record,
     check_integration_suite_addresses_only_its_own_container,
     check_conformance_failure_branches,
+    check_render_docs_reproduces_the_committed_document,
+    check_render_docs_check_sees_a_hand_edit,
+    check_render_docs_judgement_lists_are_checked_against_the_spec,
 )
 
 
