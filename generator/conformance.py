@@ -55,6 +55,75 @@ EXTERNAL_FLAG = "WHISPARR2NET_CONFORMANCE_EXTERNAL"
 # container this run started, which is force-removed at the end of it.
 PROBE_LABEL = "conformance-probe"
 
+# The two providers whose bulk PUT and bulk DELETE the probe reaches, each with the fields that
+# keep the row it creates from contacting anything. A disabled row answers the bulk writes exactly
+# as an enabled one would, and reaches no network on the way.
+# The bulk path is spelled out rather than derived from the collection, so the operations this
+# probe reaches can be read off one table.
+PROVIDER_BULK = (
+    ("/api/v3/downloadclient", "/api/v3/downloadclient/bulk", {"enable": False}),
+    ("/api/v3/indexer", "/api/v3/indexer/bulk", {
+        "enableRss": False,
+        "enableAutomaticSearch": False,
+        "enableInteractiveSearch": False,
+    }),
+)
+
+# The five providers carrying a test and a testall POST. testall answers 200 with nothing
+# configured; test answers 400 on every template a fresh instance can supply.
+TEST_PROVIDERS = ("downloadclient", "importlist", "indexer", "metadata", "notification")
+
+# A second delay profile, so the reorder has an order to move. The instance ships with one.
+DELAY_PROFILE_PAYLOAD = {
+    "enableUsenet": True,
+    "enableTorrent": True,
+    "preferredProtocol": "usenet",
+    "usenetDelay": 0,
+    "torrentDelay": 0,
+    "bypassIfHighestQuality": False,
+    "bypassIfAboveCustomFormatScore": False,
+    "minimumCustomFormatScore": 0,
+    "tags": [],
+}
+
+# Why each write the probe cannot make a fresh instance answer could not be reached. Recorded
+# beside the status the attempt observed, and never turned into a status code.
+TEST_REASON = (
+    "the template a fresh instance supplies describes an unconfigured provider that fails its own "
+    "validation, so the attempt answered 400. The success code is 200, which the document already "
+    "declares, and the metadata provider answered it directly."
+)
+EPISODE_FILE_REASON = (
+    "the application dereferences the first element of an empty sequence when no episode file "
+    "exists, so this answers 500 on a fresh instance. That is an upstream defect, not a status "
+    "contract."
+)
+IMPORT_LIST_BULK_REASON = (
+    "no import-list template creates a row without a working list behind it, so the probe has no "
+    "id to address this with."
+)
+CUSTOM_FORMAT_CREATE_REASON = (
+    "the one body this run attempts, the first specification template the instance offers with its "
+    "field values filled in, does not pass the application's own validation. One attempt is the "
+    "budget: a second would be iterating on a shape the source already answers."
+)
+CUSTOM_FORMAT_REASON = (
+    "the custom-format create did not succeed on the one body this run attempts, so the probe has "
+    "no id to address this with."
+)
+PROVIDER_SCHEMA_REASON = "the {} schema route offered no template to create a row from."
+PROVIDER_ROW_REASON = "the {} create did not succeed, so the probe has no id to address this with."
+
+# Written at the key in the output file. A reader who found status codes here would reasonably read
+# them as the codes to declare, and most of them are a failure rather than a contract.
+WRITES_NOT_PROBED_NOTE = (
+    "Every write this run could not make a fresh instance answer with success, and the status it "
+    "did answer. Not a patch list: a status recorded here is the failure that was observed, not a "
+    "code to declare. Declaring 400 for a test POST would make the generated client report a real "
+    "validation failure as success, and declaring 500 for an episodefile write would record an "
+    "upstream null dereference as a status contract."
+)
+
 # Written at the key in the output file, because the list is one a reader would reasonably mistake
 # for a patch list and the mistake deletes real properties from the generated models.
 DECLARED_NEVER_RETURNED_NOTE = (
@@ -465,28 +534,183 @@ def external_probe(base, key, result):
         )
 
 
-def write_probe(base, key):
-    """Create, update and delete one tag, recording the three status codes the instance answers.
+def first_schema_template(base, key, provider):
+    """The first template a provider's own schema route offers, or None when it offers none.
 
-    The one write in this script. The next stage needs the real success codes, and measuring them
-    here is what stops three numbers being copied by hand out of a document. No field value is
-    asserted and nothing goes through the typed client.
+    Read off the instance rather than written into this file. A template written down here would
+    describe a provider list that moves with the image.
     """
-    status_create, _content_type, body = send(
-        base, "POST", "/api/v3/tag", key, payload={"label": PROBE_LABEL}
-    )
-    tag_id = json.loads(body.decode("utf-8"))["id"]
-    status_update, _content_type, _body = send(
-        base,
-        "PUT",
-        "/api/v3/tag/{}".format(tag_id),
-        key,
-        payload={"id": tag_id, "label": PROBE_LABEL + "-2"},
-    )
-    status_delete, _content_type, _body = send(
-        base, "DELETE", "/api/v3/tag/{}".format(tag_id), key
-    )
-    return {"create": status_create, "update": status_update, "delete": status_delete}
+    status, content_type, body = send(base, "GET", "/api/v3/" + provider + "/schema", key)
+    if status != 200 or not classify_json(content_type):
+        return None
+    templates = json.loads(body.decode("utf-8"))
+    return templates[0] if templates else None
+
+
+def filled_field(field):
+    """One provider or specification field carrying a value the application will accept.
+
+    A schema template arrives with its field values unset, and a specification whose field has no
+    value fails the application's own validation. A field offering a fixed set takes the first
+    option it offers, because an arbitrary string is not one of them.
+    """
+    if field.get("value") is not None:
+        return field
+    options = field.get("selectOptions") or []
+    return dict(field, value=options[0]["value"] if options else PROBE_LABEL)
+
+
+def write_probe(base, key):
+    """Issue every write a fresh instance can be made to answer, one status code per operation.
+
+    Returns (probe, unreached). `probe` maps `METHOD /path/template`, the spelling
+    `readsNotAnswering200` already uses and the one the fifth transformation looks an operation up
+    by, to the success status the instance answered. `unreached` carries every write this run could
+    not make succeed, with the status the attempt observed and why.
+
+    Two rules hold here, each stated where it is enforced. A status observed failing never enters
+    `probe`: declaring 400 for a `test` POST would make the generated client report a real
+    validation failure as success, and declaring 500 for an `episodefile` write would record an
+    upstream null dereference as a status contract. And nothing read out of a response body reaches
+    either structure: an id from a create addresses the next call and is never recorded.
+
+    Every row this creates is left behind. The container is force-removed in the caller's `finally`,
+    so restoring state would be work with no subject.
+    """
+    probe = {}
+    unreached = []
+
+    def issue(template, method, path, payload=None, query=None, reason=None):
+        """One write, recorded under its operation key. Returns the parsed body, or None."""
+        status, content_type, body = send(base, method, path, key, query=query, payload=payload)
+        if 200 <= status < 300:
+            probe[method + " " + template] = status
+            if body and classify_json(content_type):
+                return json.loads(body.decode("utf-8"))
+            return None
+        unreached.append({
+            "operation": method + " " + template,
+            "status": status,
+            "reason": reason or "the attempt answered {}.".format(status),
+        })
+        return None
+
+    def unreachable(operation, reason):
+        """A write the probe never issued, because nothing on a fresh instance can address it."""
+        unreached.append({"operation": operation, "reason": reason})
+
+    # The controls, measured independently in the phase before at 201, 202 and 200.
+    tag = issue("/api/v3/tag", "POST", "/api/v3/tag", payload={"label": PROBE_LABEL})
+    if tag:
+        issue("/api/v3/tag/{id}", "PUT", "/api/v3/tag/{}".format(tag["id"]),
+              payload={"id": tag["id"], "label": PROBE_LABEL + "-2"})
+        issue("/api/v3/tag/{id}", "DELETE", "/api/v3/tag/{}".format(tag["id"]))
+
+    # A provider row is what the bulk pair addresses, and forceSave is what lets one be created
+    # without a working service behind it. The row is created disabled, so it contacts nothing.
+    for collection, bulk, disabled in PROVIDER_BULK:
+        provider = collection.rsplit("/", 1)[-1]
+        template = first_schema_template(base, key, provider)
+        row = None
+        if template is None:
+            unreachable("POST " + collection, PROVIDER_SCHEMA_REASON.format(provider))
+        else:
+            row = issue(collection, "POST", collection,
+                        payload=dict(template, name=PROBE_LABEL, **disabled),
+                        query={"forceSave": "true"})
+        if row is None:
+            unreachable("PUT " + bulk, PROVIDER_ROW_REASON.format(collection))
+            unreachable("DELETE " + bulk, PROVIDER_ROW_REASON.format(collection))
+            continue
+        ids = {"ids": [row["id"]]}
+        issue(bulk, "PUT", bulk, payload=dict(ids, **disabled))
+        issue(bulk, "DELETE", bulk, payload=ids)
+
+    # The definitions are written back exactly as they were read. Nothing about them is recorded.
+    status, content_type, body = send(base, "GET", "/api/v3/qualitydefinition", key)
+    if status == 200 and classify_json(content_type):
+        issue("/api/v3/qualitydefinition/update", "PUT", "/api/v3/qualitydefinition/update",
+              payload=json.loads(body.decode("utf-8")))
+    else:
+        unreachable("PUT /api/v3/qualitydefinition/update",
+                    "the definition collection answered {} rather than 200, so this run has "
+                    "nothing to write back.".format(status))
+
+    # An empty id list is accepted by each of these, and an empty list changes nothing.
+    issue("/api/v3/episode/monitor", "PUT", "/api/v3/episode/monitor",
+          payload={"episodeIds": [], "monitored": False})
+    issue("/api/v3/series/editor", "PUT", "/api/v3/series/editor", payload={"seriesIds": []})
+    issue("/api/v3/series/editor", "DELETE", "/api/v3/series/editor", payload={"seriesIds": []})
+    issue("/api/v3/blocklist/bulk", "DELETE", "/api/v3/blocklist/bulk", payload={"ids": []})
+    issue("/api/v3/queue/bulk", "DELETE", "/api/v3/queue/bulk", payload={"ids": []})
+
+    # The reorder needs a second profile to have an order to move. The instance ships with one, and
+    # every profile but that first one must carry at least one tag or the create answers 400. The
+    # tag goes through send rather than issue: POST /api/v3/tag is measured above as a control, and
+    # recording the same operation twice would say nothing new.
+    status, content_type, body = send(base, "POST", "/api/v3/tag", key,
+                                      payload={"label": PROBE_LABEL + "-delay"})
+    tags = []
+    if 200 <= status < 300 and classify_json(content_type):
+        tags = [json.loads(body.decode("utf-8"))["id"]]
+    profile = issue("/api/v3/delayprofile", "POST", "/api/v3/delayprofile",
+                    payload=dict(DELAY_PROFILE_PAYLOAD, tags=tags))
+    if profile:
+        issue("/api/v3/delayprofile/reorder/{id}", "PUT",
+              "/api/v3/delayprofile/reorder/{}".format(profile["id"]))
+    else:
+        unreachable("PUT /api/v3/delayprofile/reorder/{id}",
+                    "the delay-profile create did not succeed, so the probe has no order to move.")
+
+    for provider in TEST_PROVIDERS:
+        issue("/api/v3/" + provider + "/testall", "POST", "/api/v3/" + provider + "/testall")
+
+    # One bounded attempt. A body the application accepts converts the custom-format bulk pair from
+    # inferred to measured, and a second iteration on the body would be guessing at a shape the
+    # source already answers.
+    specification = first_schema_template(base, key, "customformat")
+    format_row = None
+    if specification is not None:
+        specification = dict(
+            specification, name=PROBE_LABEL, negate=False, required=False,
+            fields=[filled_field(field) for field in specification.get("fields") or []],
+        )
+        format_row = issue(
+            "/api/v3/customformat", "POST", "/api/v3/customformat",
+            payload={
+                "name": PROBE_LABEL,
+                "includeCustomFormatWhenRenaming": False,
+                "specifications": [specification],
+            },
+            reason=CUSTOM_FORMAT_CREATE_REASON,
+        )
+    if format_row is None:
+        unreachable("PUT /api/v3/customformat/bulk", CUSTOM_FORMAT_REASON)
+        unreachable("DELETE /api/v3/customformat/bulk", CUSTOM_FORMAT_REASON)
+    else:
+        ids = {"ids": [format_row["id"]]}
+        issue("/api/v3/customformat/bulk", "PUT", "/api/v3/customformat/bulk",
+              payload=dict(ids, includeCustomFormatWhenRenaming=False))
+        issue("/api/v3/customformat/bulk", "DELETE", "/api/v3/customformat/bulk", payload=ids)
+
+    # Issued rather than assumed, so the status each answers is measured. None of them can succeed
+    # on a fresh instance and none of the statuses below is a code to declare.
+    for provider in TEST_PROVIDERS:
+        template = first_schema_template(base, key, provider)
+        issue("/api/v3/" + provider + "/test", "POST", "/api/v3/" + provider + "/test",
+              payload=dict(template or {}, name=PROBE_LABEL), reason=TEST_REASON)
+
+    issue("/api/v3/episodefile/editor", "PUT", "/api/v3/episodefile/editor",
+          payload={"episodeFileIds": []}, reason=EPISODE_FILE_REASON)
+    issue("/api/v3/episodefile/bulk", "PUT", "/api/v3/episodefile/bulk",
+          payload=[], reason=EPISODE_FILE_REASON)
+    issue("/api/v3/episodefile/bulk", "DELETE", "/api/v3/episodefile/bulk",
+          payload={"episodeFileIds": []}, reason=EPISODE_FILE_REASON)
+
+    unreachable("PUT /api/v3/importlist/bulk", IMPORT_LIST_BULK_REASON)
+    unreachable("DELETE /api/v3/importlist/bulk", IMPORT_LIST_BULK_REASON)
+
+    return probe, unreached
 
 
 def declared_never_returned(document, seen_props):
@@ -621,14 +845,10 @@ def main():
             base, container.API_KEY, boot_began_at)
 
         result = sweep_reads(document, base, container.API_KEY)
-        if external:
-            external_probe(base, container.API_KEY, result)
 
-        # After the sweep, never before. It writes a row, and a row changes what some reads return.
-        probe = write_probe(base, container.API_KEY)
-        print("  + write probe create {} update {} delete {}".format(
-            probe["create"], probe["update"], probe["delete"]))
-
+        # Checked here, before the external probe adds an entry the sweep's counts do not know
+        # about and before the first write, so a run whose sweep did not add up issues no write at
+        # all.
         empty = refuse_empty_selection(result["answered"])
         if empty:
             die(empty)
@@ -641,6 +861,18 @@ def main():
         if inconsistent:
             die(inconsistent)
 
+        if external:
+            external_probe(base, container.API_KEY, result)
+
+        # After the sweep, never before. It writes rows, and a row changes what some reads return,
+        # so a probe moved ahead of the sweep makes the recorded byte counts irreproducible.
+        probe, unreached = write_probe(base, container.API_KEY)
+        for operation in sorted(probe):
+            print("  + write probe {} -> {}".format(operation, probe[operation]))
+        for entry in unreached:
+            print("  - not probed {} {}".format(
+                entry["operation"], entry.get("status", "not issued")))
+
         conformance = {
             "measuredAgainst": {
                 "imageDigest": provenance["imageDigest"],
@@ -651,6 +883,8 @@ def main():
             "readsSchemaChecked": result["schemaChecked"],
             "externalProbeRan": external,
             "writeProbe": probe,
+            "writesNotProbedNote": WRITES_NOT_PROBED_NOTE,
+            "writesNotProbed": unreached,
             "declaredNeverReturnedNote": DECLARED_NEVER_RETURNED_NOTE,
             "declaredNeverReturned": declared_never_returned(document, result["seenProps"]),
             "bodilessOperationsReturningData": result["bodilessOperationsReturningData"],
@@ -666,6 +900,8 @@ def main():
             len(result["bodilessOperationsReturningData"]),
         ))
         print("schema-checked {} of {} GETs".format(result["schemaChecked"], total_gets))
+        print("  write probe reached {} operations, {} recorded unreachable".format(
+            len(probe), len(unreached)))
         # The run exits 0. It used to refuse on four verdicts, and all four became impossible when
         # the document started being built from the commit the pinned image runs. What is left is a
         # record, and a record has nothing to refuse on.
