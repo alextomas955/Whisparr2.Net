@@ -1,19 +1,21 @@
 # Packs the library on a v* tag and then either publishes it or refuses, naming the reason.
 #
-# The refusal is placed before the push call rather than after it. With an empty key the client
-# warns, sends no API key header, transmits the entire body, receives 401 and exits 1. Nothing
-# publishes, so the no-publish constraint this repository sets holds, but the bytes reach the
-# endpoint first. Letting that 401 be the gate uploads this package to nuget.org on every gated
-# release run.
+# The refusal is placed before the push call rather than after it. With no key the client warns,
+# sends no API key header, transmits the entire body, receives 401 and exits 1. The bytes reach the
+# endpoint before that answer arrives, so letting the 401 be the gate uploads this package to
+# nuget.org on every gated release run.
 name: release
 
 on:
   push:
     tags: ['v*']
 
-# The workflow reads the repository, builds it and packs it. It writes nothing back.
+# The workflow reads the repository, builds it and packs it. It writes nothing back to it.
+# id-token: write does not grant write access to anything here. It permits GitHub to mint the
+# short-lived OIDC token that nuget.org exchanges for a temporary publishing key.
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   release:
@@ -110,36 +112,38 @@ jobs:
             artifacts/*.snupkg
           if-no-files-found: error
 
-      # The gate. Four things about this step are load-bearing.
+      # The gate. This repository publishes through trusted publishing, so there is no stored API
+      # key to test for emptiness and no long-lived secret to leak. nuget.org holds a policy naming
+      # this repository owner, this repository and this workflow file, and it issues a key only to
+      # a run whose OIDC token matches all three.
       #
-      # The emptiness test is inside run: on an environment variable and is never a step
-      # condition. The secrets context is not available to a step condition, so a guard written
-      # there evaluates false forever and the step reads as skipped when the intent was reached
-      # and stopped.
+      # That keeps the property the old key test existed to provide, and it keeps it more cheaply.
+      # A run that no policy matches fails here, at the exchange, before the push step runs. The
+      # package body is never transmitted. Delegating the refusal to the server's 401 would have
+      # uploaded the whole archive first, which is why the old step tested the key before calling
+      # push.
       #
-      # The test comes before the push call rather than being delegated to the server's 401,
-      # because the client transmits the whole package body before that answer arrives.
+      # The step sits immediately before the push and not earlier. The key nuget.org returns is
+      # valid for one hour and is single use, so requesting it ahead of the build and the pack
+      # would spend part of that hour on work that can fail anyway.
       #
-      # The refusing branch exits 1 rather than finishing green. A green run whose publish step
-      # did nothing is the shape this repository treats as a defect.
-      #
-      # The key is tested with its whitespace stripped, and the stripped value is what the push
-      # call receives. A key holding only a space, a tab or a newline is not empty to [ -z ], so
-      # an unstripped test lets a secret pasted with a trailing newline through to the push call,
-      # which transmits the whole body. Only emptiness is tested. The value is never echoed, here
-      # or anywhere else.
-      #
+      # user is the nuget.org profile name, not an email address and not the GitHub login. It is
+      # not a secret: it appears on every package page this account owns.
+      - name: Exchange the OIDC token for a short-lived nuget.org key
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: alextomas
+
       # The push target is the one path the version gate agreed on, not a glob, so a stray file
       # in artifacts/ cannot be transmitted alongside the intended package.
+      #
+      # The key reaches the shell through env: rather than being interpolated into run:, the way
+      # every expression in these workflows does. The sibling interpolates it directly; this file
+      # does not, because nothing here puts a ${{ }} expression inside a run: body.
       - name: Publish to nuget.org
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
           PACKAGE_PATH: artifacts/Whisparr2.Net.${{ steps.version.outputs.version }}.nupkg
         run: |
-          KEY="$(printf '%s' "$NUGET_API_KEY" | tr -d '[:space:]')"
-          if [ -z "$KEY" ]; then
-            echo "NUGET_API_KEY is not configured on this repository, or holds only whitespace."
-            echo "The release stops here. No package was transmitted to nuget.org."
-            exit 1
-          fi
-          dotnet nuget push "$PACKAGE_PATH" -k "$KEY" -s https://api.nuget.org/v3/index.json
+          dotnet nuget push "$PACKAGE_PATH" -k "$NUGET_API_KEY" -s https://api.nuget.org/v3/index.json
