@@ -1,0 +1,37 @@
+# Builds both target frameworks and runs the unit suite on a hosted runner, so a commit is
+# compiled and tested somewhere other than the machine that wrote it.
+name: build-and-test
+
+on:
+  # push is narrowed to main on purpose. Left open, a commit on a branch with an open pull
+  # request fires both push and pull_request and charges two runs for one commit.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# The repository default is read. Declaring it here stops a later change to that default
+# from widening what this workflow can do.
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Both lines are required. Building net8.0 needs only reference assemblies, but running
+      # a net8.0 test host needs the .NET 8 runtime, and roll-forward does not cross a major.
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Build
+        run: dotnet build Whisparr2.Net.slnx -c Release --nologo
+
+      # The two suites are separate steps so a red mark names which one failed.
+      - name: Unit tests
+        run: dotnet test test/Whisparr2.Net.UnitTests -c Release --no-build --nologo
