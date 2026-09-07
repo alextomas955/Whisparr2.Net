@@ -102,7 +102,8 @@ namespace Whisparr2.Net.IntegrationTests
                 separator: original.SeparatorOption,
                 numberStyle: original.NumberStyleOption);
 
-            NamingConfigResource restored;
+            IUpdateNamingConfigApiResponse restoreWrite;
+            IGetNamingConfigApiResponse restoreRead;
 
             try
             {
@@ -126,9 +127,18 @@ namespace Whisparr2.Net.IntegrationTests
                 // class shares one container with every other class, xunit contracts no order
                 // between them, and a test that changed the naming config and failed before
                 // putting it back would leave the container altered for whatever runs next.
-                (await naming.UpdateNamingConfigAsync(id, original)).EnsureSuccess();
-                restored = (await naming.GetNamingConfigAsync()).EnsureSuccess();
+                //
+                // Issued without being classified. EnsureSuccess here would throw out of the
+                // finally and replace whatever the try raised, and the run where javEpisodeFormat
+                // is erased is the run where the restore write is most likely to be rejected too.
+                // The reader would get a restore failure instead of the message naming the value
+                // before and the value after.
+                restoreWrite = await naming.UpdateNamingConfigAsync(id, original);
+                restoreRead = await naming.GetNamingConfigAsync();
             }
+
+            restoreWrite.EnsureSuccess();
+            NamingConfigResource restored = restoreRead.EnsureSuccess();
 
             // Every field, in one comparison, against what the first read returned.
             Assert.Equal(original.ToString(), restored.ToString());
