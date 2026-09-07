@@ -1,5 +1,6 @@
-# Builds both target frameworks and runs the unit suite on a hosted runner, so a commit is
-# compiled and tested somewhere other than the machine that wrote it.
+# Builds both target frameworks and runs both test suites on a hosted runner, with the live
+# suite required to reach a real Whisparr container rather than allowed to skip itself, then
+# packs the library and asserts what the package ships.
 name: build-and-test
 
 on:
@@ -35,3 +36,35 @@ jobs:
       # The two suites are separate steps so a red mark names which one failed.
       - name: Unit tests
         run: dotnet test test/Whisparr2.Net.UnitTests -c Release --no-build --nologo
+
+      # WHISPARR2NET_REQUIRE_DOCKER turns an unreachable daemon from a green skip into a
+      # failure. It is quoted so YAML makes it a string, which is what the fixture compares
+      # ordinal, and it sits on this step so a later edit cannot move a test out from under it.
+      - name: Integration tests against a seeded Whisparr container
+        env:
+          WHISPARR2NET_REQUIRE_DOCKER: "1"
+        run: dotnet test test/Whisparr2.Net.IntegrationTests -c Release --no-build --nologo
+        timeout-minutes: 15
+
+      # Packing on every push, rather than only on the release path, is what makes a regression
+      # in the shipped documentation files or the repository url visible before a tag exists.
+      - name: Pack
+        run: dotnet pack src/Whisparr2.Net/Whisparr2.Net.csproj -c Release --no-build -o artifacts --nologo
+
+      # python3 is the name on the runner. The same script is python on the owner's machine,
+      # where python3 does not resolve.
+      #
+      # The version is read out of Directory.Build.props rather than written here. A literal
+      # copy of it silently outlives the next version bump: the path stops resolving and the
+      # step fails on a missing file, which reads like a broken pack rather than a stale
+      # workflow. release.yml derives the same value the same way.
+      - name: Assert the package ships its documentation and a resolvable repository url
+        run: |
+          VERSION="$(grep -oP '(?<=<Version>)[^<]+' Directory.Build.props)"
+          python3 scripts/assert_package.py "artifacts/Whisparr2.Net.$VERSION.nupkg"
+
+      # docs/SURFACE.md is generated from the committed spec. Re-render and diff rather than
+      # assert counts: a Whisparr release that adds an operation should update the document,
+      # not fail the build.
+      - name: Assert the generated document matches the committed spec
+        run: python3 generator/render_docs.py --check
