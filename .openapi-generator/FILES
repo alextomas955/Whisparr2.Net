@@ -87,7 +87,6 @@ src/Whisparr2.Net/Client/TokenBase.cs
 src/Whisparr2.Net/Client/TokenContainer`1.cs
 src/Whisparr2.Net/Client/TokenProvider`1.cs
 src/Whisparr2.Net/Extensions/IHostBuilderExtensions.cs
-src/Whisparr2.Net/Extensions/IHttpClientBuilderExtensions.cs
 src/Whisparr2.Net/Extensions/IServiceCollectionExtensions.cs
 src/Whisparr2.Net/Logging/RestLogEvents.cs
 src/Whisparr2.Net/Model/Actor.cs

@@ -49,10 +49,11 @@ namespace Whisparr2.Net
         /// </summary>
         /// <value>An action invoked once per typed client, or null to attach nothing.</value>
         /// <remarks>
-        /// The library carries Microsoft.Extensions.Http.Polly, so Polly 7 is already on the
-        /// dependency graph and the AddRetryPolicy, AddTimeoutPolicy and AddCircuitBreakerPolicy
-        /// extensions can be called on the builder handed to this action. A consumer that wants a
-        /// different resilience package, or Polly 8, attaches its own handler here instead.
+        /// The library carries no resilience dependency, so the builder handed to this action
+        /// offers whatever the consumer's own project references. Reference a resilience package
+        /// directly and attach its policies here, with AddPolicyHandler for Polly through
+        /// Microsoft.Extensions.Http.Polly, or with the equivalent hook of whatever package was
+        /// chosen.
         /// </remarks>
         public Action<IHttpClientBuilder>? ConfigureHttpClient { get; init; }
 

@@ -38,4 +38,5 @@ docs/**
 **/*.csproj
 appveyor.yml
 *.slnx
+src/Whisparr2.Net/Extensions/IHttpClientBuilderExtensions.cs
 README.md
