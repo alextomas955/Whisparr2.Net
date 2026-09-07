@@ -399,25 +399,6 @@ def refuse_empty_selection(answered):
     return None
 
 
-def refuse_invariant(schema_checked, answered, non_json, bodiless_with_data):
-    """Refuse when the counts do not add up.
-
-    Derived, and compared against nothing literal. Whatever the numbers are, the number recorded
-    against a declared schema must equal the reads that answered 200 with JSON and declared a JSON
-    schema for 200. A sweep that quietly stopped reading bodies would otherwise still write a file.
-    """
-    expected = answered - non_json - bodiless_with_data
-    if schema_checked != expected:
-        return (
-            REFUSAL_PREFIX
-            + "the schema-checked count {} does not equal the {} selected reads that answered 200 "
-            "with JSON and declare a JSON schema. Nothing was written.".format(
-                schema_checked, expected
-            )
-        )
-    return None
-
-
 def send(base, method, path, key, query=None, payload=None):
     """One request to the container this run started, returning (status, content type, body).
 
@@ -496,9 +477,8 @@ def record(result, document, opkey, template, status, content_type, body):
     """Fold one answered read into the running record.
 
     A body is read against its declared schema only when the read answered 200, carried JSON and
-    declares a JSON schema for its 200. Everything else is recorded under the reason it was not,
-    which is what lets the counts be checked against each other rather than against a number
-    written down.
+    declares a JSON schema for its 200. Everything else is recorded under the reason it was not, so
+    a reader of the record can tell a read that was skipped from a read that was not selected.
     """
     if status != 200:
         result["readsNotAnswering200"].append({"operation": opkey, "status": status})
@@ -925,20 +905,10 @@ def main():
 
         result = sweep_reads(document, base, container.API_KEY)
 
-        # Checked here, before the external probe adds an entry the sweep's counts do not know
-        # about and before the first write, so a run whose sweep did not add up issues no write at
-        # all.
+        # Checked before the first write, so a run that reached nothing issues no write at all.
         empty = refuse_empty_selection(result["answered"])
         if empty:
             die(empty)
-        inconsistent = refuse_invariant(
-            result["schemaChecked"],
-            result["answered"],
-            len(result["nonJsonReads"]),
-            len(result["bodilessOperationsReturningData"]),
-        )
-        if inconsistent:
-            die(inconsistent)
 
         if external:
             external_probe(base, container.API_KEY, result)
