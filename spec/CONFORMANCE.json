@@ -187,13 +187,15 @@
       "operation": "GET /api/v3/autotagging/schema",
       "contentType": "application/json",
       "bytes": 7448,
-      "shape": "array"
+      "shape": "array",
+      "schema": "AutoTaggingSpecificationSchema"
     },
     {
       "operation": "GET /api/v3/customformat/schema",
       "contentType": "application/json",
       "bytes": 15746,
-      "shape": "array"
+      "shape": "array",
+      "schema": "CustomFormatSpecificationSchema"
     },
     {
       "operation": "GET /api/v3/filesystem",
@@ -217,7 +219,8 @@
       "operation": "GET /api/v3/series/lookup",
       "contentType": "application/json",
       "bytes": 32805,
-      "shape": "array"
+      "shape": "array",
+      "schema": "SeriesResource"
     }
   ],
   "nonJsonReads": [

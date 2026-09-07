@@ -134,12 +134,26 @@ DECLARED_NEVER_RETURNED_NOTE = (
     "list as a patch list would delete both from the generated models."
 )
 
-# One entry, measured rather than copied. GET /api/v3/series/lookup declares no response body and
-# returns SeriesResource-shaped items, and it is the only route on a fresh instance that produces
-# one at all: the collection returns [], every by-id read 404s, and a create with a fabricated
-# tvdbId returns 400 because the series is not found upstream. The value is the schema its payload
-# matches, the shape of that payload, and the query the read needs.
+# Every bodiless operation whose returned shape this document can name, measured rather than
+# copied. The value is the schema its payload matches, the shape of that payload, and the query the
+# read needs, or None where the sweep already reaches the route unaided. The schema name is written
+# into the output record, so the fifth transformation reads it from there and this file stays the
+# only place it is stated.
+#
+# The two schema routes were measured 2026-09-06 against the pinned digest: every key in every item
+# they return is declared by the schema named here, and each is the tightest schema in the document
+# that covers all of them. Both leave id and name unset, which is what a template that describes a
+# specification rather than a saved row does.
+#
+# GET /api/v3/series/lookup is the one entry the hermetic sweep cannot reach, so it carries a
+# query and is read by the external probe: the collection returns [], every by-id read 404s, and a
+# create with a fabricated tvdbId returns 400 because the series is not found upstream.
+#
+# The four bodiless operations not named here return an object no schema in this document
+# describes, so nothing can be attached for them and nothing is.
 BODILESS_SCHEMA_MAP = {
+    "GET /api/v3/autotagging/schema": ("AutoTaggingSpecificationSchema", "array", None),
+    "GET /api/v3/customformat/schema": ("CustomFormatSpecificationSchema", "array", None),
     "GET /api/v3/series/lookup": ("SeriesResource", "array", {"term": "test"}),
 }
 
@@ -330,6 +344,28 @@ def refuse_bodiless_map(document, mapping):
     return None
 
 
+def refuse_bodiless_shape(entries, mapping):
+    """Refuse when a mapped operation returned a shape the map does not expect.
+
+    The map states the shape its schema is wrapped in and the sweep measures the shape the instance
+    actually returned. Both halves exist here and nowhere else, so this is where they are compared.
+    A disagreement means the fifth transformation would attach an array where the instance sends an
+    object, or the reverse, and the generated method would be named for the wrong one.
+
+    Only an operation that produced an entry is judged. A hermetic run reaches no entry for the
+    route behind the external probe, which is not a disagreement.
+    """
+    for entry in entries:
+        expected = mapping.get(entry["operation"])
+        if expected and entry["shape"] != expected[1]:
+            return (
+                REFUSAL_PREFIX
+                + "{} returned a {} and the bodiless-operation map expects a {}. Nothing was "
+                "written.".format(entry["operation"], entry["shape"], expected[1])
+            )
+    return None
+
+
 def refuse_empty_selection(answered):
     """Refuse when no selected read reached the instance at all.
 
@@ -422,13 +458,20 @@ def bodiless_entry(opkey, content_type, body, parsed):
     the fifth transformation reads to decide whether to attach an array response or an object
     response, and that choice decides three generated method names, so an entry without it would
     leave the transformation guessing.
+
+    `schema` is present only for an operation BODILESS_SCHEMA_MAP names, and it is what makes this
+    record the whole input to that transformation. Without it the transformation would need its own
+    copy of the map, which is a second place for one fact to be stated.
     """
-    return {
+    entry = {
         "operation": opkey,
         "contentType": media_type_of(content_type),
         "bytes": len(body),
         "shape": json_type_of(parsed),
     }
+    if opkey in BODILESS_SCHEMA_MAP:
+        entry["schema"] = BODILESS_SCHEMA_MAP[opkey][0]
+    return entry
 
 
 def record(result, document, opkey, template, status, content_type, body):
@@ -521,8 +564,14 @@ def external_probe(base, key, result):
     Its reads are deliberately outside the sweep's counts, and it records no property against a
     schema. Both are what keeps a flagged run and a hermetic run comparable: the only difference
     between the two records is the entry this adds.
+
+    Only an entry carrying a query is read here. The other operations the map names are answered by
+    the hermetic sweep on a fresh instance, and reading them a second time would record each of
+    them twice.
     """
     for opkey, (_schema_name, _shape, query) in BODILESS_SCHEMA_MAP.items():
+        if query is None:
+            continue
         method, path = opkey.split(" ", 1)
         status, content_type, body = send(base, method, path, key, query=query)
         print("  + external probe {} -> {} {} bytes".format(opkey, status, len(body)))
@@ -863,6 +912,15 @@ def main():
 
         if external:
             external_probe(base, container.API_KEY, result)
+
+        # After the external probe, because the entry it adds is one of the three the map names,
+        # and before the first write, so a disagreement between what the map expects and what the
+        # instance returned issues no write at all.
+        disagreed = refuse_bodiless_shape(
+            result["bodilessOperationsReturningData"], BODILESS_SCHEMA_MAP
+        )
+        if disagreed:
+            die(disagreed)
 
         # After the sweep, never before. It writes rows, and a row changes what some reads return,
         # so a probe moved ahead of the sweep makes the recorded byte counts irreproducible.

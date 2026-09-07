@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """Pre-process the pinned Whisparr 2 OpenAPI document into the spec the generator reads.
 
-T1 narrows root security, T2 deletes the malformed paths["/"], T3 derives an operationId for every
-operation from the document itself, and T4 replaces the five CLR-shaped schemas with the strings
-the server actually serialises.
+T1 narrows root security, T2 deletes the malformed paths["/"], T5 declares the success status code
+the instance answers and attaches the response schema it returns, T3 derives an operationId for
+every operation from the document itself, and T4 replaces the five CLR-shaped schemas with the
+strings the server actually serialises. They run in that order, and T5's position ahead of T3 is
+what names three array-returning reads for a list.
+
+T5 is the only one whose input is a measurement rather than the document. Generating this document
+from Whisparr's own source supplies neither of the two things it declares, because both are absent
+[ProducesResponseType] annotations upstream, so both exist only in spec/CONFORMANCE.json.
 
 The derivation is devopsarr's assign_operation_id.py, the algorithm behind the Go, Python and
 TypeScript *arr clients. OPERATION_ID_OVERRIDES names the 8 operations it cannot get right from
@@ -374,11 +380,197 @@ def rewrite_clr_schemas(document):
     return len(outside), []
 
 
+CONFORMANCE_FILE = "spec/CONFORMANCE.json"
+PROVENANCE_FILE = "spec/PROVENANCE.json"
+
+STATUS_KIND = "statusCodes"
+SCHEMA_KIND = "responseSchemas"
+
+OK = "200"
+
+
+def read_json(relative):
+    with open(resolve_repo_path(relative), "r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def find_operation(document, operation_key):
+    """The operation node an "METHOD /path/template" key names, or None.
+
+    The key spelling is the conformance record's, which is the spelling every measurement in it is
+    keyed by. Nothing is derived from it beyond splitting on the single space.
+    """
+    method, path = operation_key.split(" ", 1)
+    item = document.get("paths", {}).get(path)
+    if not isinstance(item, dict):
+        return None
+    operation = item.get(method.lower())
+    return operation if isinstance(operation, dict) else None
+
+
+def measured_patch_plan(document, conformance):
+    """What T5 would change, by kind, without touching either argument.
+
+    Two kinds, because the two are measured differently and refuse differently, and because a
+    self-test can then assert each on its own without applying anything.
+
+    A status-code entry exists only where the probe measured a code other than 200. An operation
+    the probe measured 200 for already declares what it answers, so it belongs to neither kind and
+    its absence from the document would mean nothing.
+
+    A response-schema entry exists for every bodiless operation the record names a schema for. The
+    four it names none for return an object no schema in the document describes, so there is
+    nothing to attach.
+
+    `present` is whether this document declares the operation at all, and `already` is whether the
+    change has been made. Both are facts, and only the caller refuses on them.
+    """
+    statuses = {}
+    for operation_key, code in sorted(conformance["writeProbe"].items()):
+        code = str(code)
+        if code == OK:
+            continue
+        operation = find_operation(document, operation_key)
+        responses = (operation or {}).get("responses") or {}
+        statuses[operation_key] = {
+            "code": code,
+            "present": operation is not None,
+            "already": code in responses,
+            "declaresOk": OK in responses,
+        }
+
+    schemas = {}
+    for entry in conformance["bodilessOperationsReturningData"]:
+        if "schema" not in entry:
+            continue
+        operation = find_operation(document, entry["operation"])
+        responses = (operation or {}).get("responses") or {}
+        schemas[entry["operation"]] = {
+            "schema": entry["schema"],
+            "shape": entry["shape"],
+            "present": operation is not None,
+            "already": bool((responses.get(OK) or {}).get("content")),
+            "declaresOk": OK in responses,
+        }
+
+    return {STATUS_KIND: statuses, SCHEMA_KIND: schemas}
+
+
+def attached_schema(schema_name, shape):
+    """The 200 content node for a bodiless operation, under one media type and no other.
+
+    application/json alone is deliberate and it is load-bearing. returns_json_array above walks
+    exactly responses, 200, content, application/json, schema, type, so an attachment under any
+    other media type leaves this transformation reporting a non-zero change count while the three
+    Get-to-List renames it exists for silently do not happen. The three-media-type sets the
+    document carries elsewhere are what the server's own annotations produce; this attachment is
+    not one of those and does not imitate them.
+    """
+    reference = {"$ref": REF_PREFIX + schema_name}
+    schema = {"type": "array", "items": reference} if shape == "array" else reference
+    return {"application/json": {"schema": schema}}
+
+
+def declare_measured_responses(document):
+    """T5. Declare the success code the instance answers and attach the schema it returns.
+
+    Returns (change count, refusal lines) like the other four. The two kinds are the two things
+    generating this document from Whisparr's own source cannot supply, because both are absent
+    [ProducesResponseType] annotations upstream: they exist only as a measurement against a running
+    instance, and spec/CONFORMANCE.json is that measurement.
+
+    Nothing measured is restated here. Every status code, operation key and schema name comes out
+    of the record.
+    """
+    conformance = read_json(CONFORMANCE_FILE)
+    provenance = read_json(PROVENANCE_FILE)
+
+    # The patch list is a measurement against a running image, so the image is the identity that
+    # has to match: this asserts that the measurement and the client describe one artifact.
+    #
+    # Not the recorded spec hash. main() below overwrites generatedSpecSha256 with the
+    # post-transformation hash on every run, so an equality on it would hold for exactly one run
+    # and refuse every run after that.
+    measured_digest = (conformance.get("measuredAgainst") or {}).get("imageDigest")
+    if measured_digest != provenance.get("imageDigest"):
+        return 0, [
+            "ERROR: REFUSED - the conformance record was measured against {} and this client "
+            "describes {}, so the measurement and the document describe different images. Nothing "
+            "was written.".format(measured_digest, provenance.get("imageDigest"))
+        ]
+
+    plan = measured_patch_plan(document, conformance)
+    entries = list(plan[STATUS_KIND].items()) + list(plan[SCHEMA_KIND].items())
+
+    # An operation the record names and this document does not declare, or declares without the
+    # code the change replaces, is the one signal left that Whisparr moved a path. Applying the
+    # rest and skipping it silently would put the client back to declaring 200 for a write that
+    # answers 201, which is the whole defect this transformation exists to close.
+    unreachable = [
+        key for key, entry in entries
+        if not entry["present"] or not (entry["already"] or entry["declaresOk"])
+    ]
+    if unreachable:
+        return 0, [
+            "ERROR: REFUSED - {} measured operations cannot be patched in this document. Whisparr "
+            "has moved or removed a path, or the response the change replaces is no longer "
+            "declared, so re-run generator/conformance.py against the pinned "
+            "image.".format(len(unreachable))
+        ] + ["    " + key for key in unreachable] + ["  Nothing was written."]
+
+    named = sorted({entry["schema"] for _key, entry in plan[SCHEMA_KIND].items()})
+    declared = (document.get("components") or {}).get("schemas") or {}
+    undeclared = [name for name in named if name not in declared]
+    if undeclared:
+        return 0, [
+            "ERROR: REFUSED - the record names the schemas {} for a bodiless operation, and this "
+            "document does not declare {}. Attaching them would reference nothing. Nothing was "
+            "written.".format(", ".join(named), ", ".join(undeclared))
+        ]
+
+    # Composite over both kinds, never per kind. A per-kind condition would refuse the whole
+    # correct document the day upstream annotates one of the two, which is the opposite of what a
+    # zero-condition is for.
+    if entries and all(entry["already"] for _key, entry in entries):
+        return 0, [
+            "ERROR: REFUSED - every measured success code is already declared and every bodiless "
+            "operation the record names a schema for already declares its content, so there is "
+            "nothing left to declare. Nothing was written."
+        ]
+
+    changed = 0
+    for operation_key, entry in plan[STATUS_KIND].items():
+        if entry["already"]:
+            continue
+        operation = find_operation(document, operation_key)
+        # Rebuilt rather than assigned and deleted, so the measured code takes the position 200
+        # held and the diff against the pin stays one line per operation.
+        operation["responses"] = {
+            (entry["code"] if key == OK else key): value
+            for key, value in operation["responses"].items()
+        }
+        changed += 1
+    for operation_key, entry in plan[SCHEMA_KIND].items():
+        if entry["already"]:
+            continue
+        operation = find_operation(document, operation_key)
+        operation["responses"][OK]["content"] = attached_schema(entry["schema"], entry["shape"])
+        changed += 1
+    return changed, []
+
+
 # Walked by main(), and walked by generator/selftest.py, exactly as that script walks its own check
 # tuple.
+#
+# T5 runs at position three, ahead of the operationId derivation, and the position is load-bearing
+# for exactly three method names. returns_json_array above is what turns a Get prefix into a List
+# prefix, and it can only see an array response that is already attached. Every other
+# array-returning read in this SDK is already named for a list, so the earlier position produces
+# the name the derivation would have given a document that told the truth about what it returns.
 TRANSFORMATIONS = (
     ("T1", apply_root_security),
     ("T2", delete_root_path),
+    ("T5", declare_measured_responses),
     ("T3", assign_operation_ids),
     ("T4", rewrite_clr_schemas),
 )
@@ -444,10 +636,10 @@ def main():
         1 for item in document["paths"].values() for m in item if m in HTTP_METHODS
     )
 
-    # --- 2. The four transformations ---
+    # --- 2. The transformations ---
     # Each reports what it changed and describes what it refuses. Only main() refuses, so each one
     # can be driven over a synthetic document with nothing written. One refusal per transformation:
-    # a run-level test that something changed passes while three of the four are dead.
+    # a run-level test that something changed passes while all but one of them are dead.
     changes = {}
     refusals = []
     for name, transform in TRANSFORMATIONS:

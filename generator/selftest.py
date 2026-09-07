@@ -9,9 +9,9 @@ packaging and documentation have all been built on the wrong document.
 
 The failure the pre-processing checks guard against is quieter still. Whisparr fixes something
 upstream, a rewrite that was patching it has nothing left to patch, and it keeps running over a
-document it no longer describes with nothing to say so. Each of the four is driven over a document
-where its own zero-condition holds, and each is driven over the pin and made to report the number it
-was measured at. Three further checks judge the deliverable rather than the functions: the
+document it no longer describes with nothing to say so. Each of the five is driven over a document
+where its own zero-condition holds, and each is driven over the pin and made to report what it
+changed. Three further checks judge the deliverable rather than the functions: the
 committed patched document, a run of the script that must reproduce it byte for byte, and a run
 over a document with nothing left to change, which must exit non-zero and write nothing.
 
@@ -92,6 +92,11 @@ def read_committed_spec():
 
 def read_provenance():
     with open(resolve_repo_path(build_spec.PROVENANCE_PATH), encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def read_conformance():
+    with open(resolve_repo_path(preprocess_spec.CONFORMANCE_FILE), encoding="utf-8") as handle:
         return json.load(handle)
 
 
@@ -203,6 +208,49 @@ REFUSAL_PREFIX = "ERROR: REFUSED - "
 REFUSAL_TAIL = "Nothing was written."
 
 
+def measured_document(status_codes_satisfied, schemas_satisfied):
+    """A synthetic document declaring exactly what the committed conformance record measures.
+
+    Derived from the record rather than written out, so no operation key, status code or schema
+    name is stated twice. Each half can be handed to the fifth transformation already satisfied or
+    still to do, which is what lets a caller drive a composite zero-condition over the three
+    combinations that matter.
+
+    The schemas are declared as bare objects. What the transformation asserts about them is that
+    the document declares them at all, because a reference it attached to an undeclared schema
+    would point at nothing.
+    """
+    record = read_conformance()
+    paths = {}
+    named = []
+
+    for operation_key, code in record["writeProbe"].items():
+        if str(code) == preprocess_spec.OK:
+            continue
+        method, path = operation_key.split(" ", 1)
+        declared = str(code) if status_codes_satisfied else preprocess_spec.OK
+        paths.setdefault(path, {})[method.lower()] = {
+            "responses": {declared: {"description": "Success"}}
+        }
+
+    for entry in record["bodilessOperationsReturningData"]:
+        if "schema" not in entry:
+            continue
+        method, path = entry["operation"].split(" ", 1)
+        response = {"description": "Success"}
+        if schemas_satisfied:
+            response["content"] = preprocess_spec.attached_schema(
+                entry["schema"], entry["shape"]
+            )
+        paths.setdefault(path, {})[method.lower()] = {"responses": {"200": response}}
+        named.append(entry["schema"])
+
+    return {
+        "paths": paths,
+        "components": {"schemas": {name: {"type": "object"} for name in named}},
+    }
+
+
 def zero_condition_documents():
     """One synthetic document per transformation, each satisfying that transformation's zero-condition.
 
@@ -215,6 +263,11 @@ def zero_condition_documents():
         "T1": {"security": [dict(scheme) for scheme in preprocess_spec.SECURITY], "paths": {}},
         # No malformed root path to delete.
         "T2": {"paths": {"/api/v3/series": {"get": {}}}},
+        # Both measured kinds already applied. Composite on purpose: the fifth transformation
+        # refuses only when neither kind has anything left to change, so a document satisfying one
+        # of the two must not appear here. The two that satisfy one each are driven in
+        # check_preprocess_measured_responses, where a refusal is the failure.
+        "T5": measured_document(status_codes_satisfied=True, schemas_satisfied=True),
         # Every operation already annotated. It carries an operation on purpose: a document with
         # none must not read as already annotated.
         "T3": {"paths": {"/api/v3/series": {"get": {"operationId": "ListSeries"}}}},
@@ -288,7 +341,7 @@ def operations_of(document):
 
 
 def check_preprocess_transformations_apply():
-    """The four transformations run over the pinned document without refusing, and report what
+    """The five transformations run over the pinned document without refusing, and report what
     they changed.
 
     The per-transformation counts and the three totals are printed, not asserted against literals.
@@ -309,8 +362,9 @@ def check_preprocess_transformations_apply():
     schemas = document["components"]["schemas"]
     measured = (len(paths), len(operations_of(document)), len(schemas))
     assert [name for name in preprocess_spec.CLR_SCHEMAS if name in schemas] == []
-    print("ok  transformations: the four report {}, {}, {} and {} over the pin, leaving {} path "
-          "items, {} operations and {} schemas".format(*(tuple(counts) + measured)))
+    print("ok  transformations: {} report {} over the pin, leaving {} path items, {} operations "
+          "and {} schemas".format(
+              len(counts), ", ".join(str(count) for count in counts), *measured))
 
 
 def check_override_table():
@@ -1555,14 +1609,34 @@ def check_conformance_failure_branches():
     assert conformance.bodiless_entry("GET /example", "application/json", b"{}", {})["shape"] == \
         "object"
 
+    # An operation the map names carries the schema name into the record, and one it does not name
+    # carries none. That key is the whole input the fifth transformation has for what to attach, so
+    # an entry without it would leave the transformation with a copy of the map of its own.
+    mapped = sorted(conformance.BODILESS_SCHEMA_MAP)[0]
+    schema_name, mapped_shape, _query = conformance.BODILESS_SCHEMA_MAP[mapped]
+    body = b"[]" if mapped_shape == "array" else b"{}"
+    parsed = [] if mapped_shape == "array" else {}
+    assert conformance.bodiless_entry(mapped, "application/json", body, parsed)["schema"] == \
+        schema_name
+    assert "schema" not in conformance.bodiless_entry(
+        "GET /example", "application/json", b"{}", {})
+
     # The bodiless map names the schema the fifth transformation attaches. Against a document that
     # no longer declares it, the transformation would attach a reference to nothing.
     named = {schema for schema, _shape, _query in conformance.BODILESS_SCHEMA_MAP.values()}
     declares = {"components": {"schemas": {schema: {"type": "object"} for schema in named}}}
+    # The map states the shape it expects and the sweep measures the shape the instance returned.
+    # A disagreement would attach an array where the instance sends an object, or the reverse, and
+    # name the generated method for the wrong one.
+    disagreeing = {"operation": mapped,
+                   "shape": "object" if mapped_shape == "array" else "array"}
+    agreeing = {"operation": mapped, "shape": mapped_shape}
     refusals = (
         (conformance.refuse_bodiless_map({"components": {"schemas": {}}},
                                          conformance.BODILESS_SCHEMA_MAP),
          conformance.refuse_bodiless_map(declares, conformance.BODILESS_SCHEMA_MAP)),
+        (conformance.refuse_bodiless_shape([disagreeing], conformance.BODILESS_SCHEMA_MAP),
+         conformance.refuse_bodiless_shape([agreeing], conformance.BODILESS_SCHEMA_MAP)),
         (conformance.refuse_empty_selection(0), conformance.refuse_empty_selection(1)),
         # Whatever the numbers are, the reads recorded against a declared schema must be the
         # answered reads less the non-JSON ones and less the ones that declare no schema at all.
