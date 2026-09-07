@@ -493,7 +493,12 @@ def record(result, document, opkey, template, status, content_type, body):
         )
         return
     parsed = json.loads(body.decode("utf-8"))
-    schema = schema_for_200(document, "get", template)
+    # An operation the map names is recorded as bodiless whatever this document declares for it.
+    # The document declares a response for it only because this record says what it returns, so a
+    # sweep that re-derived the classification from that declaration would erase its own input: the
+    # entry would leave this list, the fifth transformation would have nothing left to attach, and
+    # the next regeneration would put the Get-prefixed method name back.
+    schema = None if opkey in BODILESS_SCHEMA_MAP else schema_for_200(document, "get", template)
     if schema is None:
         result["bodilessOperationsReturningData"].append(
             bodiless_entry(opkey, content_type, body, parsed)
@@ -931,11 +936,16 @@ def main():
             print("  - not probed {} {}".format(
                 entry["operation"], entry.get("status", "not issued")))
 
+        # The image and the source commit, and not the patched document's hash. That hash is stale
+        # by construction here: the fifth transformation rewrites the document from this very
+        # record, so any value recorded is the hash of the document as it stood before this record
+        # was applied to it. specCommit identifies the source the document is built from, which is
+        # what fixes the paths this sweep walked, and imageDigest identifies the application that
+        # answered. Nothing reads a recorded document hash.
         conformance = {
             "measuredAgainst": {
                 "imageDigest": provenance["imageDigest"],
                 "specCommit": provenance["specCommit"],
-                "generatedSpecSha256": provenance["generatedSpecSha256"],
             },
             "readsSelected": result["selected"],
             "readsSchemaChecked": result["schemaChecked"],

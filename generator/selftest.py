@@ -25,6 +25,7 @@ This script is run by hand today. Wiring it into a workflow lands with the phase
 """
 
 import argparse
+import ast
 import contextlib
 import io
 import json
@@ -456,6 +457,144 @@ def check_operation_id_derivation():
     print("ok  operationId derivation: {} distinct names over {} operations, no collision globally "
           "or within a tag, and {} is the one override the build needs".format(
               len({identifier for identifier, _ in named}), len(named), invalid[0]))
+
+
+# The three names running T5 ahead of the operationId derivation exists for, spelled out. A
+# derived assertion on its own would pass over a record that named three other operations, and a
+# change count would pass with the response attached under a media type the array walker cannot
+# see. These three are the whole observable effect of the ordering decision.
+RENAMED_BY_ATTACHMENT = ("ListAutoTaggingSchema", "ListCustomFormatSchema", "ListSeriesLookup")
+
+
+def derived_ids(document):
+    """The operationId every operation carries after the derivation has run over this document."""
+    return {key: operation["operationId"] for key, _m, _p, operation in operations_of(document)}
+
+
+def check_preprocess_measured_responses():
+    """Each kind, each refusal and each rename of the fifth transformation, driven offline.
+
+    The two kinds are asserted separately off the pure plan function, as the set of operations the
+    committed record names rather than as a count of them. The composite zero-condition is driven
+    over three documents, because a group that drives only the refusing one passes with a per-kind
+    condition in place, and a per-kind condition would refuse the whole correct document the day
+    upstream annotates one of the two.
+
+    The renames are asserted as operation ids and never as a change count. A response attached
+    under text/json produces a non-zero count with no rename at all, which is the silent no-op this
+    is here to catch.
+    """
+    record = read_conformance()
+    document = parsed_raw_spec()
+    plan = preprocess_spec.measured_patch_plan(document, record)
+
+    # Each kind against what the record itself names. A status code the probe measured at 200 needs
+    # no declaration changed, and a bodiless operation the record names no schema for returns an
+    # object no schema in the document describes.
+    measured_codes = {key for key, code in record["writeProbe"].items()
+                      if str(code) != preprocess_spec.OK}
+    measured_schemas = {entry["operation"]
+                        for entry in record["bodilessOperationsReturningData"]
+                        if "schema" in entry}
+    assert set(plan[preprocess_spec.STATUS_KIND]) == measured_codes, sorted(measured_codes)
+    assert set(plan[preprocess_spec.SCHEMA_KIND]) == measured_schemas, sorted(measured_schemas)
+    assert all(entry["code"] == str(record["writeProbe"][key])
+               for key, entry in plan[preprocess_spec.STATUS_KIND].items())
+    assert all(entry["code"] != preprocess_spec.OK
+               for entry in plan[preprocess_spec.STATUS_KIND].values())
+    # Pure: the plan describes and never applies.
+    assert preprocess_spec.OK in document["paths"]["/api/v3/tag"]["post"]["responses"]
+
+    # The attachment names one media type and no other. returns_json_array walks exactly
+    # application/json, so any other key renames nothing.
+    attached = preprocess_spec.attached_schema("Thing", "array")
+    assert set(attached) == {"application/json"}, sorted(attached)
+    assert attached["application/json"]["schema"]["type"] == "array", attached
+    assert set(preprocess_spec.attached_schema("Thing", "object")["application/json"]["schema"]) \
+        == {"$ref"}
+
+    # The composite zero-condition, over one document that must refuse and two that must not.
+    both = measured_document(status_codes_satisfied=True, schemas_satisfied=True)
+    count, refusals = preprocess_spec.declare_measured_responses(both)
+    assert count == 0, count
+    assert len(refusals) == 1 and refusals[0].startswith(REFUSAL_PREFIX), refusals
+    assert refusals[0].endswith(REFUSAL_TAIL), refusals[0]
+
+    codes_only = measured_document(status_codes_satisfied=True, schemas_satisfied=False)
+    count, refusals = preprocess_spec.declare_measured_responses(codes_only)
+    assert refusals == [], refusals
+    assert count == len(measured_schemas), (count, len(measured_schemas))
+
+    schemas_only = measured_document(status_codes_satisfied=False, schemas_satisfied=True)
+    count, refusals = preprocess_spec.declare_measured_responses(schemas_only)
+    assert refusals == [], refusals
+    assert count == len(measured_codes), (count, len(measured_codes))
+
+    # The image-digest refusal, over a record whose digest was changed in memory and over the
+    # committed one. The patch list is a measurement against a running image, so the image is the
+    # identity that has to match.
+    real = preprocess_spec.read_json
+    tampered = json.loads(json.dumps(record))
+    tampered["measuredAgainst"]["imageDigest"] = "sha256:" + "0" * 64
+    intact = parsed_raw_spec()
+    before = json.dumps(intact)
+    try:
+        preprocess_spec.read_json = (
+            lambda relative: tampered if relative == preprocess_spec.CONFORMANCE_FILE
+            else real(relative)
+        )
+        count, refusals = preprocess_spec.declare_measured_responses(intact)
+    finally:
+        preprocess_spec.read_json = real
+    assert count == 0, count
+    assert len(refusals) == 1 and refusals[0].startswith(REFUSAL_PREFIX), refusals
+    assert json.dumps(intact) == before, "the document was patched behind a refusal"
+    assert preprocess_spec.declare_measured_responses(parsed_raw_spec())[1] == [], \
+        "the committed record refuses against the committed provenance"
+
+    # And the refusal it must not become. main() overwrites generatedSpecSha256 with the
+    # post-transformation hash on every run, so an equality on it would hold for one run and refuse
+    # every run after that. Asserted over the source, because a later edit that reintroduced the
+    # comparison would pass every assertion above.
+    source_path = resolve_repo_path("generator/preprocess_spec.py")
+    with open(source_path, encoding="utf-8") as handle:
+        source = handle.read()
+    tree = ast.parse(source)
+    compared = [
+        ast.get_source_segment(source, node) for node in ast.walk(tree)
+        if isinstance(node, ast.Compare)
+        and "generatedSpecSha256" in (ast.get_source_segment(source, node) or "")
+    ]
+    assert not compared, compared
+
+    # The three renames, as operation ids over the pin with the attachment in place and without it.
+    without = parsed_raw_spec()
+    preprocess_spec.delete_root_path(without)
+    assert preprocess_spec.assign_operation_ids(without)[1] == []
+
+    attached_document = parsed_raw_spec()
+    preprocess_spec.delete_root_path(attached_document)
+    assert preprocess_spec.declare_measured_responses(attached_document)[1] == []
+    assert preprocess_spec.assign_operation_ids(attached_document)[1] == []
+
+    before_ids = derived_ids(without)
+    after_ids = derived_ids(attached_document)
+    moved = {key: (before_ids[key], after_ids[key])
+             for key in before_ids if before_ids[key] != after_ids[key]}
+    arrays = sorted(key for key, entry in plan[preprocess_spec.SCHEMA_KIND].items()
+                    if entry["shape"] == "array")
+    assert sorted(moved) == arrays, (sorted(moved), arrays)
+    assert sorted(new for _old, new in moved.values()) == sorted(RENAMED_BY_ATTACHMENT), moved
+    for key, (old, new) in moved.items():
+        assert old.startswith("Get") and new == "List" + old[len("Get"):], (key, old, new)
+    # A rename cannot introduce a collision unnoticed. Against the measured population, not a
+    # copied one.
+    assert len(set(after_ids.values())) == len(after_ids), len(after_ids)
+
+    print("ok  measured responses: {} status codes and {} response schemas planned from the "
+          "record, three documents drive the composite zero-condition, the digest refusal fires "
+          "and stays quiet, and {} of {} distinct operation ids move from Get to List".format(
+              len(measured_codes), len(measured_schemas), len(moved), len(after_ids)))
 
 
 def clr_reference_sites(document):
@@ -1681,6 +1820,7 @@ OFFLINE_CHECKS = (
     check_override_table,
     check_operation_id_shape,
     check_operation_id_derivation,
+    check_preprocess_measured_responses,
     check_clr_schema_partition,
     check_preprocess_refuses_scratch_input,
     check_preprocess_refuses_committed_write_targets,

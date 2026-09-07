@@ -1,8 +1,7 @@
 {
   "measuredAgainst": {
     "imageDigest": "ghcr.io/hotio/whisparr@sha256:c6dae7dc99b52c3f73b64c9eca9bb38db0f646c98a3ea5829c57b1ebdce0d170",
-    "specCommit": "face3be8956e4c3798a9364a0f2ea95948e34c1c",
-    "generatedSpecSha256": "75fa6b631aed06bbfc2d778b90f8fe95240fb4741570df227e442c2dbce6b4ed"
+    "specCommit": "face3be8956e4c3798a9364a0f2ea95948e34c1c"
   },
   "readsSelected": 91,
   "readsSchemaChecked": 72,
@@ -130,6 +129,14 @@
     {
       "schema": "LocalizationResource",
       "property": "id"
+    },
+    {
+      "schema": "LogResource",
+      "property": "exception"
+    },
+    {
+      "schema": "LogResource",
+      "property": "exceptionType"
     },
     {
       "schema": "LogResource",
