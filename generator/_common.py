@@ -9,6 +9,8 @@ import hashlib
 import json
 import os
 import sys
+import tempfile
+from typing import NoReturn
 
 # generator/ sits directly under the repository root.
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -49,8 +51,33 @@ def write_json_lf(path, obj):
     return text
 
 
-def die(*lines):
-    """Print a refusal and exit 1. Every caller has already left the tree untouched."""
+def write_bytes_atomic(path, data):
+    """Write data to path so an interrupted run never leaves a truncated file.
+
+    The temporary file is created in the same directory as path, because os.replace is atomic only
+    within one filesystem. Either the complete new bytes land or the previous file is unchanged.
+    """
+    directory = os.path.dirname(os.path.abspath(path))
+    handle = tempfile.NamedTemporaryFile(dir=directory, prefix=".tmp-", delete=False)
+    try:
+        handle.write(data)
+        handle.flush()
+        os.fsync(handle.fileno())
+        handle.close()
+    except BaseException:
+        handle.close()
+        os.remove(handle.name)
+        raise
+    os.replace(handle.name, path)
+
+
+def die(*lines) -> NoReturn:
+    """Print a refusal and exit 1. Every caller has already left the tree untouched.
+
+    The return type is declared because callers refuse inside an except handler and then use the
+    value the failed statement would have bound. Without it a checker reads those uses as possibly
+    unbound and the alternative is a placeholder assignment that hides the refusal.
+    """
     for line in lines:
         print(line)
     sys.stdout.flush()
