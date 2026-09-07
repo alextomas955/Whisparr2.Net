@@ -486,8 +486,7 @@ $RECYCLE.BIN/
 .planning/
 .gsd/
 .serena/
-.claude/settings.local.json
-.claude/worktrees/
+.claude/
 *.nupkg
 *.snupkg
 *.env
