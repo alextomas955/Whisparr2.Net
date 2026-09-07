@@ -46,10 +46,11 @@ namespace Whisparr2.Net.Model
         /// <param name="quality">quality</param>
         /// <param name="customFormats">customFormats</param>
         /// <param name="customFormatScore">customFormatScore</param>
+        /// <param name="indexerFlags">indexerFlags</param>
         /// <param name="mediaInfo">mediaInfo</param>
         /// <param name="qualityCutoffNotMet">qualityCutoffNotMet</param>
         [JsonConstructor]
-        public EpisodeFileResource(Option<int?> id = default, Option<int?> seriesId = default, Option<int?> seasonNumber = default, Option<string?> relativePath = default, Option<string?> path = default, Option<long?> size = default, Option<DateTime?> dateAdded = default, Option<string?> sceneName = default, Option<string?> releaseGroup = default, Option<List<Language>?> languages = default, Option<QualityModel?> quality = default, Option<List<CustomFormatResource>?> customFormats = default, Option<int?> customFormatScore = default, Option<MediaInfoResource?> mediaInfo = default, Option<bool?> qualityCutoffNotMet = default)
+        public EpisodeFileResource(Option<int?> id = default, Option<int?> seriesId = default, Option<int?> seasonNumber = default, Option<string?> relativePath = default, Option<string?> path = default, Option<long?> size = default, Option<DateTime?> dateAdded = default, Option<string?> sceneName = default, Option<string?> releaseGroup = default, Option<List<Language>?> languages = default, Option<QualityModel?> quality = default, Option<List<CustomFormatResource>?> customFormats = default, Option<int?> customFormatScore = default, Option<int?> indexerFlags = default, Option<MediaInfoResource?> mediaInfo = default, Option<bool?> qualityCutoffNotMet = default)
         {
             IdOption = id;
             SeriesIdOption = seriesId;
@@ -64,6 +65,7 @@ namespace Whisparr2.Net.Model
             QualityOption = quality;
             CustomFormatsOption = customFormats;
             CustomFormatScoreOption = customFormatScore;
+            IndexerFlagsOption = indexerFlags;
             MediaInfoOption = mediaInfo;
             QualityCutoffNotMetOption = qualityCutoffNotMet;
             OnCreated();
@@ -241,6 +243,19 @@ namespace Whisparr2.Net.Model
         public int? CustomFormatScore { get { return this.CustomFormatScoreOption.Value; } set { this.CustomFormatScoreOption = new(value); } }
 
         /// <summary>
+        /// Used to track the state of IndexerFlags
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<int?> IndexerFlagsOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets IndexerFlags
+        /// </summary>
+        [JsonPropertyName("indexerFlags")]
+        public int? IndexerFlags { get { return this.IndexerFlagsOption.Value; } set { this.IndexerFlagsOption = new(value); } }
+
+        /// <summary>
         /// Used to track the state of MediaInfo
         /// </summary>
         [JsonIgnore]
@@ -287,6 +302,7 @@ namespace Whisparr2.Net.Model
             sb.Append("  Quality: ").Append(Quality).Append("\n");
             sb.Append("  CustomFormats: ").Append(CustomFormats).Append("\n");
             sb.Append("  CustomFormatScore: ").Append(CustomFormatScore).Append("\n");
+            sb.Append("  IndexerFlags: ").Append(IndexerFlags).Append("\n");
             sb.Append("  MediaInfo: ").Append(MediaInfo).Append("\n");
             sb.Append("  QualityCutoffNotMet: ").Append(QualityCutoffNotMet).Append("\n");
             sb.Append("}\n");
@@ -354,6 +370,7 @@ namespace Whisparr2.Net.Model
             Option<QualityModel?> quality = default;
             Option<List<CustomFormatResource>?> customFormats = default;
             Option<int?> customFormatScore = default;
+            Option<int?> indexerFlags = default;
             Option<MediaInfoResource?> mediaInfo = default;
             Option<bool?> qualityCutoffNotMet = default;
 
@@ -411,6 +428,9 @@ namespace Whisparr2.Net.Model
                         case "customFormatScore":
                             customFormatScore = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
                             break;
+                        case "indexerFlags":
+                            indexerFlags = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
+                            break;
                         case "mediaInfo":
                             mediaInfo = new Option<MediaInfoResource?>(JsonSerializer.Deserialize<MediaInfoResource>(ref utf8JsonReader, jsonSerializerOptions)!);
                             break;
@@ -450,7 +470,7 @@ namespace Whisparr2.Net.Model
             if (qualityCutoffNotMet.IsSet && qualityCutoffNotMet.Value == null)
                 throw new ArgumentNullException(nameof(qualityCutoffNotMet), "Property is not nullable for class EpisodeFileResource.");
 
-            return new EpisodeFileResource(id, seriesId, seasonNumber, relativePath, path, size, dateAdded, sceneName, releaseGroup, languages, quality, customFormats, customFormatScore, mediaInfo, qualityCutoffNotMet);
+            return new EpisodeFileResource(id, seriesId, seasonNumber, relativePath, path, size, dateAdded, sceneName, releaseGroup, languages, quality, customFormats, customFormatScore, indexerFlags, mediaInfo, qualityCutoffNotMet);
         }
 
         /// <summary>
@@ -545,6 +565,12 @@ namespace Whisparr2.Net.Model
                     writer.WriteNull("customFormats");
             if (episodeFileResource.CustomFormatScoreOption.IsSet)
                 writer.WriteNumber("customFormatScore", episodeFileResource.CustomFormatScoreOption.Value!.Value);
+
+            if (episodeFileResource.IndexerFlagsOption.IsSet)
+                if (episodeFileResource.IndexerFlagsOption.Value != null)
+                    writer.WriteNumber("indexerFlags", episodeFileResource.IndexerFlagsOption.Value!.Value);
+                else
+                    writer.WriteNull("indexerFlags");
 
             if (episodeFileResource.MediaInfoOption.IsSet)
             {

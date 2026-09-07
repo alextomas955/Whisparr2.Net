@@ -39,8 +39,12 @@ namespace Whisparr2.Net.Model
         /// <param name="enableAutomaticAdd">enableAutomaticAdd</param>
         /// <param name="rootFolderPath">rootFolderPath</param>
         /// <param name="qualityProfileId">qualityProfileId</param>
+        /// <param name="searchForMissingEpisodes">searchForMissingEpisodes</param>
+        /// <param name="shouldMonitor">shouldMonitor</param>
+        /// <param name="monitorNewItems">monitorNewItems</param>
+        /// <param name="siteMonitorType">siteMonitorType</param>
         [JsonConstructor]
-        public ImportListBulkResource(Option<List<int>?> ids = default, Option<List<int>?> tags = default, Option<ApplyTags?> applyTags = default, Option<bool?> enableAutomaticAdd = default, Option<string?> rootFolderPath = default, Option<int?> qualityProfileId = default)
+        public ImportListBulkResource(Option<List<int>?> ids = default, Option<List<int>?> tags = default, Option<ApplyTags?> applyTags = default, Option<bool?> enableAutomaticAdd = default, Option<string?> rootFolderPath = default, Option<int?> qualityProfileId = default, Option<bool?> searchForMissingEpisodes = default, Option<ImportListMonitorTypes?> shouldMonitor = default, Option<NewItemMonitorTypes?> monitorNewItems = default, Option<MonitorTypes?> siteMonitorType = default)
         {
             IdsOption = ids;
             TagsOption = tags;
@@ -48,6 +52,10 @@ namespace Whisparr2.Net.Model
             EnableAutomaticAddOption = enableAutomaticAdd;
             RootFolderPathOption = rootFolderPath;
             QualityProfileIdOption = qualityProfileId;
+            SearchForMissingEpisodesOption = searchForMissingEpisodes;
+            ShouldMonitorOption = shouldMonitor;
+            MonitorNewItemsOption = monitorNewItems;
+            SiteMonitorTypeOption = siteMonitorType;
             OnCreated();
         }
 
@@ -65,6 +73,45 @@ namespace Whisparr2.Net.Model
         /// </summary>
         [JsonPropertyName("applyTags")]
         public ApplyTags? ApplyTags { get { return this.ApplyTagsOption.Value; } set { this.ApplyTagsOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of ShouldMonitor
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<ImportListMonitorTypes?> ShouldMonitorOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets ShouldMonitor
+        /// </summary>
+        [JsonPropertyName("shouldMonitor")]
+        public ImportListMonitorTypes? ShouldMonitor { get { return this.ShouldMonitorOption.Value; } set { this.ShouldMonitorOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of MonitorNewItems
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<NewItemMonitorTypes?> MonitorNewItemsOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets MonitorNewItems
+        /// </summary>
+        [JsonPropertyName("monitorNewItems")]
+        public NewItemMonitorTypes? MonitorNewItems { get { return this.MonitorNewItemsOption.Value; } set { this.MonitorNewItemsOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of SiteMonitorType
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<MonitorTypes?> SiteMonitorTypeOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets SiteMonitorType
+        /// </summary>
+        [JsonPropertyName("siteMonitorType")]
+        public MonitorTypes? SiteMonitorType { get { return this.SiteMonitorTypeOption.Value; } set { this.SiteMonitorTypeOption = new(value); } }
 
         /// <summary>
         /// Used to track the state of Ids
@@ -132,6 +179,19 @@ namespace Whisparr2.Net.Model
         public int? QualityProfileId { get { return this.QualityProfileIdOption.Value; } set { this.QualityProfileIdOption = new(value); } }
 
         /// <summary>
+        /// Used to track the state of SearchForMissingEpisodes
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<bool?> SearchForMissingEpisodesOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets SearchForMissingEpisodes
+        /// </summary>
+        [JsonPropertyName("searchForMissingEpisodes")]
+        public bool? SearchForMissingEpisodes { get { return this.SearchForMissingEpisodesOption.Value; } set { this.SearchForMissingEpisodesOption = new(value); } }
+
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -145,6 +205,10 @@ namespace Whisparr2.Net.Model
             sb.Append("  EnableAutomaticAdd: ").Append(EnableAutomaticAdd).Append("\n");
             sb.Append("  RootFolderPath: ").Append(RootFolderPath).Append("\n");
             sb.Append("  QualityProfileId: ").Append(QualityProfileId).Append("\n");
+            sb.Append("  SearchForMissingEpisodes: ").Append(SearchForMissingEpisodes).Append("\n");
+            sb.Append("  ShouldMonitor: ").Append(ShouldMonitor).Append("\n");
+            sb.Append("  MonitorNewItems: ").Append(MonitorNewItems).Append("\n");
+            sb.Append("  SiteMonitorType: ").Append(SiteMonitorType).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
@@ -198,6 +262,10 @@ namespace Whisparr2.Net.Model
             Option<bool?> enableAutomaticAdd = default;
             Option<string?> rootFolderPath = default;
             Option<int?> qualityProfileId = default;
+            Option<bool?> searchForMissingEpisodes = default;
+            Option<ImportListMonitorTypes?> shouldMonitor = default;
+            Option<NewItemMonitorTypes?> monitorNewItems = default;
+            Option<MonitorTypes?> siteMonitorType = default;
 
             while (utf8JsonReader.Read())
             {
@@ -232,6 +300,18 @@ namespace Whisparr2.Net.Model
                         case "qualityProfileId":
                             qualityProfileId = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
                             break;
+                        case "searchForMissingEpisodes":
+                            searchForMissingEpisodes = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
+                            break;
+                        case "shouldMonitor":
+                            shouldMonitor = new Option<ImportListMonitorTypes?>(JsonSerializer.Deserialize<ImportListMonitorTypes?>(ref utf8JsonReader, jsonSerializerOptions));
+                            break;
+                        case "monitorNewItems":
+                            monitorNewItems = new Option<NewItemMonitorTypes?>(JsonSerializer.Deserialize<NewItemMonitorTypes?>(ref utf8JsonReader, jsonSerializerOptions));
+                            break;
+                        case "siteMonitorType":
+                            siteMonitorType = new Option<MonitorTypes?>(JsonSerializer.Deserialize<MonitorTypes?>(ref utf8JsonReader, jsonSerializerOptions));
+                            break;
                         default:
                             break;
                     }
@@ -241,7 +321,16 @@ namespace Whisparr2.Net.Model
             if (applyTags.IsSet && applyTags.Value == null)
                 throw new ArgumentNullException(nameof(applyTags), "Property is not nullable for class ImportListBulkResource.");
 
-            return new ImportListBulkResource(ids, tags, applyTags, enableAutomaticAdd, rootFolderPath, qualityProfileId);
+            if (shouldMonitor.IsSet && shouldMonitor.Value == null)
+                throw new ArgumentNullException(nameof(shouldMonitor), "Property is not nullable for class ImportListBulkResource.");
+
+            if (monitorNewItems.IsSet && monitorNewItems.Value == null)
+                throw new ArgumentNullException(nameof(monitorNewItems), "Property is not nullable for class ImportListBulkResource.");
+
+            if (siteMonitorType.IsSet && siteMonitorType.Value == null)
+                throw new ArgumentNullException(nameof(siteMonitorType), "Property is not nullable for class ImportListBulkResource.");
+
+            return new ImportListBulkResource(ids, tags, applyTags, enableAutomaticAdd, rootFolderPath, qualityProfileId, searchForMissingEpisodes, shouldMonitor, monitorNewItems, siteMonitorType);
         }
 
         /// <summary>
@@ -306,6 +395,28 @@ namespace Whisparr2.Net.Model
                     writer.WriteNumber("qualityProfileId", importListBulkResource.QualityProfileIdOption.Value!.Value);
                 else
                     writer.WriteNull("qualityProfileId");
+
+            if (importListBulkResource.SearchForMissingEpisodesOption.IsSet)
+                if (importListBulkResource.SearchForMissingEpisodesOption.Value != null)
+                    writer.WriteBoolean("searchForMissingEpisodes", importListBulkResource.SearchForMissingEpisodesOption.Value!.Value);
+                else
+                    writer.WriteNull("searchForMissingEpisodes");
+
+            if (importListBulkResource.ShouldMonitorOption.IsSet)
+            {
+                var shouldMonitorRawValue = ImportListMonitorTypesValueConverter.ToJsonValue(importListBulkResource.ShouldMonitor!.Value);
+                writer.WriteString("shouldMonitor", shouldMonitorRawValue);
+            }
+            if (importListBulkResource.MonitorNewItemsOption.IsSet)
+            {
+                var monitorNewItemsRawValue = NewItemMonitorTypesValueConverter.ToJsonValue(importListBulkResource.MonitorNewItems!.Value);
+                writer.WriteString("monitorNewItems", monitorNewItemsRawValue);
+            }
+            if (importListBulkResource.SiteMonitorTypeOption.IsSet)
+            {
+                var siteMonitorTypeRawValue = MonitorTypesValueConverter.ToJsonValue(importListBulkResource.SiteMonitorType!.Value);
+                writer.WriteString("siteMonitorType", siteMonitorTypeRawValue);
+            }
         }
     }
 }

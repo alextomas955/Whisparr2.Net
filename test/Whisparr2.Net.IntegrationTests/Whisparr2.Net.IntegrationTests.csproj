@@ -37,9 +37,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <!-- The image digest, the expected version and the expected branch all come from PROVENANCE.json,
-       and the key comes from the one committed seed, so a pin move carries all of them in a single
-       commit and nothing here restates a pinned value. The logical names are explicit because the
+  <!-- The image digest comes from PROVENANCE.json and the key comes from the one committed seed, so
+       a pin move carries both of them in a single commit and nothing here restates a pinned value.
+       The logical names are explicit because the
        name MSBuild derives for a file outside the project directory is not guessable, and a
        mistyped Include is a build error while a mistyped LogicalName is a run-time failure.
        config.seed.xml is read back as bytes and copied into the container unchanged. -->

@@ -137,12 +137,6 @@ namespace Whisparr2.Net.IntegrationTests
         /// <summary>The key parsed out of the one committed seed the container was started with.</summary>
         public string ApiKey { get; private set; } = string.Empty;
 
-        /// <summary>The version string spec/PROVENANCE.json records for the pinned digest.</summary>
-        public string ExpectedVersion { get; private set; } = string.Empty;
-
-        /// <summary>The branch string spec/PROVENANCE.json records for the pinned digest.</summary>
-        public string ExpectedBranch { get; private set; } = string.Empty;
-
         /// <summary>
         /// The whole second, in UTC, in which this run began its boot.
         /// </summary>
@@ -206,9 +200,6 @@ namespace Whisparr2.Net.IntegrationTests
 
             using (JsonDocument provenance = ReadProvenance())
             {
-                ExpectedVersion = RequiredString(provenance, "whisparrVersion");
-                ExpectedBranch = RequiredString(provenance, "whisparrBranch");
-
                 TestcontainersSettings.ResourceReaperImage = new DockerImage(ReaperImage);
 
                 _container = new ContainerBuilder(RequiredString(provenance, "imageDigest"))
@@ -518,8 +509,8 @@ namespace Whisparr2.Net.IntegrationTests
             if (!provenance.RootElement.TryGetProperty(name, out JsonElement value))
             {
                 throw new InvalidOperationException(
-                    "spec/PROVENANCE.json carries no '" + name + "' key. The fixture reads all "
-                        + "three of its container constants from that file and duplicates none of them.");
+                    "spec/PROVENANCE.json carries no '" + name + "' key. The fixture reads the "
+                        + "image it starts from that file and duplicates it nowhere.");
             }
 
             string? text = value.GetString();

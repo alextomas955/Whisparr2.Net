@@ -35,7 +35,10 @@ namespace Whisparr2.Net.Model
         /// </summary>
         /// <param name="seriesIds">seriesIds</param>
         /// <param name="monitored">monitored</param>
+        /// <param name="monitorNewItems">monitorNewItems</param>
+        /// <param name="monitoringOptions">monitoringOptions</param>
         /// <param name="qualityProfileId">qualityProfileId</param>
+        /// <param name="seriesType">seriesType</param>
         /// <param name="rootFolderPath">rootFolderPath</param>
         /// <param name="tags">tags</param>
         /// <param name="applyTags">applyTags</param>
@@ -43,11 +46,14 @@ namespace Whisparr2.Net.Model
         /// <param name="deleteFiles">deleteFiles</param>
         /// <param name="addImportListExclusion">addImportListExclusion</param>
         [JsonConstructor]
-        public SeriesEditorResource(Option<List<int>?> seriesIds = default, Option<bool?> monitored = default, Option<int?> qualityProfileId = default, Option<string?> rootFolderPath = default, Option<List<int>?> tags = default, Option<ApplyTags?> applyTags = default, Option<bool?> moveFiles = default, Option<bool?> deleteFiles = default, Option<bool?> addImportListExclusion = default)
+        public SeriesEditorResource(Option<List<int>?> seriesIds = default, Option<bool?> monitored = default, Option<NewItemMonitorTypes?> monitorNewItems = default, Option<MonitoringOptions?> monitoringOptions = default, Option<int?> qualityProfileId = default, Option<SeriesTypes?> seriesType = default, Option<string?> rootFolderPath = default, Option<List<int>?> tags = default, Option<ApplyTags?> applyTags = default, Option<bool?> moveFiles = default, Option<bool?> deleteFiles = default, Option<bool?> addImportListExclusion = default)
         {
             SeriesIdsOption = seriesIds;
             MonitoredOption = monitored;
+            MonitorNewItemsOption = monitorNewItems;
+            MonitoringOptionsOption = monitoringOptions;
             QualityProfileIdOption = qualityProfileId;
+            SeriesTypeOption = seriesType;
             RootFolderPathOption = rootFolderPath;
             TagsOption = tags;
             ApplyTagsOption = applyTags;
@@ -58,6 +64,32 @@ namespace Whisparr2.Net.Model
         }
 
         partial void OnCreated();
+
+        /// <summary>
+        /// Used to track the state of MonitorNewItems
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<NewItemMonitorTypes?> MonitorNewItemsOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets MonitorNewItems
+        /// </summary>
+        [JsonPropertyName("monitorNewItems")]
+        public NewItemMonitorTypes? MonitorNewItems { get { return this.MonitorNewItemsOption.Value; } set { this.MonitorNewItemsOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of SeriesType
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<SeriesTypes?> SeriesTypeOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets SeriesType
+        /// </summary>
+        [JsonPropertyName("seriesType")]
+        public SeriesTypes? SeriesType { get { return this.SeriesTypeOption.Value; } set { this.SeriesTypeOption = new(value); } }
 
         /// <summary>
         /// Used to track the state of ApplyTags
@@ -97,6 +129,19 @@ namespace Whisparr2.Net.Model
         /// </summary>
         [JsonPropertyName("monitored")]
         public bool? Monitored { get { return this.MonitoredOption.Value; } set { this.MonitoredOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of MonitoringOptions
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<MonitoringOptions?> MonitoringOptionsOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets MonitoringOptions
+        /// </summary>
+        [JsonPropertyName("monitoringOptions")]
+        public MonitoringOptions? MonitoringOptions { get { return this.MonitoringOptionsOption.Value; } set { this.MonitoringOptionsOption = new(value); } }
 
         /// <summary>
         /// Used to track the state of QualityProfileId
@@ -186,7 +231,10 @@ namespace Whisparr2.Net.Model
             sb.Append("class SeriesEditorResource {\n");
             sb.Append("  SeriesIds: ").Append(SeriesIds).Append("\n");
             sb.Append("  Monitored: ").Append(Monitored).Append("\n");
+            sb.Append("  MonitorNewItems: ").Append(MonitorNewItems).Append("\n");
+            sb.Append("  MonitoringOptions: ").Append(MonitoringOptions).Append("\n");
             sb.Append("  QualityProfileId: ").Append(QualityProfileId).Append("\n");
+            sb.Append("  SeriesType: ").Append(SeriesType).Append("\n");
             sb.Append("  RootFolderPath: ").Append(RootFolderPath).Append("\n");
             sb.Append("  Tags: ").Append(Tags).Append("\n");
             sb.Append("  ApplyTags: ").Append(ApplyTags).Append("\n");
@@ -242,7 +290,10 @@ namespace Whisparr2.Net.Model
 
             Option<List<int>?> seriesIds = default;
             Option<bool?> monitored = default;
+            Option<NewItemMonitorTypes?> monitorNewItems = default;
+            Option<MonitoringOptions?> monitoringOptions = default;
             Option<int?> qualityProfileId = default;
+            Option<SeriesTypes?> seriesType = default;
             Option<string?> rootFolderPath = default;
             Option<List<int>?> tags = default;
             Option<ApplyTags?> applyTags = default;
@@ -271,8 +322,17 @@ namespace Whisparr2.Net.Model
                         case "monitored":
                             monitored = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
                             break;
+                        case "monitorNewItems":
+                            monitorNewItems = new Option<NewItemMonitorTypes?>(JsonSerializer.Deserialize<NewItemMonitorTypes?>(ref utf8JsonReader, jsonSerializerOptions));
+                            break;
+                        case "monitoringOptions":
+                            monitoringOptions = new Option<MonitoringOptions?>(JsonSerializer.Deserialize<MonitoringOptions>(ref utf8JsonReader, jsonSerializerOptions)!);
+                            break;
                         case "qualityProfileId":
                             qualityProfileId = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
+                            break;
+                        case "seriesType":
+                            seriesType = new Option<SeriesTypes?>(JsonSerializer.Deserialize<SeriesTypes?>(ref utf8JsonReader, jsonSerializerOptions));
                             break;
                         case "rootFolderPath":
                             rootFolderPath = new Option<string?>(utf8JsonReader.GetString());
@@ -298,6 +358,15 @@ namespace Whisparr2.Net.Model
                 }
             }
 
+            if (monitorNewItems.IsSet && monitorNewItems.Value == null)
+                throw new ArgumentNullException(nameof(monitorNewItems), "Property is not nullable for class SeriesEditorResource.");
+
+            if (monitoringOptions.IsSet && monitoringOptions.Value == null)
+                throw new ArgumentNullException(nameof(monitoringOptions), "Property is not nullable for class SeriesEditorResource.");
+
+            if (seriesType.IsSet && seriesType.Value == null)
+                throw new ArgumentNullException(nameof(seriesType), "Property is not nullable for class SeriesEditorResource.");
+
             if (applyTags.IsSet && applyTags.Value == null)
                 throw new ArgumentNullException(nameof(applyTags), "Property is not nullable for class SeriesEditorResource.");
 
@@ -310,7 +379,7 @@ namespace Whisparr2.Net.Model
             if (addImportListExclusion.IsSet && addImportListExclusion.Value == null)
                 throw new ArgumentNullException(nameof(addImportListExclusion), "Property is not nullable for class SeriesEditorResource.");
 
-            return new SeriesEditorResource(seriesIds, monitored, qualityProfileId, rootFolderPath, tags, applyTags, moveFiles, deleteFiles, addImportListExclusion);
+            return new SeriesEditorResource(seriesIds, monitored, monitorNewItems, monitoringOptions, qualityProfileId, seriesType, rootFolderPath, tags, applyTags, moveFiles, deleteFiles, addImportListExclusion);
         }
 
         /// <summary>
@@ -337,6 +406,9 @@ namespace Whisparr2.Net.Model
         /// <exception cref="NotImplementedException"></exception>
         public void WriteProperties(Utf8JsonWriter writer, SeriesEditorResource seriesEditorResource, JsonSerializerOptions jsonSerializerOptions)
         {
+            if (seriesEditorResource.MonitoringOptionsOption.IsSet && seriesEditorResource.MonitoringOptions == null)
+                throw new ArgumentNullException(nameof(seriesEditorResource.MonitoringOptions), "Property is required for class SeriesEditorResource.");
+
             if (seriesEditorResource.SeriesIdsOption.IsSet)
                 if (seriesEditorResource.SeriesIdsOption.Value != null)
                 {
@@ -351,12 +423,27 @@ namespace Whisparr2.Net.Model
                 else
                     writer.WriteNull("monitored");
 
+            if (seriesEditorResource.MonitorNewItemsOption.IsSet)
+            {
+                var monitorNewItemsRawValue = NewItemMonitorTypesValueConverter.ToJsonValue(seriesEditorResource.MonitorNewItems!.Value);
+                writer.WriteString("monitorNewItems", monitorNewItemsRawValue);
+            }
+            if (seriesEditorResource.MonitoringOptionsOption.IsSet)
+            {
+                writer.WritePropertyName("monitoringOptions");
+                JsonSerializer.Serialize(writer, seriesEditorResource.MonitoringOptions, jsonSerializerOptions);
+            }
             if (seriesEditorResource.QualityProfileIdOption.IsSet)
                 if (seriesEditorResource.QualityProfileIdOption.Value != null)
                     writer.WriteNumber("qualityProfileId", seriesEditorResource.QualityProfileIdOption.Value!.Value);
                 else
                     writer.WriteNull("qualityProfileId");
 
+            if (seriesEditorResource.SeriesTypeOption.IsSet)
+            {
+                var seriesTypeRawValue = SeriesTypesValueConverter.ToJsonValue(seriesEditorResource.SeriesType!.Value);
+                writer.WriteString("seriesType", seriesTypeRawValue);
+            }
             if (seriesEditorResource.RootFolderPathOption.IsSet)
                 if (seriesEditorResource.RootFolderPathOption.Value != null)
                     writer.WriteString("rootFolderPath", seriesEditorResource.RootFolderPath);

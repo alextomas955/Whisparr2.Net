@@ -26,39 +26,26 @@ using Whisparr2.Net.Client;
 namespace Whisparr2.Net.Model
 {
     /// <summary>
-    /// ImportListConfigResource
+    /// IndexerFlagResource
     /// </summary>
-    public partial class ImportListConfigResource : IValidatableObject
+    public partial class IndexerFlagResource : IValidatableObject
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImportListConfigResource" /> class.
+        /// Initializes a new instance of the <see cref="IndexerFlagResource" /> class.
         /// </summary>
         /// <param name="id">id</param>
-        /// <param name="listSyncLevel">listSyncLevel</param>
-        /// <param name="listSyncTag">listSyncTag</param>
+        /// <param name="name">name</param>
+        /// <param name="nameLower">nameLower</param>
         [JsonConstructor]
-        public ImportListConfigResource(Option<int?> id = default, Option<ListSyncLevelType?> listSyncLevel = default, Option<int?> listSyncTag = default)
+        public IndexerFlagResource(Option<int?> id = default, Option<string?> name = default, Option<string?> nameLower = default)
         {
             IdOption = id;
-            ListSyncLevelOption = listSyncLevel;
-            ListSyncTagOption = listSyncTag;
+            NameOption = name;
+            NameLowerOption = nameLower;
             OnCreated();
         }
 
         partial void OnCreated();
-
-        /// <summary>
-        /// Used to track the state of ListSyncLevel
-        /// </summary>
-        [JsonIgnore]
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        public Option<ListSyncLevelType?> ListSyncLevelOption { get; private set; }
-
-        /// <summary>
-        /// Gets or Sets ListSyncLevel
-        /// </summary>
-        [JsonPropertyName("listSyncLevel")]
-        public ListSyncLevelType? ListSyncLevel { get { return this.ListSyncLevelOption.Value; } set { this.ListSyncLevelOption = new(value); } }
 
         /// <summary>
         /// Used to track the state of Id
@@ -74,17 +61,30 @@ namespace Whisparr2.Net.Model
         public int? Id { get { return this.IdOption.Value; } set { this.IdOption = new(value); } }
 
         /// <summary>
-        /// Used to track the state of ListSyncTag
+        /// Used to track the state of Name
         /// </summary>
         [JsonIgnore]
         [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        public Option<int?> ListSyncTagOption { get; private set; }
+        public Option<string?> NameOption { get; private set; }
 
         /// <summary>
-        /// Gets or Sets ListSyncTag
+        /// Gets or Sets Name
         /// </summary>
-        [JsonPropertyName("listSyncTag")]
-        public int? ListSyncTag { get { return this.ListSyncTagOption.Value; } set { this.ListSyncTagOption = new(value); } }
+        [JsonPropertyName("name")]
+        public string? Name { get { return this.NameOption.Value; } set { this.NameOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of NameLower
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<string?> NameLowerOption { get; }
+
+        /// <summary>
+        /// Gets or Sets NameLower
+        /// </summary>
+        [JsonPropertyName("nameLower")]
+        public string? NameLower { get { return this.NameLowerOption.Value; } }
 
         /// <summary>
         /// Returns the string presentation of the object
@@ -93,10 +93,10 @@ namespace Whisparr2.Net.Model
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("class ImportListConfigResource {\n");
+            sb.Append("class IndexerFlagResource {\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
-            sb.Append("  ListSyncLevel: ").Append(ListSyncLevel).Append("\n");
-            sb.Append("  ListSyncTag: ").Append(ListSyncTag).Append("\n");
+            sb.Append("  Name: ").Append(Name).Append("\n");
+            sb.Append("  NameLower: ").Append(NameLower).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
@@ -113,29 +113,29 @@ namespace Whisparr2.Net.Model
     }
 
     /// <summary>
-    /// A Json converter for type <see cref="ImportListConfigResource" />
+    /// A Json converter for type <see cref="IndexerFlagResource" />
     /// </summary>
-    public partial class ImportListConfigResourceJsonConverter : JsonConverter<ImportListConfigResource>
+    public partial class IndexerFlagResourceJsonConverter : JsonConverter<IndexerFlagResource>
     {
         partial void OnCreated();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImportListConfigResourceJsonConverter" /> class.
+        /// Initializes a new instance of the <see cref="IndexerFlagResourceJsonConverter" /> class.
         /// </summary>
-        public ImportListConfigResourceJsonConverter()
+        public IndexerFlagResourceJsonConverter()
         {
             OnCreated();
         }
 
         /// <summary>
-        /// Deserializes json to <see cref="ImportListConfigResource" />
+        /// Deserializes json to <see cref="IndexerFlagResource" />
         /// </summary>
         /// <param name="utf8JsonReader"></param>
         /// <param name="typeToConvert"></param>
         /// <param name="jsonSerializerOptions"></param>
         /// <returns></returns>
         /// <exception cref="JsonException"></exception>
-        public override ImportListConfigResource Read(ref Utf8JsonReader utf8JsonReader, Type typeToConvert, JsonSerializerOptions jsonSerializerOptions)
+        public override IndexerFlagResource Read(ref Utf8JsonReader utf8JsonReader, Type typeToConvert, JsonSerializerOptions jsonSerializerOptions)
         {
             int currentDepth = utf8JsonReader.CurrentDepth;
 
@@ -145,8 +145,8 @@ namespace Whisparr2.Net.Model
             JsonTokenType startingTokenType = utf8JsonReader.TokenType;
 
             Option<int?> id = default;
-            Option<ListSyncLevelType?> listSyncLevel = default;
-            Option<int?> listSyncTag = default;
+            Option<string?> name = default;
+            Option<string?> nameLower = default;
 
             while (utf8JsonReader.Read())
             {
@@ -166,11 +166,11 @@ namespace Whisparr2.Net.Model
                         case "id":
                             id = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
                             break;
-                        case "listSyncLevel":
-                            listSyncLevel = new Option<ListSyncLevelType?>(JsonSerializer.Deserialize<ListSyncLevelType?>(ref utf8JsonReader, jsonSerializerOptions));
+                        case "name":
+                            name = new Option<string?>(utf8JsonReader.GetString());
                             break;
-                        case "listSyncTag":
-                            listSyncTag = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
+                        case "nameLower":
+                            nameLower = new Option<string?>(utf8JsonReader.GetString());
                             break;
                         default:
                             break;
@@ -179,51 +179,49 @@ namespace Whisparr2.Net.Model
             }
 
             if (id.IsSet && id.Value == null)
-                throw new ArgumentNullException(nameof(id), "Property is not nullable for class ImportListConfigResource.");
+                throw new ArgumentNullException(nameof(id), "Property is not nullable for class IndexerFlagResource.");
 
-            if (listSyncLevel.IsSet && listSyncLevel.Value == null)
-                throw new ArgumentNullException(nameof(listSyncLevel), "Property is not nullable for class ImportListConfigResource.");
-
-            if (listSyncTag.IsSet && listSyncTag.Value == null)
-                throw new ArgumentNullException(nameof(listSyncTag), "Property is not nullable for class ImportListConfigResource.");
-
-            return new ImportListConfigResource(id, listSyncLevel, listSyncTag);
+            return new IndexerFlagResource(id, name, nameLower);
         }
 
         /// <summary>
-        /// Serializes a <see cref="ImportListConfigResource" />
+        /// Serializes a <see cref="IndexerFlagResource" />
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="importListConfigResource"></param>
+        /// <param name="indexerFlagResource"></param>
         /// <param name="jsonSerializerOptions"></param>
         /// <exception cref="NotImplementedException"></exception>
-        public override void Write(Utf8JsonWriter writer, ImportListConfigResource importListConfigResource, JsonSerializerOptions jsonSerializerOptions)
+        public override void Write(Utf8JsonWriter writer, IndexerFlagResource indexerFlagResource, JsonSerializerOptions jsonSerializerOptions)
         {
             writer.WriteStartObject();
 
-            WriteProperties(writer, importListConfigResource, jsonSerializerOptions);
+            WriteProperties(writer, indexerFlagResource, jsonSerializerOptions);
             writer.WriteEndObject();
         }
 
         /// <summary>
-        /// Serializes the properties of <see cref="ImportListConfigResource" />
+        /// Serializes the properties of <see cref="IndexerFlagResource" />
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="importListConfigResource"></param>
+        /// <param name="indexerFlagResource"></param>
         /// <param name="jsonSerializerOptions"></param>
         /// <exception cref="NotImplementedException"></exception>
-        public void WriteProperties(Utf8JsonWriter writer, ImportListConfigResource importListConfigResource, JsonSerializerOptions jsonSerializerOptions)
+        public void WriteProperties(Utf8JsonWriter writer, IndexerFlagResource indexerFlagResource, JsonSerializerOptions jsonSerializerOptions)
         {
-            if (importListConfigResource.IdOption.IsSet)
-                writer.WriteNumber("id", importListConfigResource.IdOption.Value!.Value);
+            if (indexerFlagResource.IdOption.IsSet)
+                writer.WriteNumber("id", indexerFlagResource.IdOption.Value!.Value);
 
-            if (importListConfigResource.ListSyncLevelOption.IsSet)
-            {
-                var listSyncLevelRawValue = ListSyncLevelTypeValueConverter.ToJsonValue(importListConfigResource.ListSyncLevel!.Value);
-                writer.WriteString("listSyncLevel", listSyncLevelRawValue);
-            }
-            if (importListConfigResource.ListSyncTagOption.IsSet)
-                writer.WriteNumber("listSyncTag", importListConfigResource.ListSyncTagOption.Value!.Value);
+            if (indexerFlagResource.NameOption.IsSet)
+                if (indexerFlagResource.NameOption.Value != null)
+                    writer.WriteString("name", indexerFlagResource.Name);
+                else
+                    writer.WriteNull("name");
+
+            if (indexerFlagResource.NameLowerOption.IsSet)
+                if (indexerFlagResource.NameLowerOption.Value != null)
+                    writer.WriteString("nameLower", indexerFlagResource.NameLower);
+                else
+                    writer.WriteNull("nameLower");
         }
     }
 }

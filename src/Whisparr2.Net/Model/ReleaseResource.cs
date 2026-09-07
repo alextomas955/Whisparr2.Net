@@ -73,14 +73,16 @@ namespace Whisparr2.Net.Model
         /// <param name="seeders">seeders</param>
         /// <param name="leechers">leechers</param>
         /// <param name="protocol">protocol</param>
+        /// <param name="indexerFlags">indexerFlags</param>
         /// <param name="isDaily">isDaily</param>
         /// <param name="seriesId">seriesId</param>
         /// <param name="episodeId">episodeId</param>
         /// <param name="episodeIds">episodeIds</param>
         /// <param name="downloadClientId">downloadClientId</param>
+        /// <param name="downloadClient">downloadClient</param>
         /// <param name="shouldOverride">shouldOverride</param>
         [JsonConstructor]
-        public ReleaseResource(Option<int?> id = default, Option<string?> guid = default, Option<QualityModel?> quality = default, Option<int?> qualityWeight = default, Option<int?> age = default, Option<double?> ageHours = default, Option<double?> ageMinutes = default, Option<long?> size = default, Option<int?> indexerId = default, Option<string?> indexer = default, Option<string?> releaseGroup = default, Option<string?> subGroup = default, Option<string?> releaseHash = default, Option<string?> title = default, Option<bool?> sceneSource = default, Option<List<Language>?> languages = default, Option<int?> languageWeight = default, Option<string?> airDate = default, Option<string?> seriesTitle = default, Option<int?> mappedSeriesId = default, Option<List<ReleaseEpisodeResource>?> mappedEpisodeInfo = default, Option<bool?> approved = default, Option<bool?> temporarilyRejected = default, Option<bool?> rejected = default, Option<int?> tvdbId = default, Option<List<string>?> rejections = default, Option<DateTime?> publishDate = default, Option<string?> commentUrl = default, Option<string?> downloadUrl = default, Option<string?> infoUrl = default, Option<bool?> episodeRequested = default, Option<bool?> downloadAllowed = default, Option<int?> releaseWeight = default, Option<List<CustomFormatResource>?> customFormats = default, Option<int?> customFormatScore = default, Option<string?> magnetUrl = default, Option<string?> infoHash = default, Option<int?> seeders = default, Option<int?> leechers = default, Option<DownloadProtocol?> protocol = default, Option<bool?> isDaily = default, Option<int?> seriesId = default, Option<int?> episodeId = default, Option<List<int>?> episodeIds = default, Option<int?> downloadClientId = default, Option<bool?> shouldOverride = default)
+        public ReleaseResource(Option<int?> id = default, Option<string?> guid = default, Option<QualityModel?> quality = default, Option<int?> qualityWeight = default, Option<int?> age = default, Option<double?> ageHours = default, Option<double?> ageMinutes = default, Option<long?> size = default, Option<int?> indexerId = default, Option<string?> indexer = default, Option<string?> releaseGroup = default, Option<string?> subGroup = default, Option<string?> releaseHash = default, Option<string?> title = default, Option<bool?> sceneSource = default, Option<List<Language>?> languages = default, Option<int?> languageWeight = default, Option<string?> airDate = default, Option<string?> seriesTitle = default, Option<int?> mappedSeriesId = default, Option<List<ReleaseEpisodeResource>?> mappedEpisodeInfo = default, Option<bool?> approved = default, Option<bool?> temporarilyRejected = default, Option<bool?> rejected = default, Option<int?> tvdbId = default, Option<List<string>?> rejections = default, Option<DateTime?> publishDate = default, Option<string?> commentUrl = default, Option<string?> downloadUrl = default, Option<string?> infoUrl = default, Option<bool?> episodeRequested = default, Option<bool?> downloadAllowed = default, Option<int?> releaseWeight = default, Option<List<CustomFormatResource>?> customFormats = default, Option<int?> customFormatScore = default, Option<string?> magnetUrl = default, Option<string?> infoHash = default, Option<int?> seeders = default, Option<int?> leechers = default, Option<DownloadProtocol?> protocol = default, Option<int?> indexerFlags = default, Option<bool?> isDaily = default, Option<int?> seriesId = default, Option<int?> episodeId = default, Option<List<int>?> episodeIds = default, Option<int?> downloadClientId = default, Option<string?> downloadClient = default, Option<bool?> shouldOverride = default)
         {
             IdOption = id;
             GuidOption = guid;
@@ -122,11 +124,13 @@ namespace Whisparr2.Net.Model
             SeedersOption = seeders;
             LeechersOption = leechers;
             ProtocolOption = protocol;
+            IndexerFlagsOption = indexerFlags;
             IsDailyOption = isDaily;
             SeriesIdOption = seriesId;
             EpisodeIdOption = episodeId;
             EpisodeIdsOption = episodeIds;
             DownloadClientIdOption = downloadClientId;
+            DownloadClientOption = downloadClient;
             ShouldOverrideOption = shouldOverride;
             OnCreated();
         }
@@ -654,6 +658,19 @@ namespace Whisparr2.Net.Model
         public int? Leechers { get { return this.LeechersOption.Value; } set { this.LeechersOption = new(value); } }
 
         /// <summary>
+        /// Used to track the state of IndexerFlags
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<int?> IndexerFlagsOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets IndexerFlags
+        /// </summary>
+        [JsonPropertyName("indexerFlags")]
+        public int? IndexerFlags { get { return this.IndexerFlagsOption.Value; } set { this.IndexerFlagsOption = new(value); } }
+
+        /// <summary>
         /// Used to track the state of IsDaily
         /// </summary>
         [JsonIgnore]
@@ -719,6 +736,19 @@ namespace Whisparr2.Net.Model
         public int? DownloadClientId { get { return this.DownloadClientIdOption.Value; } set { this.DownloadClientIdOption = new(value); } }
 
         /// <summary>
+        /// Used to track the state of DownloadClient
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<string?> DownloadClientOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets DownloadClient
+        /// </summary>
+        [JsonPropertyName("downloadClient")]
+        public string? DownloadClient { get { return this.DownloadClientOption.Value; } set { this.DownloadClientOption = new(value); } }
+
+        /// <summary>
         /// Used to track the state of ShouldOverride
         /// </summary>
         [JsonIgnore]
@@ -779,11 +809,13 @@ namespace Whisparr2.Net.Model
             sb.Append("  Seeders: ").Append(Seeders).Append("\n");
             sb.Append("  Leechers: ").Append(Leechers).Append("\n");
             sb.Append("  Protocol: ").Append(Protocol).Append("\n");
+            sb.Append("  IndexerFlags: ").Append(IndexerFlags).Append("\n");
             sb.Append("  IsDaily: ").Append(IsDaily).Append("\n");
             sb.Append("  SeriesId: ").Append(SeriesId).Append("\n");
             sb.Append("  EpisodeId: ").Append(EpisodeId).Append("\n");
             sb.Append("  EpisodeIds: ").Append(EpisodeIds).Append("\n");
             sb.Append("  DownloadClientId: ").Append(DownloadClientId).Append("\n");
+            sb.Append("  DownloadClient: ").Append(DownloadClient).Append("\n");
             sb.Append("  ShouldOverride: ").Append(ShouldOverride).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
@@ -877,11 +909,13 @@ namespace Whisparr2.Net.Model
             Option<int?> seeders = default;
             Option<int?> leechers = default;
             Option<DownloadProtocol?> protocol = default;
+            Option<int?> indexerFlags = default;
             Option<bool?> isDaily = default;
             Option<int?> seriesId = default;
             Option<int?> episodeId = default;
             Option<List<int>?> episodeIds = default;
             Option<int?> downloadClientId = default;
+            Option<string?> downloadClient = default;
             Option<bool?> shouldOverride = default;
 
             while (utf8JsonReader.Read())
@@ -1019,6 +1053,9 @@ namespace Whisparr2.Net.Model
                         case "protocol":
                             protocol = new Option<DownloadProtocol?>(JsonSerializer.Deserialize<DownloadProtocol?>(ref utf8JsonReader, jsonSerializerOptions));
                             break;
+                        case "indexerFlags":
+                            indexerFlags = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
+                            break;
                         case "isDaily":
                             isDaily = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
                             break;
@@ -1033,6 +1070,9 @@ namespace Whisparr2.Net.Model
                             break;
                         case "downloadClientId":
                             downloadClientId = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
+                            break;
+                        case "downloadClient":
+                            downloadClient = new Option<string?>(utf8JsonReader.GetString());
                             break;
                         case "shouldOverride":
                             shouldOverride = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
@@ -1103,10 +1143,13 @@ namespace Whisparr2.Net.Model
             if (protocol.IsSet && protocol.Value == null)
                 throw new ArgumentNullException(nameof(protocol), "Property is not nullable for class ReleaseResource.");
 
+            if (indexerFlags.IsSet && indexerFlags.Value == null)
+                throw new ArgumentNullException(nameof(indexerFlags), "Property is not nullable for class ReleaseResource.");
+
             if (isDaily.IsSet && isDaily.Value == null)
                 throw new ArgumentNullException(nameof(isDaily), "Property is not nullable for class ReleaseResource.");
 
-            return new ReleaseResource(id, guid, quality, qualityWeight, age, ageHours, ageMinutes, size, indexerId, indexer, releaseGroup, subGroup, releaseHash, title, sceneSource, languages, languageWeight, airDate, seriesTitle, mappedSeriesId, mappedEpisodeInfo, approved, temporarilyRejected, rejected, tvdbId, rejections, publishDate, commentUrl, downloadUrl, infoUrl, episodeRequested, downloadAllowed, releaseWeight, customFormats, customFormatScore, magnetUrl, infoHash, seeders, leechers, protocol, isDaily, seriesId, episodeId, episodeIds, downloadClientId, shouldOverride);
+            return new ReleaseResource(id, guid, quality, qualityWeight, age, ageHours, ageMinutes, size, indexerId, indexer, releaseGroup, subGroup, releaseHash, title, sceneSource, languages, languageWeight, airDate, seriesTitle, mappedSeriesId, mappedEpisodeInfo, approved, temporarilyRejected, rejected, tvdbId, rejections, publishDate, commentUrl, downloadUrl, infoUrl, episodeRequested, downloadAllowed, releaseWeight, customFormats, customFormatScore, magnetUrl, infoHash, seeders, leechers, protocol, indexerFlags, isDaily, seriesId, episodeId, episodeIds, downloadClientId, downloadClient, shouldOverride);
         }
 
         /// <summary>
@@ -1328,6 +1371,9 @@ namespace Whisparr2.Net.Model
                 var protocolRawValue = DownloadProtocolValueConverter.ToJsonValue(releaseResource.Protocol!.Value);
                 writer.WriteString("protocol", protocolRawValue);
             }
+            if (releaseResource.IndexerFlagsOption.IsSet)
+                writer.WriteNumber("indexerFlags", releaseResource.IndexerFlagsOption.Value!.Value);
+
             if (releaseResource.IsDailyOption.IsSet)
                 writer.WriteBoolean("isDaily", releaseResource.IsDailyOption.Value!.Value);
 
@@ -1356,6 +1402,12 @@ namespace Whisparr2.Net.Model
                     writer.WriteNumber("downloadClientId", releaseResource.DownloadClientIdOption.Value!.Value);
                 else
                     writer.WriteNull("downloadClientId");
+
+            if (releaseResource.DownloadClientOption.IsSet)
+                if (releaseResource.DownloadClientOption.Value != null)
+                    writer.WriteString("downloadClient", releaseResource.DownloadClient);
+                else
+                    writer.WriteNull("downloadClient");
 
             if (releaseResource.ShouldOverrideOption.IsSet)
                 if (releaseResource.ShouldOverrideOption.Value != null)

@@ -114,8 +114,38 @@ namespace Whisparr2.Net.Api
         /// 
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="page"> (optional, default to 1)</param>
+        /// <param name="pageSize"> (optional, default to 10)</param>
+        /// <param name="sortKey"> (optional)</param>
+        /// <param name="sortDirection"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IGetImportListExclusionPagedApiResponse"/>&gt;</returns>
+        Task<IGetImportListExclusionPagedApiResponse> GetImportListExclusionPagedAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <param name="page"> (optional, default to 1)</param>
+        /// <param name="pageSize"> (optional, default to 10)</param>
+        /// <param name="sortKey"> (optional)</param>
+        /// <param name="sortDirection"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IGetImportListExclusionPagedApiResponse"/>?&gt;</returns>
+        Task<IGetImportListExclusionPagedApiResponse?> GetImportListExclusionPagedOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IListImportListExclusionApiResponse"/>&gt;</returns>
+        [Obsolete]
         Task<IListImportListExclusionApiResponse> ListImportListExclusionAsync(System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -126,6 +156,7 @@ namespace Whisparr2.Net.Api
         /// </remarks>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IListImportListExclusionApiResponse"/>?&gt;</returns>
+        [Obsolete]
         Task<IListImportListExclusionApiResponse?> ListImportListExclusionOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -182,6 +213,18 @@ namespace Whisparr2.Net.Api
     /// The <see cref="IGetImportListExclusionByIdApiResponse"/>
     /// </summary>
     public interface IGetImportListExclusionByIdApiResponse : Whisparr2.Net.Client.IApiResponse, IOk<Whisparr2.Net.Model.ImportListExclusionResource?>
+    {
+        /// <summary>
+        /// Returns true if the response is 200 Ok
+        /// </summary>
+        /// <returns></returns>
+        bool IsOk { get; }
+    }
+
+    /// <summary>
+    /// The <see cref="IGetImportListExclusionPagedApiResponse"/>
+    /// </summary>
+    public interface IGetImportListExclusionPagedApiResponse : Whisparr2.Net.Client.IApiResponse, IOk<Whisparr2.Net.Model.ImportListExclusionResourcePagingResource?>
     {
         /// <summary>
         /// Returns true if the response is 200 Ok
@@ -277,6 +320,26 @@ namespace Whisparr2.Net.Api
         internal void ExecuteOnErrorGetImportListExclusionById(Exception exception)
         {
             OnErrorGetImportListExclusionById?.Invoke(this, new ExceptionEventArgs(exception));
+        }
+
+        /// <summary>
+        /// The event raised after the server response
+        /// </summary>
+        public event EventHandler<ApiResponseEventArgs>? OnGetImportListExclusionPaged;
+
+        /// <summary>
+        /// The event raised after an error querying the server
+        /// </summary>
+        public event EventHandler<ExceptionEventArgs>? OnErrorGetImportListExclusionPaged;
+
+        internal void ExecuteOnGetImportListExclusionPaged(ImportListExclusionApi.GetImportListExclusionPagedApiResponse apiResponse)
+        {
+            OnGetImportListExclusionPaged?.Invoke(this, new ApiResponseEventArgs(apiResponse));
+        }
+
+        internal void ExecuteOnErrorGetImportListExclusionPaged(Exception exception)
+        {
+            OnErrorGetImportListExclusionPaged?.Invoke(this, new ExceptionEventArgs(exception));
         }
 
         /// <summary>
@@ -1060,6 +1123,301 @@ namespace Whisparr2.Net.Api
             /// <param name="result"></param>
             /// <returns></returns>
             public bool TryOk([NotNullWhen(true)]out Whisparr2.Net.Model.ImportListExclusionResource? result)
+            {
+                result = null;
+
+                try
+                {
+                    result = Ok();
+                } catch (Exception e)
+                {
+                    OnDeserializationErrorDefaultImplementation(e, (HttpStatusCode)200);
+                }
+
+                return result != null;
+            }
+
+            private void OnDeserializationErrorDefaultImplementation(Exception exception, HttpStatusCode httpStatusCode)
+            {
+                bool suppressDefaultLog = false;
+                OnDeserializationError(ref suppressDefaultLog, exception, httpStatusCode);
+                if (!suppressDefaultLog)
+                    Logger.LogError(RestLogEvents.ApiDeserializationFailed, exception, "An error occurred while deserializing the {code} response.", httpStatusCode);
+            }
+
+            partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
+        }
+
+        partial void FormatGetImportListExclusionPaged(ref Option<int> page, ref Option<int> pageSize, ref Option<string> sortKey, ref Option<SortDirection> sortDirection);
+
+        /// <summary>
+        /// Validates the request parameters
+        /// </summary>
+        /// <param name="sortKey"></param>
+        /// <returns></returns>
+        private void ValidateGetImportListExclusionPaged(Option<string> sortKey)
+        {
+            if (sortKey.IsSet && sortKey.Value == null)
+                throw new ArgumentNullException(nameof(sortKey));
+        }
+
+        /// <summary>
+        /// Processes the server response
+        /// </summary>
+        /// <param name="apiResponseLocalVar"></param>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="sortKey"></param>
+        /// <param name="sortDirection"></param>
+        private void AfterGetImportListExclusionPagedDefaultImplementation(IGetImportListExclusionPagedApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection)
+        {
+            bool suppressDefaultLog = false;
+            AfterGetImportListExclusionPaged(ref suppressDefaultLog, apiResponseLocalVar, page, pageSize, sortKey, sortDirection);
+            if (!suppressDefaultLog)
+                Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
+        }
+
+        /// <summary>
+        /// Processes the server response
+        /// </summary>
+        /// <param name="suppressDefaultLog"></param>
+        /// <param name="apiResponseLocalVar"></param>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="sortKey"></param>
+        /// <param name="sortDirection"></param>
+        partial void AfterGetImportListExclusionPaged(ref bool suppressDefaultLog, IGetImportListExclusionPagedApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection);
+
+        /// <summary>
+        /// Logs exceptions that occur while retrieving the server response
+        /// </summary>
+        /// <param name="exceptionLocalVar"></param>
+        /// <param name="pathFormatLocalVar"></param>
+        /// <param name="pathLocalVar"></param>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="sortKey"></param>
+        /// <param name="sortDirection"></param>
+        private void OnErrorGetImportListExclusionPagedDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection)
+        {
+            bool suppressDefaultLogLocalVar = false;
+            OnErrorGetImportListExclusionPaged(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, page, pageSize, sortKey, sortDirection);
+            if (!suppressDefaultLogLocalVar)
+                Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
+        }
+
+        /// <summary>
+        /// A partial method that gives developers a way to provide customized exception handling
+        /// </summary>
+        /// <param name="suppressDefaultLogLocalVar"></param>
+        /// <param name="exceptionLocalVar"></param>
+        /// <param name="pathFormatLocalVar"></param>
+        /// <param name="pathLocalVar"></param>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="sortKey"></param>
+        /// <param name="sortDirection"></param>
+        partial void OnErrorGetImportListExclusionPaged(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection);
+
+        /// <summary>
+        ///  
+        /// </summary>
+        /// <param name="page"> (optional, default to 1)</param>
+        /// <param name="pageSize"> (optional, default to 10)</param>
+        /// <param name="sortKey"> (optional)</param>
+        /// <param name="sortDirection"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IGetImportListExclusionPagedApiResponse"/>&gt;</returns>
+        public async Task<IGetImportListExclusionPagedApiResponse?> GetImportListExclusionPagedOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                return await GetImportListExclusionPagedAsync(page, pageSize, sortKey, sortDirection, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        ///  
+        /// </summary>
+        /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="page"> (optional, default to 1)</param>
+        /// <param name="pageSize"> (optional, default to 10)</param>
+        /// <param name="sortKey"> (optional)</param>
+        /// <param name="sortDirection"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IGetImportListExclusionPagedApiResponse"/>&gt;</returns>
+        public async Task<IGetImportListExclusionPagedApiResponse> GetImportListExclusionPagedAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+            UriBuilder uriBuilderLocalVar = new UriBuilder();
+
+            try
+            {
+                ValidateGetImportListExclusionPaged(sortKey);
+
+                FormatGetImportListExclusionPaged(ref page, ref pageSize, ref sortKey, ref sortDirection);
+
+                using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
+                {
+                    uriBuilderLocalVar.Host = HttpClient.BaseAddress!.Host;
+                    uriBuilderLocalVar.Port = HttpClient.BaseAddress.Port;
+                    uriBuilderLocalVar.Scheme = HttpClient.BaseAddress.Scheme;
+                    uriBuilderLocalVar.Path = HttpClient.BaseAddress.AbsolutePath == "/"
+                        ? "/api/v3/importlistexclusion/paged"
+                        : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/api/v3/importlistexclusion/paged");
+
+                    System.Collections.Specialized.NameValueCollection parseQueryStringLocalVar = System.Web.HttpUtility.ParseQueryString(string.Empty);
+
+                    if (page.IsSet)
+                        parseQueryStringLocalVar["page"] = ClientUtils.ParameterToString(page.Value);
+
+                    if (pageSize.IsSet)
+                        parseQueryStringLocalVar["pageSize"] = ClientUtils.ParameterToString(pageSize.Value);
+
+                    if (sortKey.IsSet)
+                        parseQueryStringLocalVar["sortKey"] = ClientUtils.ParameterToString(sortKey.Value);
+
+                    if (sortDirection.IsSet)
+                        parseQueryStringLocalVar["sortDirection"] = ClientUtils.ParameterToString(sortDirection.Value);
+
+                    uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
+
+                    List<TokenBase> tokenBaseLocalVars = new List<TokenBase>();
+                    ApiKeyToken apiKeyTokenLocalVar1 = (ApiKeyToken) await ApiKeyProvider.GetAsync("X-Api-Key", cancellationToken).ConfigureAwait(false);
+                    tokenBaseLocalVars.Add(apiKeyTokenLocalVar1);
+                    apiKeyTokenLocalVar1.UseInHeader(httpRequestMessageLocalVar);
+
+                    httpRequestMessageLocalVar.RequestUri = uriBuilderLocalVar.Uri;
+
+                    string[] acceptLocalVars = new string[] {
+                        "application/json"
+                    };
+
+                    IEnumerable<MediaTypeWithQualityHeaderValue> acceptHeaderValuesLocalVar = ClientUtils.SelectHeaderAcceptArray(acceptLocalVars);
+
+                    foreach (var acceptLocalVar in acceptHeaderValuesLocalVar)
+                        httpRequestMessageLocalVar.Headers.Accept.Add(acceptLocalVar);
+
+                    httpRequestMessageLocalVar.Method = HttpMethod.Get;
+
+                    DateTime requestedAtLocalVar = DateTime.UtcNow;
+
+                    using (HttpResponseMessage httpResponseMessageLocalVar = await HttpClient.SendAsync(httpRequestMessageLocalVar, cancellationToken).ConfigureAwait(false))
+                    {
+                        GetImportListExclusionPagedApiResponse apiResponseLocalVar;
+
+                        switch ((int)httpResponseMessageLocalVar.StatusCode) {
+                            default: {
+                                string responseContentLocalVar = await httpResponseMessageLocalVar.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                                apiResponseLocalVar = new(Logger, httpRequestMessageLocalVar, httpResponseMessageLocalVar, responseContentLocalVar, "/api/v3/importlistexclusion/paged", requestedAtLocalVar, _jsonSerializerOptions);
+
+                                break;
+                            }
+                        }
+
+                        AfterGetImportListExclusionPagedDefaultImplementation(apiResponseLocalVar, page, pageSize, sortKey, sortDirection);
+
+                        Events.ExecuteOnGetImportListExclusionPaged(apiResponseLocalVar);
+
+                        if (apiResponseLocalVar.StatusCode == (HttpStatusCode) 429)
+                            foreach(TokenBase tokenBaseLocalVar in tokenBaseLocalVars)
+                                tokenBaseLocalVar.BeginRateLimit();
+
+                        return apiResponseLocalVar;
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                OnErrorGetImportListExclusionPagedDefaultImplementation(e, "/api/v3/importlistexclusion/paged", uriBuilderLocalVar.Path, page, pageSize, sortKey, sortDirection);
+                Events.ExecuteOnErrorGetImportListExclusionPaged(e);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// The <see cref="GetImportListExclusionPagedApiResponse"/>
+        /// </summary>
+        public partial class GetImportListExclusionPagedApiResponse : Whisparr2.Net.Client.ApiResponse, IGetImportListExclusionPagedApiResponse
+        {
+            /// <summary>
+            /// The logger
+            /// </summary>
+            public ILogger<ImportListExclusionApi> Logger { get; }
+
+            /// <summary>
+            /// The <see cref="GetImportListExclusionPagedApiResponse"/>
+            /// </summary>
+            /// <param name="logger"></param>
+            /// <param name="httpRequestMessage"></param>
+            /// <param name="httpResponseMessage"></param>
+            /// <param name="rawContent"></param>
+            /// <param name="path"></param>
+            /// <param name="requestedAt"></param>
+            /// <param name="jsonSerializerOptions"></param>
+            public GetImportListExclusionPagedApiResponse(ILogger<ImportListExclusionApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, string rawContent, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, rawContent, path, requestedAt, jsonSerializerOptions)
+            {
+                Logger = logger;
+                OnCreated(httpRequestMessage, httpResponseMessage);
+            }
+
+            /// <summary>
+            /// The <see cref="GetImportListExclusionPagedApiResponse"/>
+            /// </summary>
+            /// <param name="logger"></param>
+            /// <param name="httpRequestMessage"></param>
+            /// <param name="httpResponseMessage"></param>
+            /// <param name="contentStream"></param>
+            /// <param name="path"></param>
+            /// <param name="requestedAt"></param>
+            /// <param name="jsonSerializerOptions"></param>
+            public GetImportListExclusionPagedApiResponse(ILogger<ImportListExclusionApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, System.IO.Stream contentStream, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, contentStream, path, requestedAt, jsonSerializerOptions)
+            {
+                Logger = logger;
+                OnCreated(httpRequestMessage, httpResponseMessage);
+            }
+
+            partial void OnCreated(global::System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage);
+
+            /// <summary>
+            /// Returns true if the response is 200 Ok
+            /// </summary>
+            /// <returns></returns>
+            public bool IsOk => 200 == (int)StatusCode;
+
+            /// <summary>
+            /// Deserializes the response if the response is 200 Ok
+            /// </summary>
+            /// <returns></returns>
+            public Whisparr2.Net.Model.ImportListExclusionResourcePagingResource? Ok()
+            {
+                bool suppressDefault = false;
+                Whisparr2.Net.Model.ImportListExclusionResourcePagingResource? result = null;
+                OnOk(ref suppressDefault, ref result);
+                if (!suppressDefault)
+                    result = DefaultOk();
+                return result;
+            }
+
+            private Whisparr2.Net.Model.ImportListExclusionResourcePagingResource? DefaultOk()
+            {
+                // NOTICE: Consider this AsModel template deprecated. Implement the appropriate partial method instead
+                return IsOk
+                    ? System.Text.Json.JsonSerializer.Deserialize<Whisparr2.Net.Model.ImportListExclusionResourcePagingResource>(RawContent, _jsonSerializerOptions)
+                    : null;
+            }
+
+            partial void OnOk(ref bool suppressDefault, ref Whisparr2.Net.Model.ImportListExclusionResourcePagingResource? result);
+
+            /// <summary>
+            /// Returns true if the response is 200 Ok and the deserialized response is not null
+            /// </summary>
+            /// <param name="result"></param>
+            /// <returns></returns>
+            public bool TryOk([NotNullWhen(true)]out Whisparr2.Net.Model.ImportListExclusionResourcePagingResource? result)
             {
                 result = null;
 

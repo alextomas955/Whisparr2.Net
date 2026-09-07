@@ -72,6 +72,7 @@ namespace Whisparr2.Net.Client
             _jsonOptions.Converters.Add(new CommandTriggerJsonConverter());
             _jsonOptions.Converters.Add(new CommandTriggerNullableJsonConverter());
             _jsonOptions.Converters.Add(new CustomFilterResourceJsonConverter());
+            _jsonOptions.Converters.Add(new CustomFormatBulkResourceJsonConverter());
             _jsonOptions.Converters.Add(new CustomFormatResourceJsonConverter());
             _jsonOptions.Converters.Add(new CustomFormatSpecificationSchemaJsonConverter());
             _jsonOptions.Converters.Add(new DatabaseTypeJsonConverter());
@@ -104,8 +105,8 @@ namespace Whisparr2.Net.Client
             _jsonOptions.Converters.Add(new HistoryResourcePagingResourceJsonConverter());
             _jsonOptions.Converters.Add(new HostConfigResourceJsonConverter());
             _jsonOptions.Converters.Add(new ImportListBulkResourceJsonConverter());
-            _jsonOptions.Converters.Add(new ImportListConfigResourceJsonConverter());
             _jsonOptions.Converters.Add(new ImportListExclusionResourceJsonConverter());
+            _jsonOptions.Converters.Add(new ImportListExclusionResourcePagingResourceJsonConverter());
             _jsonOptions.Converters.Add(new ImportListMonitorTypesJsonConverter());
             _jsonOptions.Converters.Add(new ImportListMonitorTypesNullableJsonConverter());
             _jsonOptions.Converters.Add(new ImportListResourceJsonConverter());
@@ -113,13 +114,12 @@ namespace Whisparr2.Net.Client
             _jsonOptions.Converters.Add(new ImportListTypeNullableJsonConverter());
             _jsonOptions.Converters.Add(new IndexerBulkResourceJsonConverter());
             _jsonOptions.Converters.Add(new IndexerConfigResourceJsonConverter());
+            _jsonOptions.Converters.Add(new IndexerFlagResourceJsonConverter());
             _jsonOptions.Converters.Add(new IndexerResourceJsonConverter());
             _jsonOptions.Converters.Add(new LanguageJsonConverter());
             _jsonOptions.Converters.Add(new LanguageProfileItemResourceJsonConverter());
             _jsonOptions.Converters.Add(new LanguageProfileResourceJsonConverter());
             _jsonOptions.Converters.Add(new LanguageResourceJsonConverter());
-            _jsonOptions.Converters.Add(new ListSyncLevelTypeJsonConverter());
-            _jsonOptions.Converters.Add(new ListSyncLevelTypeNullableJsonConverter());
             _jsonOptions.Converters.Add(new LocalizationLanguageResourceJsonConverter());
             _jsonOptions.Converters.Add(new LocalizationResourceJsonConverter());
             _jsonOptions.Converters.Add(new LogFileResourceJsonConverter());
@@ -137,6 +137,8 @@ namespace Whisparr2.Net.Client
             _jsonOptions.Converters.Add(new MonitorTypesNullableJsonConverter());
             _jsonOptions.Converters.Add(new MonitoringOptionsJsonConverter());
             _jsonOptions.Converters.Add(new NamingConfigResourceJsonConverter());
+            _jsonOptions.Converters.Add(new NewItemMonitorTypesJsonConverter());
+            _jsonOptions.Converters.Add(new NewItemMonitorTypesNullableJsonConverter());
             _jsonOptions.Converters.Add(new NotificationResourceJsonConverter());
             _jsonOptions.Converters.Add(new ParseResourceJsonConverter());
             _jsonOptions.Converters.Add(new ParsedEpisodeInfoJsonConverter());
@@ -189,6 +191,8 @@ namespace Whisparr2.Net.Client
             _jsonOptions.Converters.Add(new SeriesStatusTypeJsonConverter());
             _jsonOptions.Converters.Add(new SeriesStatusTypeNullableJsonConverter());
             _jsonOptions.Converters.Add(new SeriesTitleInfoJsonConverter());
+            _jsonOptions.Converters.Add(new SeriesTypesJsonConverter());
+            _jsonOptions.Converters.Add(new SeriesTypesNullableJsonConverter());
             _jsonOptions.Converters.Add(new SortDirectionJsonConverter());
             _jsonOptions.Converters.Add(new SortDirectionNullableJsonConverter());
             _jsonOptions.Converters.Add(new SystemResourceJsonConverter());
@@ -231,10 +235,10 @@ namespace Whisparr2.Net.Client
             _services.AddSingleton<HistoryApiEvents>();
             _services.AddSingleton<HostConfigApiEvents>();
             _services.AddSingleton<ImportListApiEvents>();
-            _services.AddSingleton<ImportListConfigApiEvents>();
             _services.AddSingleton<ImportListExclusionApiEvents>();
             _services.AddSingleton<IndexerApiEvents>();
             _services.AddSingleton<IndexerConfigApiEvents>();
+            _services.AddSingleton<IndexerFlagApiEvents>();
             _services.AddSingleton<LanguageApiEvents>();
             _services.AddSingleton<LanguageProfileApiEvents>();
             _services.AddSingleton<LanguageProfileSchemaApiEvents>();
@@ -343,10 +347,10 @@ namespace Whisparr2.Net.Client
             builders.Add(_services.AddHttpClient<IHistoryApi, HistoryApi>("Whisparr2.Net.Api.IHistoryApi", client));
             builders.Add(_services.AddHttpClient<IHostConfigApi, HostConfigApi>("Whisparr2.Net.Api.IHostConfigApi", client));
             builders.Add(_services.AddHttpClient<IImportListApi, ImportListApi>("Whisparr2.Net.Api.IImportListApi", client));
-            builders.Add(_services.AddHttpClient<IImportListConfigApi, ImportListConfigApi>("Whisparr2.Net.Api.IImportListConfigApi", client));
             builders.Add(_services.AddHttpClient<IImportListExclusionApi, ImportListExclusionApi>("Whisparr2.Net.Api.IImportListExclusionApi", client));
             builders.Add(_services.AddHttpClient<IIndexerApi, IndexerApi>("Whisparr2.Net.Api.IIndexerApi", client));
             builders.Add(_services.AddHttpClient<IIndexerConfigApi, IndexerConfigApi>("Whisparr2.Net.Api.IIndexerConfigApi", client));
+            builders.Add(_services.AddHttpClient<IIndexerFlagApi, IndexerFlagApi>("Whisparr2.Net.Api.IIndexerFlagApi", client));
             builders.Add(_services.AddHttpClient<ILanguageApi, LanguageApi>("Whisparr2.Net.Api.ILanguageApi", client));
             builders.Add(_services.AddHttpClient<ILanguageProfileApi, LanguageProfileApi>("Whisparr2.Net.Api.ILanguageProfileApi", client));
             builders.Add(_services.AddHttpClient<ILanguageProfileSchemaApi, LanguageProfileSchemaApi>("Whisparr2.Net.Api.ILanguageProfileSchemaApi", client));

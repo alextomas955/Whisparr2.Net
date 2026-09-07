@@ -727,7 +727,7 @@ def main():
         conformance = {
             "measuredAgainst": {
                 "imageDigest": provenance["imageDigest"],
-                "whisparrVersion": provenance["whisparrVersion"],
+                "specCommit": provenance["specCommit"],
                 "generatedSpecSha256": provenance["generatedSpecSha256"],
             },
             "readsSelected": result["selected"],

@@ -95,9 +95,11 @@ namespace Whisparr2.Net.Api
         /// <param name="pageSize"> (optional, default to 10)</param>
         /// <param name="sortKey"> (optional)</param>
         /// <param name="sortDirection"> (optional)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="protocols"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetBlocklistApiResponse"/>&gt;</returns>
-        Task<IGetBlocklistApiResponse> GetBlocklistAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetBlocklistApiResponse> GetBlocklistAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<List<int>> seriesIds = default, Option<List<DownloadProtocol>> protocols = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -109,9 +111,11 @@ namespace Whisparr2.Net.Api
         /// <param name="pageSize"> (optional, default to 10)</param>
         /// <param name="sortKey"> (optional)</param>
         /// <param name="sortDirection"> (optional)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="protocols"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetBlocklistApiResponse"/>?&gt;</returns>
-        Task<IGetBlocklistApiResponse?> GetBlocklistOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetBlocklistApiResponse?> GetBlocklistOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<List<int>> seriesIds = default, Option<List<DownloadProtocol>> protocols = default, System.Threading.CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -679,17 +683,25 @@ namespace Whisparr2.Net.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatGetBlocklist(ref Option<int> page, ref Option<int> pageSize, ref Option<string> sortKey, ref Option<SortDirection> sortDirection);
+        partial void FormatGetBlocklist(ref Option<int> page, ref Option<int> pageSize, ref Option<string> sortKey, ref Option<SortDirection> sortDirection, Option<List<int>> seriesIds, Option<List<DownloadProtocol>> protocols);
 
         /// <summary>
         /// Validates the request parameters
         /// </summary>
         /// <param name="sortKey"></param>
+        /// <param name="seriesIds"></param>
+        /// <param name="protocols"></param>
         /// <returns></returns>
-        private void ValidateGetBlocklist(Option<string> sortKey)
+        private void ValidateGetBlocklist(Option<string> sortKey, Option<List<int>> seriesIds, Option<List<DownloadProtocol>> protocols)
         {
             if (sortKey.IsSet && sortKey.Value == null)
                 throw new ArgumentNullException(nameof(sortKey));
+
+            if (seriesIds.IsSet && seriesIds.Value == null)
+                throw new ArgumentNullException(nameof(seriesIds));
+
+            if (protocols.IsSet && protocols.Value == null)
+                throw new ArgumentNullException(nameof(protocols));
         }
 
         /// <summary>
@@ -700,10 +712,12 @@ namespace Whisparr2.Net.Api
         /// <param name="pageSize"></param>
         /// <param name="sortKey"></param>
         /// <param name="sortDirection"></param>
-        private void AfterGetBlocklistDefaultImplementation(IGetBlocklistApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection)
+        /// <param name="seriesIds"></param>
+        /// <param name="protocols"></param>
+        private void AfterGetBlocklistDefaultImplementation(IGetBlocklistApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<List<int>> seriesIds, Option<List<DownloadProtocol>> protocols)
         {
             bool suppressDefaultLog = false;
-            AfterGetBlocklist(ref suppressDefaultLog, apiResponseLocalVar, page, pageSize, sortKey, sortDirection);
+            AfterGetBlocklist(ref suppressDefaultLog, apiResponseLocalVar, page, pageSize, sortKey, sortDirection, seriesIds, protocols);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -717,7 +731,9 @@ namespace Whisparr2.Net.Api
         /// <param name="pageSize"></param>
         /// <param name="sortKey"></param>
         /// <param name="sortDirection"></param>
-        partial void AfterGetBlocklist(ref bool suppressDefaultLog, IGetBlocklistApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection);
+        /// <param name="seriesIds"></param>
+        /// <param name="protocols"></param>
+        partial void AfterGetBlocklist(ref bool suppressDefaultLog, IGetBlocklistApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<List<int>> seriesIds, Option<List<DownloadProtocol>> protocols);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -729,10 +745,12 @@ namespace Whisparr2.Net.Api
         /// <param name="pageSize"></param>
         /// <param name="sortKey"></param>
         /// <param name="sortDirection"></param>
-        private void OnErrorGetBlocklistDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection)
+        /// <param name="seriesIds"></param>
+        /// <param name="protocols"></param>
+        private void OnErrorGetBlocklistDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<List<int>> seriesIds, Option<List<DownloadProtocol>> protocols)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorGetBlocklist(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, page, pageSize, sortKey, sortDirection);
+            OnErrorGetBlocklist(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, page, pageSize, sortKey, sortDirection, seriesIds, protocols);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -748,7 +766,9 @@ namespace Whisparr2.Net.Api
         /// <param name="pageSize"></param>
         /// <param name="sortKey"></param>
         /// <param name="sortDirection"></param>
-        partial void OnErrorGetBlocklist(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection);
+        /// <param name="seriesIds"></param>
+        /// <param name="protocols"></param>
+        partial void OnErrorGetBlocklist(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<List<int>> seriesIds, Option<List<DownloadProtocol>> protocols);
 
         /// <summary>
         ///  
@@ -757,13 +777,15 @@ namespace Whisparr2.Net.Api
         /// <param name="pageSize"> (optional, default to 10)</param>
         /// <param name="sortKey"> (optional)</param>
         /// <param name="sortDirection"> (optional)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="protocols"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetBlocklistApiResponse"/>&gt;</returns>
-        public async Task<IGetBlocklistApiResponse?> GetBlocklistOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetBlocklistApiResponse?> GetBlocklistOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<List<int>> seriesIds = default, Option<List<DownloadProtocol>> protocols = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await GetBlocklistAsync(page, pageSize, sortKey, sortDirection, cancellationToken).ConfigureAwait(false);
+                return await GetBlocklistAsync(page, pageSize, sortKey, sortDirection, seriesIds, protocols, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -779,17 +801,19 @@ namespace Whisparr2.Net.Api
         /// <param name="pageSize"> (optional, default to 10)</param>
         /// <param name="sortKey"> (optional)</param>
         /// <param name="sortDirection"> (optional)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="protocols"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetBlocklistApiResponse"/>&gt;</returns>
-        public async Task<IGetBlocklistApiResponse> GetBlocklistAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetBlocklistApiResponse> GetBlocklistAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<List<int>> seriesIds = default, Option<List<DownloadProtocol>> protocols = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
             try
             {
-                ValidateGetBlocklist(sortKey);
+                ValidateGetBlocklist(sortKey, seriesIds, protocols);
 
-                FormatGetBlocklist(ref page, ref pageSize, ref sortKey, ref sortDirection);
+                FormatGetBlocklist(ref page, ref pageSize, ref sortKey, ref sortDirection, seriesIds, protocols);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -813,6 +837,12 @@ namespace Whisparr2.Net.Api
 
                     if (sortDirection.IsSet)
                         parseQueryStringLocalVar["sortDirection"] = ClientUtils.ParameterToString(sortDirection.Value);
+
+                    if (seriesIds.IsSet)
+                        parseQueryStringLocalVar["seriesIds"] = ClientUtils.ParameterToString(seriesIds.Value);
+
+                    if (protocols.IsSet)
+                        parseQueryStringLocalVar["protocols"] = ClientUtils.ParameterToString(protocols.Value);
 
                     uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
 
@@ -849,7 +879,7 @@ namespace Whisparr2.Net.Api
                             }
                         }
 
-                        AfterGetBlocklistDefaultImplementation(apiResponseLocalVar, page, pageSize, sortKey, sortDirection);
+                        AfterGetBlocklistDefaultImplementation(apiResponseLocalVar, page, pageSize, sortKey, sortDirection, seriesIds, protocols);
 
                         Events.ExecuteOnGetBlocklist(apiResponseLocalVar);
 
@@ -863,7 +893,7 @@ namespace Whisparr2.Net.Api
             }
             catch(Exception e)
             {
-                OnErrorGetBlocklistDefaultImplementation(e, "/api/v3/blocklist", uriBuilderLocalVar.Path, page, pageSize, sortKey, sortDirection);
+                OnErrorGetBlocklistDefaultImplementation(e, "/api/v3/blocklist", uriBuilderLocalVar.Path, page, pageSize, sortKey, sortDirection, seriesIds, protocols);
                 Events.ExecuteOnErrorGetBlocklist(e);
                 throw;
             }

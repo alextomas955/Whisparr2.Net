@@ -37,8 +37,10 @@ namespace Whisparr2.Net.Model
         /// <param name="renameEpisodes">renameEpisodes</param>
         /// <param name="replaceIllegalCharacters">replaceIllegalCharacters</param>
         /// <param name="colonReplacementFormat">colonReplacementFormat</param>
+        /// <param name="customColonReplacementFormat">customColonReplacementFormat</param>
         /// <param name="multiEpisodeStyle">multiEpisodeStyle</param>
         /// <param name="standardEpisodeFormat">standardEpisodeFormat</param>
+        /// <param name="javEpisodeFormat">javEpisodeFormat</param>
         /// <param name="seriesFolderFormat">seriesFolderFormat</param>
         /// <param name="includeSeriesTitle">includeSeriesTitle</param>
         /// <param name="includeEpisodeTitle">includeEpisodeTitle</param>
@@ -47,14 +49,16 @@ namespace Whisparr2.Net.Model
         /// <param name="separator">separator</param>
         /// <param name="numberStyle">numberStyle</param>
         [JsonConstructor]
-        public NamingConfigResource(Option<int?> id = default, Option<bool?> renameEpisodes = default, Option<bool?> replaceIllegalCharacters = default, Option<int?> colonReplacementFormat = default, Option<int?> multiEpisodeStyle = default, Option<string?> standardEpisodeFormat = default, Option<string?> seriesFolderFormat = default, Option<bool?> includeSeriesTitle = default, Option<bool?> includeEpisodeTitle = default, Option<bool?> includeQuality = default, Option<bool?> replaceSpaces = default, Option<string?> separator = default, Option<string?> numberStyle = default)
+        public NamingConfigResource(Option<int?> id = default, Option<bool?> renameEpisodes = default, Option<bool?> replaceIllegalCharacters = default, Option<int?> colonReplacementFormat = default, Option<string?> customColonReplacementFormat = default, Option<int?> multiEpisodeStyle = default, Option<string?> standardEpisodeFormat = default, Option<string?> javEpisodeFormat = default, Option<string?> seriesFolderFormat = default, Option<bool?> includeSeriesTitle = default, Option<bool?> includeEpisodeTitle = default, Option<bool?> includeQuality = default, Option<bool?> replaceSpaces = default, Option<string?> separator = default, Option<string?> numberStyle = default)
         {
             IdOption = id;
             RenameEpisodesOption = renameEpisodes;
             ReplaceIllegalCharactersOption = replaceIllegalCharacters;
             ColonReplacementFormatOption = colonReplacementFormat;
+            CustomColonReplacementFormatOption = customColonReplacementFormat;
             MultiEpisodeStyleOption = multiEpisodeStyle;
             StandardEpisodeFormatOption = standardEpisodeFormat;
+            JavEpisodeFormatOption = javEpisodeFormat;
             SeriesFolderFormatOption = seriesFolderFormat;
             IncludeSeriesTitleOption = includeSeriesTitle;
             IncludeEpisodeTitleOption = includeEpisodeTitle;
@@ -120,6 +124,19 @@ namespace Whisparr2.Net.Model
         public int? ColonReplacementFormat { get { return this.ColonReplacementFormatOption.Value; } set { this.ColonReplacementFormatOption = new(value); } }
 
         /// <summary>
+        /// Used to track the state of CustomColonReplacementFormat
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<string?> CustomColonReplacementFormatOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets CustomColonReplacementFormat
+        /// </summary>
+        [JsonPropertyName("customColonReplacementFormat")]
+        public string? CustomColonReplacementFormat { get { return this.CustomColonReplacementFormatOption.Value; } set { this.CustomColonReplacementFormatOption = new(value); } }
+
+        /// <summary>
         /// Used to track the state of MultiEpisodeStyle
         /// </summary>
         [JsonIgnore]
@@ -144,6 +161,19 @@ namespace Whisparr2.Net.Model
         /// </summary>
         [JsonPropertyName("standardEpisodeFormat")]
         public string? StandardEpisodeFormat { get { return this.StandardEpisodeFormatOption.Value; } set { this.StandardEpisodeFormatOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of JavEpisodeFormat
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<string?> JavEpisodeFormatOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets JavEpisodeFormat
+        /// </summary>
+        [JsonPropertyName("javEpisodeFormat")]
+        public string? JavEpisodeFormat { get { return this.JavEpisodeFormatOption.Value; } set { this.JavEpisodeFormatOption = new(value); } }
 
         /// <summary>
         /// Used to track the state of SeriesFolderFormat
@@ -248,8 +278,10 @@ namespace Whisparr2.Net.Model
             sb.Append("  RenameEpisodes: ").Append(RenameEpisodes).Append("\n");
             sb.Append("  ReplaceIllegalCharacters: ").Append(ReplaceIllegalCharacters).Append("\n");
             sb.Append("  ColonReplacementFormat: ").Append(ColonReplacementFormat).Append("\n");
+            sb.Append("  CustomColonReplacementFormat: ").Append(CustomColonReplacementFormat).Append("\n");
             sb.Append("  MultiEpisodeStyle: ").Append(MultiEpisodeStyle).Append("\n");
             sb.Append("  StandardEpisodeFormat: ").Append(StandardEpisodeFormat).Append("\n");
+            sb.Append("  JavEpisodeFormat: ").Append(JavEpisodeFormat).Append("\n");
             sb.Append("  SeriesFolderFormat: ").Append(SeriesFolderFormat).Append("\n");
             sb.Append("  IncludeSeriesTitle: ").Append(IncludeSeriesTitle).Append("\n");
             sb.Append("  IncludeEpisodeTitle: ").Append(IncludeEpisodeTitle).Append("\n");
@@ -308,8 +340,10 @@ namespace Whisparr2.Net.Model
             Option<bool?> renameEpisodes = default;
             Option<bool?> replaceIllegalCharacters = default;
             Option<int?> colonReplacementFormat = default;
+            Option<string?> customColonReplacementFormat = default;
             Option<int?> multiEpisodeStyle = default;
             Option<string?> standardEpisodeFormat = default;
+            Option<string?> javEpisodeFormat = default;
             Option<string?> seriesFolderFormat = default;
             Option<bool?> includeSeriesTitle = default;
             Option<bool?> includeEpisodeTitle = default;
@@ -345,11 +379,17 @@ namespace Whisparr2.Net.Model
                         case "colonReplacementFormat":
                             colonReplacementFormat = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
                             break;
+                        case "customColonReplacementFormat":
+                            customColonReplacementFormat = new Option<string?>(utf8JsonReader.GetString());
+                            break;
                         case "multiEpisodeStyle":
                             multiEpisodeStyle = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
                             break;
                         case "standardEpisodeFormat":
                             standardEpisodeFormat = new Option<string?>(utf8JsonReader.GetString());
+                            break;
+                        case "javEpisodeFormat":
+                            javEpisodeFormat = new Option<string?>(utf8JsonReader.GetString());
                             break;
                         case "seriesFolderFormat":
                             seriesFolderFormat = new Option<string?>(utf8JsonReader.GetString());
@@ -405,7 +445,7 @@ namespace Whisparr2.Net.Model
             if (replaceSpaces.IsSet && replaceSpaces.Value == null)
                 throw new ArgumentNullException(nameof(replaceSpaces), "Property is not nullable for class NamingConfigResource.");
 
-            return new NamingConfigResource(id, renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle);
+            return new NamingConfigResource(id, renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, customColonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, javEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle);
         }
 
         /// <summary>
@@ -444,6 +484,12 @@ namespace Whisparr2.Net.Model
             if (namingConfigResource.ColonReplacementFormatOption.IsSet)
                 writer.WriteNumber("colonReplacementFormat", namingConfigResource.ColonReplacementFormatOption.Value!.Value);
 
+            if (namingConfigResource.CustomColonReplacementFormatOption.IsSet)
+                if (namingConfigResource.CustomColonReplacementFormatOption.Value != null)
+                    writer.WriteString("customColonReplacementFormat", namingConfigResource.CustomColonReplacementFormat);
+                else
+                    writer.WriteNull("customColonReplacementFormat");
+
             if (namingConfigResource.MultiEpisodeStyleOption.IsSet)
                 writer.WriteNumber("multiEpisodeStyle", namingConfigResource.MultiEpisodeStyleOption.Value!.Value);
 
@@ -452,6 +498,12 @@ namespace Whisparr2.Net.Model
                     writer.WriteString("standardEpisodeFormat", namingConfigResource.StandardEpisodeFormat);
                 else
                     writer.WriteNull("standardEpisodeFormat");
+
+            if (namingConfigResource.JavEpisodeFormatOption.IsSet)
+                if (namingConfigResource.JavEpisodeFormatOption.Value != null)
+                    writer.WriteString("javEpisodeFormat", namingConfigResource.JavEpisodeFormat);
+                else
+                    writer.WriteNull("javEpisodeFormat");
 
             if (namingConfigResource.SeriesFolderFormatOption.IsSet)
                 if (namingConfigResource.SeriesFolderFormatOption.Value != null)

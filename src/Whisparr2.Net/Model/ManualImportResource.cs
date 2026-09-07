@@ -50,9 +50,10 @@ namespace Whisparr2.Net.Model
         /// <param name="downloadId">downloadId</param>
         /// <param name="customFormats">customFormats</param>
         /// <param name="customFormatScore">customFormatScore</param>
+        /// <param name="indexerFlags">indexerFlags</param>
         /// <param name="rejections">rejections</param>
         [JsonConstructor]
-        public ManualImportResource(Option<int?> id = default, Option<string?> path = default, Option<string?> relativePath = default, Option<string?> folderName = default, Option<string?> name = default, Option<long?> size = default, Option<SeriesResource?> series = default, Option<int?> seasonNumber = default, Option<List<EpisodeResource>?> episodes = default, Option<int?> episodeFileId = default, Option<string?> releaseGroup = default, Option<QualityModel?> quality = default, Option<List<Language>?> languages = default, Option<int?> qualityWeight = default, Option<string?> downloadId = default, Option<List<CustomFormatResource>?> customFormats = default, Option<int?> customFormatScore = default, Option<List<Rejection>?> rejections = default)
+        public ManualImportResource(Option<int?> id = default, Option<string?> path = default, Option<string?> relativePath = default, Option<string?> folderName = default, Option<string?> name = default, Option<long?> size = default, Option<SeriesResource?> series = default, Option<int?> seasonNumber = default, Option<List<EpisodeResource>?> episodes = default, Option<int?> episodeFileId = default, Option<string?> releaseGroup = default, Option<QualityModel?> quality = default, Option<List<Language>?> languages = default, Option<int?> qualityWeight = default, Option<string?> downloadId = default, Option<List<CustomFormatResource>?> customFormats = default, Option<int?> customFormatScore = default, Option<int?> indexerFlags = default, Option<List<Rejection>?> rejections = default)
         {
             IdOption = id;
             PathOption = path;
@@ -71,6 +72,7 @@ namespace Whisparr2.Net.Model
             DownloadIdOption = downloadId;
             CustomFormatsOption = customFormats;
             CustomFormatScoreOption = customFormatScore;
+            IndexerFlagsOption = indexerFlags;
             RejectionsOption = rejections;
             OnCreated();
         }
@@ -299,6 +301,19 @@ namespace Whisparr2.Net.Model
         public int? CustomFormatScore { get { return this.CustomFormatScoreOption.Value; } set { this.CustomFormatScoreOption = new(value); } }
 
         /// <summary>
+        /// Used to track the state of IndexerFlags
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<int?> IndexerFlagsOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets IndexerFlags
+        /// </summary>
+        [JsonPropertyName("indexerFlags")]
+        public int? IndexerFlags { get { return this.IndexerFlagsOption.Value; } set { this.IndexerFlagsOption = new(value); } }
+
+        /// <summary>
         /// Used to track the state of Rejections
         /// </summary>
         [JsonIgnore]
@@ -336,6 +351,7 @@ namespace Whisparr2.Net.Model
             sb.Append("  DownloadId: ").Append(DownloadId).Append("\n");
             sb.Append("  CustomFormats: ").Append(CustomFormats).Append("\n");
             sb.Append("  CustomFormatScore: ").Append(CustomFormatScore).Append("\n");
+            sb.Append("  IndexerFlags: ").Append(IndexerFlags).Append("\n");
             sb.Append("  Rejections: ").Append(Rejections).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
@@ -401,6 +417,7 @@ namespace Whisparr2.Net.Model
             Option<string?> downloadId = default;
             Option<List<CustomFormatResource>?> customFormats = default;
             Option<int?> customFormatScore = default;
+            Option<int?> indexerFlags = default;
             Option<List<Rejection>?> rejections = default;
 
             while (utf8JsonReader.Read())
@@ -469,6 +486,9 @@ namespace Whisparr2.Net.Model
                         case "customFormatScore":
                             customFormatScore = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
                             break;
+                        case "indexerFlags":
+                            indexerFlags = new Option<int?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
+                            break;
                         case "rejections":
                             rejections = new Option<List<Rejection>?>(JsonSerializer.Deserialize<List<Rejection>>(ref utf8JsonReader, jsonSerializerOptions));
                             break;
@@ -496,7 +516,10 @@ namespace Whisparr2.Net.Model
             if (customFormatScore.IsSet && customFormatScore.Value == null)
                 throw new ArgumentNullException(nameof(customFormatScore), "Property is not nullable for class ManualImportResource.");
 
-            return new ManualImportResource(id, path, relativePath, folderName, name, size, series, seasonNumber, episodes, episodeFileId, releaseGroup, quality, languages, qualityWeight, downloadId, customFormats, customFormatScore, rejections);
+            if (indexerFlags.IsSet && indexerFlags.Value == null)
+                throw new ArgumentNullException(nameof(indexerFlags), "Property is not nullable for class ManualImportResource.");
+
+            return new ManualImportResource(id, path, relativePath, folderName, name, size, series, seasonNumber, episodes, episodeFileId, releaseGroup, quality, languages, qualityWeight, downloadId, customFormats, customFormatScore, indexerFlags, rejections);
         }
 
         /// <summary>
@@ -622,6 +645,9 @@ namespace Whisparr2.Net.Model
                     writer.WriteNull("customFormats");
             if (manualImportResource.CustomFormatScoreOption.IsSet)
                 writer.WriteNumber("customFormatScore", manualImportResource.CustomFormatScoreOption.Value!.Value);
+
+            if (manualImportResource.IndexerFlagsOption.IsSet)
+                writer.WriteNumber("indexerFlags", manualImportResource.IndexerFlagsOption.Value!.Value);
 
             if (manualImportResource.RejectionsOption.IsSet)
                 if (manualImportResource.RejectionsOption.Value != null)

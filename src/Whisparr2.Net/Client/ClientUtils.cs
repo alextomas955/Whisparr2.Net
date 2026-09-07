@@ -179,12 +179,12 @@ namespace Whisparr2.Net.Client
                 return ImportListMonitorTypesValueConverter.ToJsonValue(importListMonitorTypes);
             if (obj is ImportListType importListType)
                 return ImportListTypeValueConverter.ToJsonValue(importListType);
-            if (obj is ListSyncLevelType listSyncLevelType)
-                return ListSyncLevelTypeValueConverter.ToJsonValue(listSyncLevelType);
             if (obj is MediaCoverTypes mediaCoverTypes)
                 return MediaCoverTypesValueConverter.ToJsonValue(mediaCoverTypes);
             if (obj is MonitorTypes monitorTypes)
                 return MonitorTypesValueConverter.ToJsonValue(monitorTypes);
+            if (obj is NewItemMonitorTypes newItemMonitorTypes)
+                return NewItemMonitorTypesValueConverter.ToJsonValue(newItemMonitorTypes);
             if (obj is PrivacyLevel privacyLevel)
                 return PrivacyLevelValueConverter.ToJsonValue(privacyLevel);
             if (obj is ProperDownloadTypes properDownloadTypes)
@@ -203,6 +203,8 @@ namespace Whisparr2.Net.Client
                 return RuntimeModeValueConverter.ToJsonValue(runtimeMode);
             if (obj is SeriesStatusType seriesStatusType)
                 return SeriesStatusTypeValueConverter.ToJsonValue(seriesStatusType);
+            if (obj is SeriesTypes seriesTypes)
+                return SeriesTypesValueConverter.ToJsonValue(seriesTypes);
             if (obj is SortDirection sortDirection)
                 return SortDirectionValueConverter.ToJsonValue(sortDirection);
             if (obj is TrackedDownloadState trackedDownloadState)

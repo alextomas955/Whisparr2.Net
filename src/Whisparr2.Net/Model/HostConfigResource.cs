@@ -44,6 +44,7 @@ namespace Whisparr2.Net.Model
         /// <param name="analyticsEnabled">analyticsEnabled</param>
         /// <param name="username">username</param>
         /// <param name="password">password</param>
+        /// <param name="passwordConfirmation">passwordConfirmation</param>
         /// <param name="logLevel">logLevel</param>
         /// <param name="logSizeLimit">logSizeLimit</param>
         /// <param name="consoleLogLevel">consoleLogLevel</param>
@@ -70,7 +71,7 @@ namespace Whisparr2.Net.Model
         /// <param name="backupInterval">backupInterval</param>
         /// <param name="backupRetention">backupRetention</param>
         [JsonConstructor]
-        public HostConfigResource(Option<int?> id = default, Option<string?> bindAddress = default, Option<int?> port = default, Option<int?> sslPort = default, Option<bool?> enableSsl = default, Option<bool?> launchBrowser = default, Option<AuthenticationType?> authenticationMethod = default, Option<AuthenticationRequiredType?> authenticationRequired = default, Option<bool?> analyticsEnabled = default, Option<string?> username = default, Option<string?> password = default, Option<string?> logLevel = default, Option<int?> logSizeLimit = default, Option<string?> consoleLogLevel = default, Option<string?> branch = default, Option<string?> apiKey = default, Option<string?> sslCertPath = default, Option<string?> sslCertPassword = default, Option<string?> urlBase = default, Option<string?> instanceName = default, Option<string?> applicationUrl = default, Option<bool?> updateAutomatically = default, Option<UpdateMechanism?> updateMechanism = default, Option<string?> updateScriptPath = default, Option<bool?> proxyEnabled = default, Option<ProxyType?> proxyType = default, Option<string?> proxyHostname = default, Option<int?> proxyPort = default, Option<string?> proxyUsername = default, Option<string?> proxyPassword = default, Option<string?> proxyBypassFilter = default, Option<bool?> proxyBypassLocalAddresses = default, Option<CertificateValidationType?> certificateValidation = default, Option<string?> backupFolder = default, Option<int?> backupInterval = default, Option<int?> backupRetention = default)
+        public HostConfigResource(Option<int?> id = default, Option<string?> bindAddress = default, Option<int?> port = default, Option<int?> sslPort = default, Option<bool?> enableSsl = default, Option<bool?> launchBrowser = default, Option<AuthenticationType?> authenticationMethod = default, Option<AuthenticationRequiredType?> authenticationRequired = default, Option<bool?> analyticsEnabled = default, Option<string?> username = default, Option<string?> password = default, Option<string?> passwordConfirmation = default, Option<string?> logLevel = default, Option<int?> logSizeLimit = default, Option<string?> consoleLogLevel = default, Option<string?> branch = default, Option<string?> apiKey = default, Option<string?> sslCertPath = default, Option<string?> sslCertPassword = default, Option<string?> urlBase = default, Option<string?> instanceName = default, Option<string?> applicationUrl = default, Option<bool?> updateAutomatically = default, Option<UpdateMechanism?> updateMechanism = default, Option<string?> updateScriptPath = default, Option<bool?> proxyEnabled = default, Option<ProxyType?> proxyType = default, Option<string?> proxyHostname = default, Option<int?> proxyPort = default, Option<string?> proxyUsername = default, Option<string?> proxyPassword = default, Option<string?> proxyBypassFilter = default, Option<bool?> proxyBypassLocalAddresses = default, Option<CertificateValidationType?> certificateValidation = default, Option<string?> backupFolder = default, Option<int?> backupInterval = default, Option<int?> backupRetention = default)
         {
             IdOption = id;
             BindAddressOption = bindAddress;
@@ -83,6 +84,7 @@ namespace Whisparr2.Net.Model
             AnalyticsEnabledOption = analyticsEnabled;
             UsernameOption = username;
             PasswordOption = password;
+            PasswordConfirmationOption = passwordConfirmation;
             LogLevelOption = logLevel;
             LogSizeLimitOption = logSizeLimit;
             ConsoleLogLevelOption = consoleLogLevel;
@@ -294,6 +296,19 @@ namespace Whisparr2.Net.Model
         /// </summary>
         [JsonPropertyName("password")]
         public string? Password { get { return this.PasswordOption.Value; } set { this.PasswordOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of PasswordConfirmation
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<string?> PasswordConfirmationOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets PasswordConfirmation
+        /// </summary>
+        [JsonPropertyName("passwordConfirmation")]
+        public string? PasswordConfirmation { get { return this.PasswordConfirmationOption.Value; } set { this.PasswordConfirmationOption = new(value); } }
 
         /// <summary>
         /// Used to track the state of LogLevel
@@ -600,6 +615,7 @@ namespace Whisparr2.Net.Model
             sb.Append("  AnalyticsEnabled: ").Append(AnalyticsEnabled).Append("\n");
             sb.Append("  Username: ").Append(Username).Append("\n");
             sb.Append("  Password: ").Append(Password).Append("\n");
+            sb.Append("  PasswordConfirmation: ").Append(PasswordConfirmation).Append("\n");
             sb.Append("  LogLevel: ").Append(LogLevel).Append("\n");
             sb.Append("  LogSizeLimit: ").Append(LogSizeLimit).Append("\n");
             sb.Append("  ConsoleLogLevel: ").Append(ConsoleLogLevel).Append("\n");
@@ -683,6 +699,7 @@ namespace Whisparr2.Net.Model
             Option<bool?> analyticsEnabled = default;
             Option<string?> username = default;
             Option<string?> password = default;
+            Option<string?> passwordConfirmation = default;
             Option<string?> logLevel = default;
             Option<int?> logSizeLimit = default;
             Option<string?> consoleLogLevel = default;
@@ -756,6 +773,9 @@ namespace Whisparr2.Net.Model
                             break;
                         case "password":
                             password = new Option<string?>(utf8JsonReader.GetString());
+                            break;
+                        case "passwordConfirmation":
+                            passwordConfirmation = new Option<string?>(utf8JsonReader.GetString());
                             break;
                         case "logLevel":
                             logLevel = new Option<string?>(utf8JsonReader.GetString());
@@ -862,6 +882,9 @@ namespace Whisparr2.Net.Model
             if (analyticsEnabled.IsSet && analyticsEnabled.Value == null)
                 throw new ArgumentNullException(nameof(analyticsEnabled), "Property is not nullable for class HostConfigResource.");
 
+            if (logSizeLimit.IsSet && logSizeLimit.Value == null)
+                throw new ArgumentNullException(nameof(logSizeLimit), "Property is not nullable for class HostConfigResource.");
+
             if (updateAutomatically.IsSet && updateAutomatically.Value == null)
                 throw new ArgumentNullException(nameof(updateAutomatically), "Property is not nullable for class HostConfigResource.");
 
@@ -889,7 +912,7 @@ namespace Whisparr2.Net.Model
             if (backupRetention.IsSet && backupRetention.Value == null)
                 throw new ArgumentNullException(nameof(backupRetention), "Property is not nullable for class HostConfigResource.");
 
-            return new HostConfigResource(id, bindAddress, port, sslPort, enableSsl, launchBrowser, authenticationMethod, authenticationRequired, analyticsEnabled, username, password, logLevel, logSizeLimit, consoleLogLevel, branch, apiKey, sslCertPath, sslCertPassword, urlBase, instanceName, applicationUrl, updateAutomatically, updateMechanism, updateScriptPath, proxyEnabled, proxyType, proxyHostname, proxyPort, proxyUsername, proxyPassword, proxyBypassFilter, proxyBypassLocalAddresses, certificateValidation, backupFolder, backupInterval, backupRetention);
+            return new HostConfigResource(id, bindAddress, port, sslPort, enableSsl, launchBrowser, authenticationMethod, authenticationRequired, analyticsEnabled, username, password, passwordConfirmation, logLevel, logSizeLimit, consoleLogLevel, branch, apiKey, sslCertPath, sslCertPassword, urlBase, instanceName, applicationUrl, updateAutomatically, updateMechanism, updateScriptPath, proxyEnabled, proxyType, proxyHostname, proxyPort, proxyUsername, proxyPassword, proxyBypassFilter, proxyBypassLocalAddresses, certificateValidation, backupFolder, backupInterval, backupRetention);
         }
 
         /// <summary>
@@ -962,6 +985,12 @@ namespace Whisparr2.Net.Model
                 else
                     writer.WriteNull("password");
 
+            if (hostConfigResource.PasswordConfirmationOption.IsSet)
+                if (hostConfigResource.PasswordConfirmationOption.Value != null)
+                    writer.WriteString("passwordConfirmation", hostConfigResource.PasswordConfirmation);
+                else
+                    writer.WriteNull("passwordConfirmation");
+
             if (hostConfigResource.LogLevelOption.IsSet)
                 if (hostConfigResource.LogLevelOption.Value != null)
                     writer.WriteString("logLevel", hostConfigResource.LogLevel);
@@ -969,10 +998,7 @@ namespace Whisparr2.Net.Model
                     writer.WriteNull("logLevel");
 
             if (hostConfigResource.LogSizeLimitOption.IsSet)
-                if (hostConfigResource.LogSizeLimitOption.Value != null)
-                    writer.WriteNumber("logSizeLimit", hostConfigResource.LogSizeLimitOption.Value!.Value);
-                else
-                    writer.WriteNull("logSizeLimit");
+                writer.WriteNumber("logSizeLimit", hostConfigResource.LogSizeLimitOption.Value!.Value);
 
             if (hostConfigResource.ConsoleLogLevelOption.IsSet)
                 if (hostConfigResource.ConsoleLogLevelOption.Value != null)

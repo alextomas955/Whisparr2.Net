@@ -47,6 +47,7 @@ namespace Whisparr2.Net.Model
         /// <param name="onGrab">onGrab</param>
         /// <param name="onDownload">onDownload</param>
         /// <param name="onUpgrade">onUpgrade</param>
+        /// <param name="onImportComplete">onImportComplete</param>
         /// <param name="onRename">onRename</param>
         /// <param name="onSeriesAdd">onSeriesAdd</param>
         /// <param name="onSeriesDelete">onSeriesDelete</param>
@@ -59,6 +60,7 @@ namespace Whisparr2.Net.Model
         /// <param name="supportsOnGrab">supportsOnGrab</param>
         /// <param name="supportsOnDownload">supportsOnDownload</param>
         /// <param name="supportsOnUpgrade">supportsOnUpgrade</param>
+        /// <param name="supportsOnImportComplete">supportsOnImportComplete</param>
         /// <param name="supportsOnRename">supportsOnRename</param>
         /// <param name="supportsOnSeriesAdd">supportsOnSeriesAdd</param>
         /// <param name="supportsOnSeriesDelete">supportsOnSeriesDelete</param>
@@ -71,7 +73,7 @@ namespace Whisparr2.Net.Model
         /// <param name="includeHealthWarnings">includeHealthWarnings</param>
         /// <param name="testCommand">testCommand</param>
         [JsonConstructor]
-        public NotificationResource(Option<int?> id = default, Option<string?> name = default, Option<List<Field>?> fields = default, Option<string?> implementationName = default, Option<string?> implementation = default, Option<string?> configContract = default, Option<string?> infoLink = default, Option<ProviderMessage?> message = default, Option<List<int>?> tags = default, Option<List<NotificationResource>?> presets = default, Option<string?> link = default, Option<bool?> onGrab = default, Option<bool?> onDownload = default, Option<bool?> onUpgrade = default, Option<bool?> onRename = default, Option<bool?> onSeriesAdd = default, Option<bool?> onSeriesDelete = default, Option<bool?> onEpisodeFileDelete = default, Option<bool?> onEpisodeFileDeleteForUpgrade = default, Option<bool?> onHealthIssue = default, Option<bool?> onHealthRestored = default, Option<bool?> onApplicationUpdate = default, Option<bool?> onManualInteractionRequired = default, Option<bool?> supportsOnGrab = default, Option<bool?> supportsOnDownload = default, Option<bool?> supportsOnUpgrade = default, Option<bool?> supportsOnRename = default, Option<bool?> supportsOnSeriesAdd = default, Option<bool?> supportsOnSeriesDelete = default, Option<bool?> supportsOnEpisodeFileDelete = default, Option<bool?> supportsOnEpisodeFileDeleteForUpgrade = default, Option<bool?> supportsOnHealthIssue = default, Option<bool?> supportsOnHealthRestored = default, Option<bool?> supportsOnApplicationUpdate = default, Option<bool?> supportsOnManualInteractionRequired = default, Option<bool?> includeHealthWarnings = default, Option<string?> testCommand = default)
+        public NotificationResource(Option<int?> id = default, Option<string?> name = default, Option<List<Field>?> fields = default, Option<string?> implementationName = default, Option<string?> implementation = default, Option<string?> configContract = default, Option<string?> infoLink = default, Option<ProviderMessage?> message = default, Option<List<int>?> tags = default, Option<List<NotificationResource>?> presets = default, Option<string?> link = default, Option<bool?> onGrab = default, Option<bool?> onDownload = default, Option<bool?> onUpgrade = default, Option<bool?> onImportComplete = default, Option<bool?> onRename = default, Option<bool?> onSeriesAdd = default, Option<bool?> onSeriesDelete = default, Option<bool?> onEpisodeFileDelete = default, Option<bool?> onEpisodeFileDeleteForUpgrade = default, Option<bool?> onHealthIssue = default, Option<bool?> onHealthRestored = default, Option<bool?> onApplicationUpdate = default, Option<bool?> onManualInteractionRequired = default, Option<bool?> supportsOnGrab = default, Option<bool?> supportsOnDownload = default, Option<bool?> supportsOnUpgrade = default, Option<bool?> supportsOnImportComplete = default, Option<bool?> supportsOnRename = default, Option<bool?> supportsOnSeriesAdd = default, Option<bool?> supportsOnSeriesDelete = default, Option<bool?> supportsOnEpisodeFileDelete = default, Option<bool?> supportsOnEpisodeFileDeleteForUpgrade = default, Option<bool?> supportsOnHealthIssue = default, Option<bool?> supportsOnHealthRestored = default, Option<bool?> supportsOnApplicationUpdate = default, Option<bool?> supportsOnManualInteractionRequired = default, Option<bool?> includeHealthWarnings = default, Option<string?> testCommand = default)
         {
             IdOption = id;
             NameOption = name;
@@ -87,6 +89,7 @@ namespace Whisparr2.Net.Model
             OnGrabOption = onGrab;
             OnDownloadOption = onDownload;
             OnUpgradeOption = onUpgrade;
+            OnImportCompleteOption = onImportComplete;
             OnRenameOption = onRename;
             OnSeriesAddOption = onSeriesAdd;
             OnSeriesDeleteOption = onSeriesDelete;
@@ -99,6 +102,7 @@ namespace Whisparr2.Net.Model
             SupportsOnGrabOption = supportsOnGrab;
             SupportsOnDownloadOption = supportsOnDownload;
             SupportsOnUpgradeOption = supportsOnUpgrade;
+            SupportsOnImportCompleteOption = supportsOnImportComplete;
             SupportsOnRenameOption = supportsOnRename;
             SupportsOnSeriesAddOption = supportsOnSeriesAdd;
             SupportsOnSeriesDeleteOption = supportsOnSeriesDelete;
@@ -298,6 +302,19 @@ namespace Whisparr2.Net.Model
         public bool? OnUpgrade { get { return this.OnUpgradeOption.Value; } set { this.OnUpgradeOption = new(value); } }
 
         /// <summary>
+        /// Used to track the state of OnImportComplete
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<bool?> OnImportCompleteOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets OnImportComplete
+        /// </summary>
+        [JsonPropertyName("onImportComplete")]
+        public bool? OnImportComplete { get { return this.OnImportCompleteOption.Value; } set { this.OnImportCompleteOption = new(value); } }
+
+        /// <summary>
         /// Used to track the state of OnRename
         /// </summary>
         [JsonIgnore]
@@ -452,6 +469,19 @@ namespace Whisparr2.Net.Model
         /// </summary>
         [JsonPropertyName("supportsOnUpgrade")]
         public bool? SupportsOnUpgrade { get { return this.SupportsOnUpgradeOption.Value; } set { this.SupportsOnUpgradeOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of SupportsOnImportComplete
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<bool?> SupportsOnImportCompleteOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets SupportsOnImportComplete
+        /// </summary>
+        [JsonPropertyName("supportsOnImportComplete")]
+        public bool? SupportsOnImportComplete { get { return this.SupportsOnImportCompleteOption.Value; } set { this.SupportsOnImportCompleteOption = new(value); } }
 
         /// <summary>
         /// Used to track the state of SupportsOnRename
@@ -618,6 +648,7 @@ namespace Whisparr2.Net.Model
             sb.Append("  OnGrab: ").Append(OnGrab).Append("\n");
             sb.Append("  OnDownload: ").Append(OnDownload).Append("\n");
             sb.Append("  OnUpgrade: ").Append(OnUpgrade).Append("\n");
+            sb.Append("  OnImportComplete: ").Append(OnImportComplete).Append("\n");
             sb.Append("  OnRename: ").Append(OnRename).Append("\n");
             sb.Append("  OnSeriesAdd: ").Append(OnSeriesAdd).Append("\n");
             sb.Append("  OnSeriesDelete: ").Append(OnSeriesDelete).Append("\n");
@@ -630,6 +661,7 @@ namespace Whisparr2.Net.Model
             sb.Append("  SupportsOnGrab: ").Append(SupportsOnGrab).Append("\n");
             sb.Append("  SupportsOnDownload: ").Append(SupportsOnDownload).Append("\n");
             sb.Append("  SupportsOnUpgrade: ").Append(SupportsOnUpgrade).Append("\n");
+            sb.Append("  SupportsOnImportComplete: ").Append(SupportsOnImportComplete).Append("\n");
             sb.Append("  SupportsOnRename: ").Append(SupportsOnRename).Append("\n");
             sb.Append("  SupportsOnSeriesAdd: ").Append(SupportsOnSeriesAdd).Append("\n");
             sb.Append("  SupportsOnSeriesDelete: ").Append(SupportsOnSeriesDelete).Append("\n");
@@ -702,6 +734,7 @@ namespace Whisparr2.Net.Model
             Option<bool?> onGrab = default;
             Option<bool?> onDownload = default;
             Option<bool?> onUpgrade = default;
+            Option<bool?> onImportComplete = default;
             Option<bool?> onRename = default;
             Option<bool?> onSeriesAdd = default;
             Option<bool?> onSeriesDelete = default;
@@ -714,6 +747,7 @@ namespace Whisparr2.Net.Model
             Option<bool?> supportsOnGrab = default;
             Option<bool?> supportsOnDownload = default;
             Option<bool?> supportsOnUpgrade = default;
+            Option<bool?> supportsOnImportComplete = default;
             Option<bool?> supportsOnRename = default;
             Option<bool?> supportsOnSeriesAdd = default;
             Option<bool?> supportsOnSeriesDelete = default;
@@ -783,6 +817,9 @@ namespace Whisparr2.Net.Model
                         case "onUpgrade":
                             onUpgrade = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
                             break;
+                        case "onImportComplete":
+                            onImportComplete = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
+                            break;
                         case "onRename":
                             onRename = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
                             break;
@@ -818,6 +855,9 @@ namespace Whisparr2.Net.Model
                             break;
                         case "supportsOnUpgrade":
                             supportsOnUpgrade = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
+                            break;
+                        case "supportsOnImportComplete":
+                            supportsOnImportComplete = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
                             break;
                         case "supportsOnRename":
                             supportsOnRename = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
@@ -873,6 +913,9 @@ namespace Whisparr2.Net.Model
             if (onUpgrade.IsSet && onUpgrade.Value == null)
                 throw new ArgumentNullException(nameof(onUpgrade), "Property is not nullable for class NotificationResource.");
 
+            if (onImportComplete.IsSet && onImportComplete.Value == null)
+                throw new ArgumentNullException(nameof(onImportComplete), "Property is not nullable for class NotificationResource.");
+
             if (onRename.IsSet && onRename.Value == null)
                 throw new ArgumentNullException(nameof(onRename), "Property is not nullable for class NotificationResource.");
 
@@ -909,6 +952,9 @@ namespace Whisparr2.Net.Model
             if (supportsOnUpgrade.IsSet && supportsOnUpgrade.Value == null)
                 throw new ArgumentNullException(nameof(supportsOnUpgrade), "Property is not nullable for class NotificationResource.");
 
+            if (supportsOnImportComplete.IsSet && supportsOnImportComplete.Value == null)
+                throw new ArgumentNullException(nameof(supportsOnImportComplete), "Property is not nullable for class NotificationResource.");
+
             if (supportsOnRename.IsSet && supportsOnRename.Value == null)
                 throw new ArgumentNullException(nameof(supportsOnRename), "Property is not nullable for class NotificationResource.");
 
@@ -939,7 +985,7 @@ namespace Whisparr2.Net.Model
             if (includeHealthWarnings.IsSet && includeHealthWarnings.Value == null)
                 throw new ArgumentNullException(nameof(includeHealthWarnings), "Property is not nullable for class NotificationResource.");
 
-            return new NotificationResource(id, name, fields, implementationName, implementation, configContract, infoLink, message, tags, presets, link, onGrab, onDownload, onUpgrade, onRename, onSeriesAdd, onSeriesDelete, onEpisodeFileDelete, onEpisodeFileDeleteForUpgrade, onHealthIssue, onHealthRestored, onApplicationUpdate, onManualInteractionRequired, supportsOnGrab, supportsOnDownload, supportsOnUpgrade, supportsOnRename, supportsOnSeriesAdd, supportsOnSeriesDelete, supportsOnEpisodeFileDelete, supportsOnEpisodeFileDeleteForUpgrade, supportsOnHealthIssue, supportsOnHealthRestored, supportsOnApplicationUpdate, supportsOnManualInteractionRequired, includeHealthWarnings, testCommand);
+            return new NotificationResource(id, name, fields, implementationName, implementation, configContract, infoLink, message, tags, presets, link, onGrab, onDownload, onUpgrade, onImportComplete, onRename, onSeriesAdd, onSeriesDelete, onEpisodeFileDelete, onEpisodeFileDeleteForUpgrade, onHealthIssue, onHealthRestored, onApplicationUpdate, onManualInteractionRequired, supportsOnGrab, supportsOnDownload, supportsOnUpgrade, supportsOnImportComplete, supportsOnRename, supportsOnSeriesAdd, supportsOnSeriesDelete, supportsOnEpisodeFileDelete, supportsOnEpisodeFileDeleteForUpgrade, supportsOnHealthIssue, supportsOnHealthRestored, supportsOnApplicationUpdate, supportsOnManualInteractionRequired, includeHealthWarnings, testCommand);
         }
 
         /// <summary>
@@ -1046,6 +1092,9 @@ namespace Whisparr2.Net.Model
             if (notificationResource.OnUpgradeOption.IsSet)
                 writer.WriteBoolean("onUpgrade", notificationResource.OnUpgradeOption.Value!.Value);
 
+            if (notificationResource.OnImportCompleteOption.IsSet)
+                writer.WriteBoolean("onImportComplete", notificationResource.OnImportCompleteOption.Value!.Value);
+
             if (notificationResource.OnRenameOption.IsSet)
                 writer.WriteBoolean("onRename", notificationResource.OnRenameOption.Value!.Value);
 
@@ -1081,6 +1130,9 @@ namespace Whisparr2.Net.Model
 
             if (notificationResource.SupportsOnUpgradeOption.IsSet)
                 writer.WriteBoolean("supportsOnUpgrade", notificationResource.SupportsOnUpgradeOption.Value!.Value);
+
+            if (notificationResource.SupportsOnImportCompleteOption.IsSet)
+                writer.WriteBoolean("supportsOnImportComplete", notificationResource.SupportsOnImportCompleteOption.Value!.Value);
 
             if (notificationResource.SupportsOnRenameOption.IsSet)
                 writer.WriteBoolean("supportsOnRename", notificationResource.SupportsOnRenameOption.Value!.Value);

@@ -43,9 +43,10 @@ namespace Whisparr2.Net.Model
         /// <param name="releaseHash">releaseHash</param>
         /// <param name="seasonPart">seasonPart</param>
         /// <param name="releaseTokens">releaseTokens</param>
+        /// <param name="externalId">externalId</param>
         /// <param name="isDaily">isDaily</param>
         [JsonConstructor]
-        public ParsedEpisodeInfo(Option<string?> releaseTitle = default, Option<string?> seriesTitle = default, Option<SeriesTitleInfo?> seriesTitleInfo = default, Option<QualityModel?> quality = default, Option<string?> airDate = default, Option<List<Language>?> languages = default, Option<string?> releaseGroup = default, Option<string?> releaseHash = default, Option<int?> seasonPart = default, Option<string?> releaseTokens = default, Option<bool?> isDaily = default)
+        public ParsedEpisodeInfo(Option<string?> releaseTitle = default, Option<string?> seriesTitle = default, Option<SeriesTitleInfo?> seriesTitleInfo = default, Option<QualityModel?> quality = default, Option<string?> airDate = default, Option<List<Language>?> languages = default, Option<string?> releaseGroup = default, Option<string?> releaseHash = default, Option<int?> seasonPart = default, Option<string?> releaseTokens = default, Option<string?> externalId = default, Option<bool?> isDaily = default)
         {
             ReleaseTitleOption = releaseTitle;
             SeriesTitleOption = seriesTitle;
@@ -57,6 +58,7 @@ namespace Whisparr2.Net.Model
             ReleaseHashOption = releaseHash;
             SeasonPartOption = seasonPart;
             ReleaseTokensOption = releaseTokens;
+            ExternalIdOption = externalId;
             IsDailyOption = isDaily;
             OnCreated();
         }
@@ -194,6 +196,19 @@ namespace Whisparr2.Net.Model
         public string? ReleaseTokens { get { return this.ReleaseTokensOption.Value; } set { this.ReleaseTokensOption = new(value); } }
 
         /// <summary>
+        /// Used to track the state of ExternalId
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<string?> ExternalIdOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets ExternalId
+        /// </summary>
+        [JsonPropertyName("externalId")]
+        public string? ExternalId { get { return this.ExternalIdOption.Value; } set { this.ExternalIdOption = new(value); } }
+
+        /// <summary>
         /// Used to track the state of IsDaily
         /// </summary>
         [JsonIgnore]
@@ -224,6 +239,7 @@ namespace Whisparr2.Net.Model
             sb.Append("  ReleaseHash: ").Append(ReleaseHash).Append("\n");
             sb.Append("  SeasonPart: ").Append(SeasonPart).Append("\n");
             sb.Append("  ReleaseTokens: ").Append(ReleaseTokens).Append("\n");
+            sb.Append("  ExternalId: ").Append(ExternalId).Append("\n");
             sb.Append("  IsDaily: ").Append(IsDaily).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
@@ -282,6 +298,7 @@ namespace Whisparr2.Net.Model
             Option<string?> releaseHash = default;
             Option<int?> seasonPart = default;
             Option<string?> releaseTokens = default;
+            Option<string?> externalId = default;
             Option<bool?> isDaily = default;
 
             while (utf8JsonReader.Read())
@@ -329,6 +346,9 @@ namespace Whisparr2.Net.Model
                         case "releaseTokens":
                             releaseTokens = new Option<string?>(utf8JsonReader.GetString());
                             break;
+                        case "externalId":
+                            externalId = new Option<string?>(utf8JsonReader.GetString());
+                            break;
                         case "isDaily":
                             isDaily = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
                             break;
@@ -350,7 +370,7 @@ namespace Whisparr2.Net.Model
             if (isDaily.IsSet && isDaily.Value == null)
                 throw new ArgumentNullException(nameof(isDaily), "Property is not nullable for class ParsedEpisodeInfo.");
 
-            return new ParsedEpisodeInfo(releaseTitle, seriesTitle, seriesTitleInfo, quality, airDate, languages, releaseGroup, releaseHash, seasonPart, releaseTokens, isDaily);
+            return new ParsedEpisodeInfo(releaseTitle, seriesTitle, seriesTitleInfo, quality, airDate, languages, releaseGroup, releaseHash, seasonPart, releaseTokens, externalId, isDaily);
         }
 
         /// <summary>
@@ -439,6 +459,12 @@ namespace Whisparr2.Net.Model
                     writer.WriteString("releaseTokens", parsedEpisodeInfo.ReleaseTokens);
                 else
                     writer.WriteNull("releaseTokens");
+
+            if (parsedEpisodeInfo.ExternalIdOption.IsSet)
+                if (parsedEpisodeInfo.ExternalIdOption.Value != null)
+                    writer.WriteString("externalId", parsedEpisodeInfo.ExternalId);
+                else
+                    writer.WriteNull("externalId");
 
             if (parsedEpisodeInfo.IsDailyOption.IsSet)
                 writer.WriteBoolean("isDaily", parsedEpisodeInfo.IsDailyOption.Value!.Value);

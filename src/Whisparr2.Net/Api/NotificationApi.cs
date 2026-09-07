@@ -204,10 +204,11 @@ namespace Whisparr2.Net.Api
         /// 
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="notificationResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestNotificationApiResponse"/>&gt;</returns>
-        Task<ITestNotificationApiResponse> TestNotificationAsync(Option<NotificationResource> notificationResource = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<ITestNotificationApiResponse> TestNotificationAsync(Option<bool> forceTest = default, Option<NotificationResource> notificationResource = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -215,10 +216,11 @@ namespace Whisparr2.Net.Api
         /// <remarks>
         /// 
         /// </remarks>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="notificationResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestNotificationApiResponse"/>?&gt;</returns>
-        Task<ITestNotificationApiResponse?> TestNotificationOrDefaultAsync(Option<NotificationResource> notificationResource = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<ITestNotificationApiResponse?> TestNotificationOrDefaultAsync(Option<bool> forceTest = default, Option<NotificationResource> notificationResource = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -2214,7 +2216,7 @@ namespace Whisparr2.Net.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatTestNotification(Option<NotificationResource> notificationResource);
+        partial void FormatTestNotification(ref Option<bool> forceTest, Option<NotificationResource> notificationResource);
 
         /// <summary>
         /// Validates the request parameters
@@ -2231,11 +2233,12 @@ namespace Whisparr2.Net.Api
         /// Processes the server response
         /// </summary>
         /// <param name="apiResponseLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="notificationResource"></param>
-        private void AfterTestNotificationDefaultImplementation(ITestNotificationApiResponse apiResponseLocalVar, Option<NotificationResource> notificationResource)
+        private void AfterTestNotificationDefaultImplementation(ITestNotificationApiResponse apiResponseLocalVar, Option<bool> forceTest, Option<NotificationResource> notificationResource)
         {
             bool suppressDefaultLog = false;
-            AfterTestNotification(ref suppressDefaultLog, apiResponseLocalVar, notificationResource);
+            AfterTestNotification(ref suppressDefaultLog, apiResponseLocalVar, forceTest, notificationResource);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -2245,8 +2248,9 @@ namespace Whisparr2.Net.Api
         /// </summary>
         /// <param name="suppressDefaultLog"></param>
         /// <param name="apiResponseLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="notificationResource"></param>
-        partial void AfterTestNotification(ref bool suppressDefaultLog, ITestNotificationApiResponse apiResponseLocalVar, Option<NotificationResource> notificationResource);
+        partial void AfterTestNotification(ref bool suppressDefaultLog, ITestNotificationApiResponse apiResponseLocalVar, Option<bool> forceTest, Option<NotificationResource> notificationResource);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -2254,11 +2258,12 @@ namespace Whisparr2.Net.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="notificationResource"></param>
-        private void OnErrorTestNotificationDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<NotificationResource> notificationResource)
+        private void OnErrorTestNotificationDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> forceTest, Option<NotificationResource> notificationResource)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorTestNotification(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, notificationResource);
+            OnErrorTestNotification(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, forceTest, notificationResource);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -2270,20 +2275,22 @@ namespace Whisparr2.Net.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="notificationResource"></param>
-        partial void OnErrorTestNotification(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<NotificationResource> notificationResource);
+        partial void OnErrorTestNotification(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> forceTest, Option<NotificationResource> notificationResource);
 
         /// <summary>
         ///  
         /// </summary>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="notificationResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestNotificationApiResponse"/>&gt;</returns>
-        public async Task<ITestNotificationApiResponse?> TestNotificationOrDefaultAsync(Option<NotificationResource> notificationResource = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<ITestNotificationApiResponse?> TestNotificationOrDefaultAsync(Option<bool> forceTest = default, Option<NotificationResource> notificationResource = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await TestNotificationAsync(notificationResource, cancellationToken).ConfigureAwait(false);
+                return await TestNotificationAsync(forceTest, notificationResource, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -2295,10 +2302,11 @@ namespace Whisparr2.Net.Api
         ///  
         /// </summary>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="notificationResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestNotificationApiResponse"/>&gt;</returns>
-        public async Task<ITestNotificationApiResponse> TestNotificationAsync(Option<NotificationResource> notificationResource = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<ITestNotificationApiResponse> TestNotificationAsync(Option<bool> forceTest = default, Option<NotificationResource> notificationResource = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
@@ -2306,7 +2314,7 @@ namespace Whisparr2.Net.Api
             {
                 ValidateTestNotification(notificationResource);
 
-                FormatTestNotification(notificationResource);
+                FormatTestNotification(ref forceTest, notificationResource);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -2316,6 +2324,13 @@ namespace Whisparr2.Net.Api
                     uriBuilderLocalVar.Path = HttpClient.BaseAddress.AbsolutePath == "/"
                         ? "/api/v3/notification/test"
                         : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/api/v3/notification/test");
+
+                    System.Collections.Specialized.NameValueCollection parseQueryStringLocalVar = System.Web.HttpUtility.ParseQueryString(string.Empty);
+
+                    if (forceTest.IsSet)
+                        parseQueryStringLocalVar["forceTest"] = ClientUtils.ParameterToString(forceTest.Value);
+
+                    uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
 
                     if (notificationResource.IsSet)
                     {
@@ -2357,7 +2372,7 @@ namespace Whisparr2.Net.Api
                             }
                         }
 
-                        AfterTestNotificationDefaultImplementation(apiResponseLocalVar, notificationResource);
+                        AfterTestNotificationDefaultImplementation(apiResponseLocalVar, forceTest, notificationResource);
 
                         Events.ExecuteOnTestNotification(apiResponseLocalVar);
 
@@ -2371,7 +2386,7 @@ namespace Whisparr2.Net.Api
             }
             catch(Exception e)
             {
-                OnErrorTestNotificationDefaultImplementation(e, "/api/v3/notification/test", uriBuilderLocalVar.Path, notificationResource);
+                OnErrorTestNotificationDefaultImplementation(e, "/api/v3/notification/test", uriBuilderLocalVar.Path, forceTest, notificationResource);
                 Events.ExecuteOnErrorTestNotification(e);
                 throw;
             }

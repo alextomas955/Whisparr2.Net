@@ -37,13 +37,15 @@ namespace Whisparr2.Net.Model
         /// <param name="downloadClientWorkingFolders">downloadClientWorkingFolders</param>
         /// <param name="enableCompletedDownloadHandling">enableCompletedDownloadHandling</param>
         /// <param name="autoRedownloadFailed">autoRedownloadFailed</param>
+        /// <param name="autoRedownloadFailedFromInteractiveSearch">autoRedownloadFailedFromInteractiveSearch</param>
         [JsonConstructor]
-        public DownloadClientConfigResource(Option<int?> id = default, Option<string?> downloadClientWorkingFolders = default, Option<bool?> enableCompletedDownloadHandling = default, Option<bool?> autoRedownloadFailed = default)
+        public DownloadClientConfigResource(Option<int?> id = default, Option<string?> downloadClientWorkingFolders = default, Option<bool?> enableCompletedDownloadHandling = default, Option<bool?> autoRedownloadFailed = default, Option<bool?> autoRedownloadFailedFromInteractiveSearch = default)
         {
             IdOption = id;
             DownloadClientWorkingFoldersOption = downloadClientWorkingFolders;
             EnableCompletedDownloadHandlingOption = enableCompletedDownloadHandling;
             AutoRedownloadFailedOption = autoRedownloadFailed;
+            AutoRedownloadFailedFromInteractiveSearchOption = autoRedownloadFailedFromInteractiveSearch;
             OnCreated();
         }
 
@@ -102,6 +104,19 @@ namespace Whisparr2.Net.Model
         public bool? AutoRedownloadFailed { get { return this.AutoRedownloadFailedOption.Value; } set { this.AutoRedownloadFailedOption = new(value); } }
 
         /// <summary>
+        /// Used to track the state of AutoRedownloadFailedFromInteractiveSearch
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<bool?> AutoRedownloadFailedFromInteractiveSearchOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets AutoRedownloadFailedFromInteractiveSearch
+        /// </summary>
+        [JsonPropertyName("autoRedownloadFailedFromInteractiveSearch")]
+        public bool? AutoRedownloadFailedFromInteractiveSearch { get { return this.AutoRedownloadFailedFromInteractiveSearchOption.Value; } set { this.AutoRedownloadFailedFromInteractiveSearchOption = new(value); } }
+
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -113,6 +128,7 @@ namespace Whisparr2.Net.Model
             sb.Append("  DownloadClientWorkingFolders: ").Append(DownloadClientWorkingFolders).Append("\n");
             sb.Append("  EnableCompletedDownloadHandling: ").Append(EnableCompletedDownloadHandling).Append("\n");
             sb.Append("  AutoRedownloadFailed: ").Append(AutoRedownloadFailed).Append("\n");
+            sb.Append("  AutoRedownloadFailedFromInteractiveSearch: ").Append(AutoRedownloadFailedFromInteractiveSearch).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
@@ -164,6 +180,7 @@ namespace Whisparr2.Net.Model
             Option<string?> downloadClientWorkingFolders = default;
             Option<bool?> enableCompletedDownloadHandling = default;
             Option<bool?> autoRedownloadFailed = default;
+            Option<bool?> autoRedownloadFailedFromInteractiveSearch = default;
 
             while (utf8JsonReader.Read())
             {
@@ -192,6 +209,9 @@ namespace Whisparr2.Net.Model
                         case "autoRedownloadFailed":
                             autoRedownloadFailed = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
                             break;
+                        case "autoRedownloadFailedFromInteractiveSearch":
+                            autoRedownloadFailedFromInteractiveSearch = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
+                            break;
                         default:
                             break;
                     }
@@ -207,7 +227,10 @@ namespace Whisparr2.Net.Model
             if (autoRedownloadFailed.IsSet && autoRedownloadFailed.Value == null)
                 throw new ArgumentNullException(nameof(autoRedownloadFailed), "Property is not nullable for class DownloadClientConfigResource.");
 
-            return new DownloadClientConfigResource(id, downloadClientWorkingFolders, enableCompletedDownloadHandling, autoRedownloadFailed);
+            if (autoRedownloadFailedFromInteractiveSearch.IsSet && autoRedownloadFailedFromInteractiveSearch.Value == null)
+                throw new ArgumentNullException(nameof(autoRedownloadFailedFromInteractiveSearch), "Property is not nullable for class DownloadClientConfigResource.");
+
+            return new DownloadClientConfigResource(id, downloadClientWorkingFolders, enableCompletedDownloadHandling, autoRedownloadFailed, autoRedownloadFailedFromInteractiveSearch);
         }
 
         /// <summary>
@@ -248,6 +271,9 @@ namespace Whisparr2.Net.Model
 
             if (downloadClientConfigResource.AutoRedownloadFailedOption.IsSet)
                 writer.WriteBoolean("autoRedownloadFailed", downloadClientConfigResource.AutoRedownloadFailedOption.Value!.Value);
+
+            if (downloadClientConfigResource.AutoRedownloadFailedFromInteractiveSearchOption.IsSet)
+                writer.WriteBoolean("autoRedownloadFailedFromInteractiveSearch", downloadClientConfigResource.AutoRedownloadFailedFromInteractiveSearchOption.Value!.Value);
         }
     }
 }

@@ -51,6 +51,8 @@ namespace Whisparr2.Net.Model
         /// <param name="path">path</param>
         /// <param name="qualityProfileId">qualityProfileId</param>
         /// <param name="monitored">monitored</param>
+        /// <param name="seriesType">seriesType</param>
+        /// <param name="monitorNewItems">monitorNewItems</param>
         /// <param name="useSceneNumbering">useSceneNumbering</param>
         /// <param name="runtime">runtime</param>
         /// <param name="tvdbId">tvdbId</param>
@@ -68,7 +70,7 @@ namespace Whisparr2.Net.Model
         /// <param name="statistics">statistics</param>
         /// <param name="episodesChanged">episodesChanged</param>
         [JsonConstructor]
-        public SeriesResource(Option<int?> id = default, Option<string?> title = default, Option<string?> sortTitle = default, Option<SeriesStatusType?> status = default, Option<bool?> ended = default, Option<string?> profileName = default, Option<string?> overview = default, Option<DateTime?> nextAiring = default, Option<DateTime?> previousAiring = default, Option<string?> network = default, Option<List<MediaCover>?> images = default, Option<Language?> originalLanguage = default, Option<string?> remotePoster = default, Option<List<SeasonResource>?> seasons = default, Option<int?> year = default, Option<string?> path = default, Option<int?> qualityProfileId = default, Option<bool?> monitored = default, Option<bool?> useSceneNumbering = default, Option<int?> runtime = default, Option<int?> tvdbId = default, Option<DateTime?> firstAired = default, Option<string?> cleanTitle = default, Option<string?> titleSlug = default, Option<string?> rootFolderPath = default, Option<string?> folder = default, Option<string?> certification = default, Option<List<string>?> genres = default, Option<List<int>?> tags = default, Option<DateTime?> added = default, Option<AddSeriesOptions?> addOptions = default, Option<Ratings?> ratings = default, Option<SeriesStatisticsResource?> statistics = default, Option<bool?> episodesChanged = default)
+        public SeriesResource(Option<int?> id = default, Option<string?> title = default, Option<string?> sortTitle = default, Option<SeriesStatusType?> status = default, Option<bool?> ended = default, Option<string?> profileName = default, Option<string?> overview = default, Option<DateTime?> nextAiring = default, Option<DateTime?> previousAiring = default, Option<string?> network = default, Option<List<MediaCover>?> images = default, Option<Language?> originalLanguage = default, Option<string?> remotePoster = default, Option<List<SeasonResource>?> seasons = default, Option<int?> year = default, Option<string?> path = default, Option<int?> qualityProfileId = default, Option<bool?> monitored = default, Option<SeriesTypes?> seriesType = default, Option<NewItemMonitorTypes?> monitorNewItems = default, Option<bool?> useSceneNumbering = default, Option<int?> runtime = default, Option<int?> tvdbId = default, Option<DateTime?> firstAired = default, Option<string?> cleanTitle = default, Option<string?> titleSlug = default, Option<string?> rootFolderPath = default, Option<string?> folder = default, Option<string?> certification = default, Option<List<string>?> genres = default, Option<List<int>?> tags = default, Option<DateTime?> added = default, Option<AddSeriesOptions?> addOptions = default, Option<Ratings?> ratings = default, Option<SeriesStatisticsResource?> statistics = default, Option<bool?> episodesChanged = default)
         {
             IdOption = id;
             TitleOption = title;
@@ -88,6 +90,8 @@ namespace Whisparr2.Net.Model
             PathOption = path;
             QualityProfileIdOption = qualityProfileId;
             MonitoredOption = monitored;
+            SeriesTypeOption = seriesType;
+            MonitorNewItemsOption = monitorNewItems;
             UseSceneNumberingOption = useSceneNumbering;
             RuntimeOption = runtime;
             TvdbIdOption = tvdbId;
@@ -121,6 +125,32 @@ namespace Whisparr2.Net.Model
         /// </summary>
         [JsonPropertyName("status")]
         public SeriesStatusType? Status { get { return this.StatusOption.Value; } set { this.StatusOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of SeriesType
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<SeriesTypes?> SeriesTypeOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets SeriesType
+        /// </summary>
+        [JsonPropertyName("seriesType")]
+        public SeriesTypes? SeriesType { get { return this.SeriesTypeOption.Value; } set { this.SeriesTypeOption = new(value); } }
+
+        /// <summary>
+        /// Used to track the state of MonitorNewItems
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<NewItemMonitorTypes?> MonitorNewItemsOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets MonitorNewItems
+        /// </summary>
+        [JsonPropertyName("monitorNewItems")]
+        public NewItemMonitorTypes? MonitorNewItems { get { return this.MonitorNewItemsOption.Value; } set { this.MonitorNewItemsOption = new(value); } }
 
         /// <summary>
         /// Used to track the state of Id
@@ -577,6 +607,8 @@ namespace Whisparr2.Net.Model
             sb.Append("  Path: ").Append(Path).Append("\n");
             sb.Append("  QualityProfileId: ").Append(QualityProfileId).Append("\n");
             sb.Append("  Monitored: ").Append(Monitored).Append("\n");
+            sb.Append("  SeriesType: ").Append(SeriesType).Append("\n");
+            sb.Append("  MonitorNewItems: ").Append(MonitorNewItems).Append("\n");
             sb.Append("  UseSceneNumbering: ").Append(UseSceneNumbering).Append("\n");
             sb.Append("  Runtime: ").Append(Runtime).Append("\n");
             sb.Append("  TvdbId: ").Append(TvdbId).Append("\n");
@@ -678,6 +710,8 @@ namespace Whisparr2.Net.Model
             Option<string?> path = default;
             Option<int?> qualityProfileId = default;
             Option<bool?> monitored = default;
+            Option<SeriesTypes?> seriesType = default;
+            Option<NewItemMonitorTypes?> monitorNewItems = default;
             Option<bool?> useSceneNumbering = default;
             Option<int?> runtime = default;
             Option<int?> tvdbId = default;
@@ -764,6 +798,12 @@ namespace Whisparr2.Net.Model
                         case "monitored":
                             monitored = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
                             break;
+                        case "seriesType":
+                            seriesType = new Option<SeriesTypes?>(JsonSerializer.Deserialize<SeriesTypes?>(ref utf8JsonReader, jsonSerializerOptions));
+                            break;
+                        case "monitorNewItems":
+                            monitorNewItems = new Option<NewItemMonitorTypes?>(JsonSerializer.Deserialize<NewItemMonitorTypes?>(ref utf8JsonReader, jsonSerializerOptions));
+                            break;
                         case "useSceneNumbering":
                             useSceneNumbering = new Option<bool?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (bool?)null : utf8JsonReader.GetBoolean());
                             break;
@@ -839,6 +879,12 @@ namespace Whisparr2.Net.Model
             if (monitored.IsSet && monitored.Value == null)
                 throw new ArgumentNullException(nameof(monitored), "Property is not nullable for class SeriesResource.");
 
+            if (seriesType.IsSet && seriesType.Value == null)
+                throw new ArgumentNullException(nameof(seriesType), "Property is not nullable for class SeriesResource.");
+
+            if (monitorNewItems.IsSet && monitorNewItems.Value == null)
+                throw new ArgumentNullException(nameof(monitorNewItems), "Property is not nullable for class SeriesResource.");
+
             if (useSceneNumbering.IsSet && useSceneNumbering.Value == null)
                 throw new ArgumentNullException(nameof(useSceneNumbering), "Property is not nullable for class SeriesResource.");
 
@@ -860,7 +906,7 @@ namespace Whisparr2.Net.Model
             if (statistics.IsSet && statistics.Value == null)
                 throw new ArgumentNullException(nameof(statistics), "Property is not nullable for class SeriesResource.");
 
-            return new SeriesResource(id, title, sortTitle, status, ended, profileName, overview, nextAiring, previousAiring, network, images, originalLanguage, remotePoster, seasons, year, path, qualityProfileId, monitored, useSceneNumbering, runtime, tvdbId, firstAired, cleanTitle, titleSlug, rootFolderPath, folder, certification, genres, tags, added, addOptions, ratings, statistics, episodesChanged);
+            return new SeriesResource(id, title, sortTitle, status, ended, profileName, overview, nextAiring, previousAiring, network, images, originalLanguage, remotePoster, seasons, year, path, qualityProfileId, monitored, seriesType, monitorNewItems, useSceneNumbering, runtime, tvdbId, firstAired, cleanTitle, titleSlug, rootFolderPath, folder, certification, genres, tags, added, addOptions, ratings, statistics, episodesChanged);
         }
 
         /// <summary>
@@ -994,6 +1040,16 @@ namespace Whisparr2.Net.Model
             if (seriesResource.MonitoredOption.IsSet)
                 writer.WriteBoolean("monitored", seriesResource.MonitoredOption.Value!.Value);
 
+            if (seriesResource.SeriesTypeOption.IsSet)
+            {
+                var seriesTypeRawValue = SeriesTypesValueConverter.ToJsonValue(seriesResource.SeriesType!.Value);
+                writer.WriteString("seriesType", seriesTypeRawValue);
+            }
+            if (seriesResource.MonitorNewItemsOption.IsSet)
+            {
+                var monitorNewItemsRawValue = NewItemMonitorTypesValueConverter.ToJsonValue(seriesResource.MonitorNewItems!.Value);
+                writer.WriteString("monitorNewItems", monitorNewItemsRawValue);
+            }
             if (seriesResource.UseSceneNumberingOption.IsSet)
                 writer.WriteBoolean("useSceneNumbering", seriesResource.UseSceneNumberingOption.Value!.Value);
 

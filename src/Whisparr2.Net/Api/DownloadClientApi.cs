@@ -250,10 +250,11 @@ namespace Whisparr2.Net.Api
         /// 
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="downloadClientResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestDownloadClientApiResponse"/>&gt;</returns>
-        Task<ITestDownloadClientApiResponse> TestDownloadClientAsync(Option<DownloadClientResource> downloadClientResource = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<ITestDownloadClientApiResponse> TestDownloadClientAsync(Option<bool> forceTest = default, Option<DownloadClientResource> downloadClientResource = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -261,10 +262,11 @@ namespace Whisparr2.Net.Api
         /// <remarks>
         /// 
         /// </remarks>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="downloadClientResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestDownloadClientApiResponse"/>?&gt;</returns>
-        Task<ITestDownloadClientApiResponse?> TestDownloadClientOrDefaultAsync(Option<DownloadClientResource> downloadClientResource = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<ITestDownloadClientApiResponse?> TestDownloadClientOrDefaultAsync(Option<bool> forceTest = default, Option<DownloadClientResource> downloadClientResource = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -2825,7 +2827,7 @@ namespace Whisparr2.Net.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatTestDownloadClient(Option<DownloadClientResource> downloadClientResource);
+        partial void FormatTestDownloadClient(ref Option<bool> forceTest, Option<DownloadClientResource> downloadClientResource);
 
         /// <summary>
         /// Validates the request parameters
@@ -2842,11 +2844,12 @@ namespace Whisparr2.Net.Api
         /// Processes the server response
         /// </summary>
         /// <param name="apiResponseLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="downloadClientResource"></param>
-        private void AfterTestDownloadClientDefaultImplementation(ITestDownloadClientApiResponse apiResponseLocalVar, Option<DownloadClientResource> downloadClientResource)
+        private void AfterTestDownloadClientDefaultImplementation(ITestDownloadClientApiResponse apiResponseLocalVar, Option<bool> forceTest, Option<DownloadClientResource> downloadClientResource)
         {
             bool suppressDefaultLog = false;
-            AfterTestDownloadClient(ref suppressDefaultLog, apiResponseLocalVar, downloadClientResource);
+            AfterTestDownloadClient(ref suppressDefaultLog, apiResponseLocalVar, forceTest, downloadClientResource);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -2856,8 +2859,9 @@ namespace Whisparr2.Net.Api
         /// </summary>
         /// <param name="suppressDefaultLog"></param>
         /// <param name="apiResponseLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="downloadClientResource"></param>
-        partial void AfterTestDownloadClient(ref bool suppressDefaultLog, ITestDownloadClientApiResponse apiResponseLocalVar, Option<DownloadClientResource> downloadClientResource);
+        partial void AfterTestDownloadClient(ref bool suppressDefaultLog, ITestDownloadClientApiResponse apiResponseLocalVar, Option<bool> forceTest, Option<DownloadClientResource> downloadClientResource);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -2865,11 +2869,12 @@ namespace Whisparr2.Net.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="downloadClientResource"></param>
-        private void OnErrorTestDownloadClientDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<DownloadClientResource> downloadClientResource)
+        private void OnErrorTestDownloadClientDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> forceTest, Option<DownloadClientResource> downloadClientResource)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorTestDownloadClient(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, downloadClientResource);
+            OnErrorTestDownloadClient(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, forceTest, downloadClientResource);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -2881,20 +2886,22 @@ namespace Whisparr2.Net.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="downloadClientResource"></param>
-        partial void OnErrorTestDownloadClient(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<DownloadClientResource> downloadClientResource);
+        partial void OnErrorTestDownloadClient(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> forceTest, Option<DownloadClientResource> downloadClientResource);
 
         /// <summary>
         ///  
         /// </summary>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="downloadClientResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestDownloadClientApiResponse"/>&gt;</returns>
-        public async Task<ITestDownloadClientApiResponse?> TestDownloadClientOrDefaultAsync(Option<DownloadClientResource> downloadClientResource = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<ITestDownloadClientApiResponse?> TestDownloadClientOrDefaultAsync(Option<bool> forceTest = default, Option<DownloadClientResource> downloadClientResource = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await TestDownloadClientAsync(downloadClientResource, cancellationToken).ConfigureAwait(false);
+                return await TestDownloadClientAsync(forceTest, downloadClientResource, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -2906,10 +2913,11 @@ namespace Whisparr2.Net.Api
         ///  
         /// </summary>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="downloadClientResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestDownloadClientApiResponse"/>&gt;</returns>
-        public async Task<ITestDownloadClientApiResponse> TestDownloadClientAsync(Option<DownloadClientResource> downloadClientResource = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<ITestDownloadClientApiResponse> TestDownloadClientAsync(Option<bool> forceTest = default, Option<DownloadClientResource> downloadClientResource = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
@@ -2917,7 +2925,7 @@ namespace Whisparr2.Net.Api
             {
                 ValidateTestDownloadClient(downloadClientResource);
 
-                FormatTestDownloadClient(downloadClientResource);
+                FormatTestDownloadClient(ref forceTest, downloadClientResource);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -2927,6 +2935,13 @@ namespace Whisparr2.Net.Api
                     uriBuilderLocalVar.Path = HttpClient.BaseAddress.AbsolutePath == "/"
                         ? "/api/v3/downloadclient/test"
                         : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/api/v3/downloadclient/test");
+
+                    System.Collections.Specialized.NameValueCollection parseQueryStringLocalVar = System.Web.HttpUtility.ParseQueryString(string.Empty);
+
+                    if (forceTest.IsSet)
+                        parseQueryStringLocalVar["forceTest"] = ClientUtils.ParameterToString(forceTest.Value);
+
+                    uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
 
                     if (downloadClientResource.IsSet)
                     {
@@ -2968,7 +2983,7 @@ namespace Whisparr2.Net.Api
                             }
                         }
 
-                        AfterTestDownloadClientDefaultImplementation(apiResponseLocalVar, downloadClientResource);
+                        AfterTestDownloadClientDefaultImplementation(apiResponseLocalVar, forceTest, downloadClientResource);
 
                         Events.ExecuteOnTestDownloadClient(apiResponseLocalVar);
 
@@ -2982,7 +2997,7 @@ namespace Whisparr2.Net.Api
             }
             catch(Exception e)
             {
-                OnErrorTestDownloadClientDefaultImplementation(e, "/api/v3/downloadclient/test", uriBuilderLocalVar.Path, downloadClientResource);
+                OnErrorTestDownloadClientDefaultImplementation(e, "/api/v3/downloadclient/test", uriBuilderLocalVar.Path, forceTest, downloadClientResource);
                 Events.ExecuteOnErrorTestDownloadClient(e);
                 throw;
             }

@@ -77,9 +77,12 @@ namespace Whisparr2.Net.Api
         /// <param name="eventType"> (optional)</param>
         /// <param name="episodeId"> (optional)</param>
         /// <param name="downloadId"> (optional)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="languages"> (optional)</param>
+        /// <param name="quality"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetHistoryApiResponse"/>&gt;</returns>
-        Task<IGetHistoryApiResponse> GetHistoryAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<int> eventType = default, Option<int> episodeId = default, Option<string> downloadId = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetHistoryApiResponse> GetHistoryAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<List<int>> eventType = default, Option<int> episodeId = default, Option<string> downloadId = default, Option<List<int>> seriesIds = default, Option<List<int>> languages = default, Option<List<int>> quality = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -96,9 +99,12 @@ namespace Whisparr2.Net.Api
         /// <param name="eventType"> (optional)</param>
         /// <param name="episodeId"> (optional)</param>
         /// <param name="downloadId"> (optional)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="languages"> (optional)</param>
+        /// <param name="quality"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetHistoryApiResponse"/>?&gt;</returns>
-        Task<IGetHistoryApiResponse?> GetHistoryOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<int> eventType = default, Option<int> episodeId = default, Option<string> downloadId = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetHistoryApiResponse?> GetHistoryOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<List<int>> eventType = default, Option<int> episodeId = default, Option<string> downloadId = default, Option<List<int>> seriesIds = default, Option<List<int>> languages = default, Option<List<int>> quality = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -532,21 +538,37 @@ namespace Whisparr2.Net.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatGetHistory(ref Option<int> page, ref Option<int> pageSize, ref Option<string> sortKey, ref Option<SortDirection> sortDirection, ref Option<bool> includeSeries, ref Option<bool> includeEpisode, ref Option<int> eventType, ref Option<int> episodeId, ref Option<string> downloadId);
+        partial void FormatGetHistory(ref Option<int> page, ref Option<int> pageSize, ref Option<string> sortKey, ref Option<SortDirection> sortDirection, ref Option<bool> includeSeries, ref Option<bool> includeEpisode, Option<List<int>> eventType, ref Option<int> episodeId, ref Option<string> downloadId, Option<List<int>> seriesIds, Option<List<int>> languages, Option<List<int>> quality);
 
         /// <summary>
         /// Validates the request parameters
         /// </summary>
         /// <param name="sortKey"></param>
+        /// <param name="eventType"></param>
         /// <param name="downloadId"></param>
+        /// <param name="seriesIds"></param>
+        /// <param name="languages"></param>
+        /// <param name="quality"></param>
         /// <returns></returns>
-        private void ValidateGetHistory(Option<string> sortKey, Option<string> downloadId)
+        private void ValidateGetHistory(Option<string> sortKey, Option<List<int>> eventType, Option<string> downloadId, Option<List<int>> seriesIds, Option<List<int>> languages, Option<List<int>> quality)
         {
             if (sortKey.IsSet && sortKey.Value == null)
                 throw new ArgumentNullException(nameof(sortKey));
 
+            if (eventType.IsSet && eventType.Value == null)
+                throw new ArgumentNullException(nameof(eventType));
+
             if (downloadId.IsSet && downloadId.Value == null)
                 throw new ArgumentNullException(nameof(downloadId));
+
+            if (seriesIds.IsSet && seriesIds.Value == null)
+                throw new ArgumentNullException(nameof(seriesIds));
+
+            if (languages.IsSet && languages.Value == null)
+                throw new ArgumentNullException(nameof(languages));
+
+            if (quality.IsSet && quality.Value == null)
+                throw new ArgumentNullException(nameof(quality));
         }
 
         /// <summary>
@@ -562,10 +584,13 @@ namespace Whisparr2.Net.Api
         /// <param name="eventType"></param>
         /// <param name="episodeId"></param>
         /// <param name="downloadId"></param>
-        private void AfterGetHistoryDefaultImplementation(IGetHistoryApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeSeries, Option<bool> includeEpisode, Option<int> eventType, Option<int> episodeId, Option<string> downloadId)
+        /// <param name="seriesIds"></param>
+        /// <param name="languages"></param>
+        /// <param name="quality"></param>
+        private void AfterGetHistoryDefaultImplementation(IGetHistoryApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeSeries, Option<bool> includeEpisode, Option<List<int>> eventType, Option<int> episodeId, Option<string> downloadId, Option<List<int>> seriesIds, Option<List<int>> languages, Option<List<int>> quality)
         {
             bool suppressDefaultLog = false;
-            AfterGetHistory(ref suppressDefaultLog, apiResponseLocalVar, page, pageSize, sortKey, sortDirection, includeSeries, includeEpisode, eventType, episodeId, downloadId);
+            AfterGetHistory(ref suppressDefaultLog, apiResponseLocalVar, page, pageSize, sortKey, sortDirection, includeSeries, includeEpisode, eventType, episodeId, downloadId, seriesIds, languages, quality);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -584,7 +609,10 @@ namespace Whisparr2.Net.Api
         /// <param name="eventType"></param>
         /// <param name="episodeId"></param>
         /// <param name="downloadId"></param>
-        partial void AfterGetHistory(ref bool suppressDefaultLog, IGetHistoryApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeSeries, Option<bool> includeEpisode, Option<int> eventType, Option<int> episodeId, Option<string> downloadId);
+        /// <param name="seriesIds"></param>
+        /// <param name="languages"></param>
+        /// <param name="quality"></param>
+        partial void AfterGetHistory(ref bool suppressDefaultLog, IGetHistoryApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeSeries, Option<bool> includeEpisode, Option<List<int>> eventType, Option<int> episodeId, Option<string> downloadId, Option<List<int>> seriesIds, Option<List<int>> languages, Option<List<int>> quality);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -601,10 +629,13 @@ namespace Whisparr2.Net.Api
         /// <param name="eventType"></param>
         /// <param name="episodeId"></param>
         /// <param name="downloadId"></param>
-        private void OnErrorGetHistoryDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeSeries, Option<bool> includeEpisode, Option<int> eventType, Option<int> episodeId, Option<string> downloadId)
+        /// <param name="seriesIds"></param>
+        /// <param name="languages"></param>
+        /// <param name="quality"></param>
+        private void OnErrorGetHistoryDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeSeries, Option<bool> includeEpisode, Option<List<int>> eventType, Option<int> episodeId, Option<string> downloadId, Option<List<int>> seriesIds, Option<List<int>> languages, Option<List<int>> quality)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorGetHistory(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, page, pageSize, sortKey, sortDirection, includeSeries, includeEpisode, eventType, episodeId, downloadId);
+            OnErrorGetHistory(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, page, pageSize, sortKey, sortDirection, includeSeries, includeEpisode, eventType, episodeId, downloadId, seriesIds, languages, quality);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -625,7 +656,10 @@ namespace Whisparr2.Net.Api
         /// <param name="eventType"></param>
         /// <param name="episodeId"></param>
         /// <param name="downloadId"></param>
-        partial void OnErrorGetHistory(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeSeries, Option<bool> includeEpisode, Option<int> eventType, Option<int> episodeId, Option<string> downloadId);
+        /// <param name="seriesIds"></param>
+        /// <param name="languages"></param>
+        /// <param name="quality"></param>
+        partial void OnErrorGetHistory(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeSeries, Option<bool> includeEpisode, Option<List<int>> eventType, Option<int> episodeId, Option<string> downloadId, Option<List<int>> seriesIds, Option<List<int>> languages, Option<List<int>> quality);
 
         /// <summary>
         ///  
@@ -639,13 +673,16 @@ namespace Whisparr2.Net.Api
         /// <param name="eventType"> (optional)</param>
         /// <param name="episodeId"> (optional)</param>
         /// <param name="downloadId"> (optional)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="languages"> (optional)</param>
+        /// <param name="quality"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetHistoryApiResponse"/>&gt;</returns>
-        public async Task<IGetHistoryApiResponse?> GetHistoryOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<int> eventType = default, Option<int> episodeId = default, Option<string> downloadId = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetHistoryApiResponse?> GetHistoryOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<List<int>> eventType = default, Option<int> episodeId = default, Option<string> downloadId = default, Option<List<int>> seriesIds = default, Option<List<int>> languages = default, Option<List<int>> quality = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await GetHistoryAsync(page, pageSize, sortKey, sortDirection, includeSeries, includeEpisode, eventType, episodeId, downloadId, cancellationToken).ConfigureAwait(false);
+                return await GetHistoryAsync(page, pageSize, sortKey, sortDirection, includeSeries, includeEpisode, eventType, episodeId, downloadId, seriesIds, languages, quality, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -666,17 +703,20 @@ namespace Whisparr2.Net.Api
         /// <param name="eventType"> (optional)</param>
         /// <param name="episodeId"> (optional)</param>
         /// <param name="downloadId"> (optional)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="languages"> (optional)</param>
+        /// <param name="quality"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetHistoryApiResponse"/>&gt;</returns>
-        public async Task<IGetHistoryApiResponse> GetHistoryAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<int> eventType = default, Option<int> episodeId = default, Option<string> downloadId = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetHistoryApiResponse> GetHistoryAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<List<int>> eventType = default, Option<int> episodeId = default, Option<string> downloadId = default, Option<List<int>> seriesIds = default, Option<List<int>> languages = default, Option<List<int>> quality = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
             try
             {
-                ValidateGetHistory(sortKey, downloadId);
+                ValidateGetHistory(sortKey, eventType, downloadId, seriesIds, languages, quality);
 
-                FormatGetHistory(ref page, ref pageSize, ref sortKey, ref sortDirection, ref includeSeries, ref includeEpisode, ref eventType, ref episodeId, ref downloadId);
+                FormatGetHistory(ref page, ref pageSize, ref sortKey, ref sortDirection, ref includeSeries, ref includeEpisode, eventType, ref episodeId, ref downloadId, seriesIds, languages, quality);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -716,6 +756,15 @@ namespace Whisparr2.Net.Api
                     if (downloadId.IsSet)
                         parseQueryStringLocalVar["downloadId"] = ClientUtils.ParameterToString(downloadId.Value);
 
+                    if (seriesIds.IsSet)
+                        parseQueryStringLocalVar["seriesIds"] = ClientUtils.ParameterToString(seriesIds.Value);
+
+                    if (languages.IsSet)
+                        parseQueryStringLocalVar["languages"] = ClientUtils.ParameterToString(languages.Value);
+
+                    if (quality.IsSet)
+                        parseQueryStringLocalVar["quality"] = ClientUtils.ParameterToString(quality.Value);
+
                     uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
 
                     List<TokenBase> tokenBaseLocalVars = new List<TokenBase>();
@@ -751,7 +800,7 @@ namespace Whisparr2.Net.Api
                             }
                         }
 
-                        AfterGetHistoryDefaultImplementation(apiResponseLocalVar, page, pageSize, sortKey, sortDirection, includeSeries, includeEpisode, eventType, episodeId, downloadId);
+                        AfterGetHistoryDefaultImplementation(apiResponseLocalVar, page, pageSize, sortKey, sortDirection, includeSeries, includeEpisode, eventType, episodeId, downloadId, seriesIds, languages, quality);
 
                         Events.ExecuteOnGetHistory(apiResponseLocalVar);
 
@@ -765,7 +814,7 @@ namespace Whisparr2.Net.Api
             }
             catch(Exception e)
             {
-                OnErrorGetHistoryDefaultImplementation(e, "/api/v3/history", uriBuilderLocalVar.Path, page, pageSize, sortKey, sortDirection, includeSeries, includeEpisode, eventType, episodeId, downloadId);
+                OnErrorGetHistoryDefaultImplementation(e, "/api/v3/history", uriBuilderLocalVar.Path, page, pageSize, sortKey, sortDirection, includeSeries, includeEpisode, eventType, episodeId, downloadId, seriesIds, languages, quality);
                 Events.ExecuteOnErrorGetHistory(e);
                 throw;
             }

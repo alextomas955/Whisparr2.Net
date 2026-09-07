@@ -21,10 +21,10 @@ src/Whisparr2.Net/Api/HistoryApi.cs
 src/Whisparr2.Net/Api/HostConfigApi.cs
 src/Whisparr2.Net/Api/IApi.cs
 src/Whisparr2.Net/Api/ImportListApi.cs
-src/Whisparr2.Net/Api/ImportListConfigApi.cs
 src/Whisparr2.Net/Api/ImportListExclusionApi.cs
 src/Whisparr2.Net/Api/IndexerApi.cs
 src/Whisparr2.Net/Api/IndexerConfigApi.cs
+src/Whisparr2.Net/Api/IndexerFlagApi.cs
 src/Whisparr2.Net/Api/LanguageApi.cs
 src/Whisparr2.Net/Api/LanguageProfileApi.cs
 src/Whisparr2.Net/Api/LanguageProfileSchemaApi.cs
@@ -110,6 +110,7 @@ src/Whisparr2.Net/Model/CommandResult.cs
 src/Whisparr2.Net/Model/CommandStatus.cs
 src/Whisparr2.Net/Model/CommandTrigger.cs
 src/Whisparr2.Net/Model/CustomFilterResource.cs
+src/Whisparr2.Net/Model/CustomFormatBulkResource.cs
 src/Whisparr2.Net/Model/CustomFormatResource.cs
 src/Whisparr2.Net/Model/CustomFormatSpecificationSchema.cs
 src/Whisparr2.Net/Model/DatabaseType.cs
@@ -135,19 +136,19 @@ src/Whisparr2.Net/Model/HistoryResource.cs
 src/Whisparr2.Net/Model/HistoryResourcePagingResource.cs
 src/Whisparr2.Net/Model/HostConfigResource.cs
 src/Whisparr2.Net/Model/ImportListBulkResource.cs
-src/Whisparr2.Net/Model/ImportListConfigResource.cs
 src/Whisparr2.Net/Model/ImportListExclusionResource.cs
+src/Whisparr2.Net/Model/ImportListExclusionResourcePagingResource.cs
 src/Whisparr2.Net/Model/ImportListMonitorTypes.cs
 src/Whisparr2.Net/Model/ImportListResource.cs
 src/Whisparr2.Net/Model/ImportListType.cs
 src/Whisparr2.Net/Model/IndexerBulkResource.cs
 src/Whisparr2.Net/Model/IndexerConfigResource.cs
+src/Whisparr2.Net/Model/IndexerFlagResource.cs
 src/Whisparr2.Net/Model/IndexerResource.cs
 src/Whisparr2.Net/Model/Language.cs
 src/Whisparr2.Net/Model/LanguageProfileItemResource.cs
 src/Whisparr2.Net/Model/LanguageProfileResource.cs
 src/Whisparr2.Net/Model/LanguageResource.cs
-src/Whisparr2.Net/Model/ListSyncLevelType.cs
 src/Whisparr2.Net/Model/LocalizationLanguageResource.cs
 src/Whisparr2.Net/Model/LocalizationResource.cs
 src/Whisparr2.Net/Model/LogFileResource.cs
@@ -163,6 +164,7 @@ src/Whisparr2.Net/Model/MetadataResource.cs
 src/Whisparr2.Net/Model/MonitorTypes.cs
 src/Whisparr2.Net/Model/MonitoringOptions.cs
 src/Whisparr2.Net/Model/NamingConfigResource.cs
+src/Whisparr2.Net/Model/NewItemMonitorTypes.cs
 src/Whisparr2.Net/Model/NotificationResource.cs
 src/Whisparr2.Net/Model/ParseResource.cs
 src/Whisparr2.Net/Model/ParsedEpisodeInfo.cs
@@ -206,6 +208,7 @@ src/Whisparr2.Net/Model/SeriesResource.cs
 src/Whisparr2.Net/Model/SeriesStatisticsResource.cs
 src/Whisparr2.Net/Model/SeriesStatusType.cs
 src/Whisparr2.Net/Model/SeriesTitleInfo.cs
+src/Whisparr2.Net/Model/SeriesTypes.cs
 src/Whisparr2.Net/Model/SortDirection.cs
 src/Whisparr2.Net/Model/SystemResource.cs
 src/Whisparr2.Net/Model/TagDetailsResource.cs

@@ -250,10 +250,11 @@ namespace Whisparr2.Net.Api
         /// 
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="indexerResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestIndexerApiResponse"/>&gt;</returns>
-        Task<ITestIndexerApiResponse> TestIndexerAsync(Option<IndexerResource> indexerResource = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<ITestIndexerApiResponse> TestIndexerAsync(Option<bool> forceTest = default, Option<IndexerResource> indexerResource = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -261,10 +262,11 @@ namespace Whisparr2.Net.Api
         /// <remarks>
         /// 
         /// </remarks>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="indexerResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestIndexerApiResponse"/>?&gt;</returns>
-        Task<ITestIndexerApiResponse?> TestIndexerOrDefaultAsync(Option<IndexerResource> indexerResource = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<ITestIndexerApiResponse?> TestIndexerOrDefaultAsync(Option<bool> forceTest = default, Option<IndexerResource> indexerResource = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -2825,7 +2827,7 @@ namespace Whisparr2.Net.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatTestIndexer(Option<IndexerResource> indexerResource);
+        partial void FormatTestIndexer(ref Option<bool> forceTest, Option<IndexerResource> indexerResource);
 
         /// <summary>
         /// Validates the request parameters
@@ -2842,11 +2844,12 @@ namespace Whisparr2.Net.Api
         /// Processes the server response
         /// </summary>
         /// <param name="apiResponseLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="indexerResource"></param>
-        private void AfterTestIndexerDefaultImplementation(ITestIndexerApiResponse apiResponseLocalVar, Option<IndexerResource> indexerResource)
+        private void AfterTestIndexerDefaultImplementation(ITestIndexerApiResponse apiResponseLocalVar, Option<bool> forceTest, Option<IndexerResource> indexerResource)
         {
             bool suppressDefaultLog = false;
-            AfterTestIndexer(ref suppressDefaultLog, apiResponseLocalVar, indexerResource);
+            AfterTestIndexer(ref suppressDefaultLog, apiResponseLocalVar, forceTest, indexerResource);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -2856,8 +2859,9 @@ namespace Whisparr2.Net.Api
         /// </summary>
         /// <param name="suppressDefaultLog"></param>
         /// <param name="apiResponseLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="indexerResource"></param>
-        partial void AfterTestIndexer(ref bool suppressDefaultLog, ITestIndexerApiResponse apiResponseLocalVar, Option<IndexerResource> indexerResource);
+        partial void AfterTestIndexer(ref bool suppressDefaultLog, ITestIndexerApiResponse apiResponseLocalVar, Option<bool> forceTest, Option<IndexerResource> indexerResource);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -2865,11 +2869,12 @@ namespace Whisparr2.Net.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="indexerResource"></param>
-        private void OnErrorTestIndexerDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<IndexerResource> indexerResource)
+        private void OnErrorTestIndexerDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> forceTest, Option<IndexerResource> indexerResource)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorTestIndexer(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, indexerResource);
+            OnErrorTestIndexer(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, forceTest, indexerResource);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -2881,20 +2886,22 @@ namespace Whisparr2.Net.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="indexerResource"></param>
-        partial void OnErrorTestIndexer(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<IndexerResource> indexerResource);
+        partial void OnErrorTestIndexer(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> forceTest, Option<IndexerResource> indexerResource);
 
         /// <summary>
         ///  
         /// </summary>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="indexerResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestIndexerApiResponse"/>&gt;</returns>
-        public async Task<ITestIndexerApiResponse?> TestIndexerOrDefaultAsync(Option<IndexerResource> indexerResource = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<ITestIndexerApiResponse?> TestIndexerOrDefaultAsync(Option<bool> forceTest = default, Option<IndexerResource> indexerResource = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await TestIndexerAsync(indexerResource, cancellationToken).ConfigureAwait(false);
+                return await TestIndexerAsync(forceTest, indexerResource, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -2906,10 +2913,11 @@ namespace Whisparr2.Net.Api
         ///  
         /// </summary>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="indexerResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestIndexerApiResponse"/>&gt;</returns>
-        public async Task<ITestIndexerApiResponse> TestIndexerAsync(Option<IndexerResource> indexerResource = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<ITestIndexerApiResponse> TestIndexerAsync(Option<bool> forceTest = default, Option<IndexerResource> indexerResource = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
@@ -2917,7 +2925,7 @@ namespace Whisparr2.Net.Api
             {
                 ValidateTestIndexer(indexerResource);
 
-                FormatTestIndexer(indexerResource);
+                FormatTestIndexer(ref forceTest, indexerResource);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -2927,6 +2935,13 @@ namespace Whisparr2.Net.Api
                     uriBuilderLocalVar.Path = HttpClient.BaseAddress.AbsolutePath == "/"
                         ? "/api/v3/indexer/test"
                         : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/api/v3/indexer/test");
+
+                    System.Collections.Specialized.NameValueCollection parseQueryStringLocalVar = System.Web.HttpUtility.ParseQueryString(string.Empty);
+
+                    if (forceTest.IsSet)
+                        parseQueryStringLocalVar["forceTest"] = ClientUtils.ParameterToString(forceTest.Value);
+
+                    uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
 
                     if (indexerResource.IsSet)
                     {
@@ -2968,7 +2983,7 @@ namespace Whisparr2.Net.Api
                             }
                         }
 
-                        AfterTestIndexerDefaultImplementation(apiResponseLocalVar, indexerResource);
+                        AfterTestIndexerDefaultImplementation(apiResponseLocalVar, forceTest, indexerResource);
 
                         Events.ExecuteOnTestIndexer(apiResponseLocalVar);
 
@@ -2982,7 +2997,7 @@ namespace Whisparr2.Net.Api
             }
             catch(Exception e)
             {
-                OnErrorTestIndexerDefaultImplementation(e, "/api/v3/indexer/test", uriBuilderLocalVar.Path, indexerResource);
+                OnErrorTestIndexerDefaultImplementation(e, "/api/v3/indexer/test", uriBuilderLocalVar.Path, forceTest, indexerResource);
                 Events.ExecuteOnErrorTestIndexer(e);
                 throw;
             }

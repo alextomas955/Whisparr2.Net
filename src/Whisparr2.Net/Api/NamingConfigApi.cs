@@ -92,8 +92,10 @@ namespace Whisparr2.Net.Api
         /// <param name="renameEpisodes"> (optional)</param>
         /// <param name="replaceIllegalCharacters"> (optional)</param>
         /// <param name="colonReplacementFormat"> (optional)</param>
+        /// <param name="customColonReplacementFormat"> (optional)</param>
         /// <param name="multiEpisodeStyle"> (optional)</param>
         /// <param name="standardEpisodeFormat"> (optional)</param>
+        /// <param name="javEpisodeFormat"> (optional)</param>
         /// <param name="seriesFolderFormat"> (optional)</param>
         /// <param name="includeSeriesTitle"> (optional)</param>
         /// <param name="includeEpisodeTitle"> (optional)</param>
@@ -105,7 +107,7 @@ namespace Whisparr2.Net.Api
         /// <param name="resourceName"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetNamingConfigExamplesApiResponse"/>&gt;</returns>
-        Task<IGetNamingConfigExamplesApiResponse> GetNamingConfigExamplesAsync(Option<bool> renameEpisodes = default, Option<bool> replaceIllegalCharacters = default, Option<int> colonReplacementFormat = default, Option<int> multiEpisodeStyle = default, Option<string> standardEpisodeFormat = default, Option<string> seriesFolderFormat = default, Option<bool> includeSeriesTitle = default, Option<bool> includeEpisodeTitle = default, Option<bool> includeQuality = default, Option<bool> replaceSpaces = default, Option<string> separator = default, Option<string> numberStyle = default, Option<int> id = default, Option<string> resourceName = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetNamingConfigExamplesApiResponse> GetNamingConfigExamplesAsync(Option<bool> renameEpisodes = default, Option<bool> replaceIllegalCharacters = default, Option<int> colonReplacementFormat = default, Option<string> customColonReplacementFormat = default, Option<int> multiEpisodeStyle = default, Option<string> standardEpisodeFormat = default, Option<string> javEpisodeFormat = default, Option<string> seriesFolderFormat = default, Option<bool> includeSeriesTitle = default, Option<bool> includeEpisodeTitle = default, Option<bool> includeQuality = default, Option<bool> replaceSpaces = default, Option<string> separator = default, Option<string> numberStyle = default, Option<int> id = default, Option<string> resourceName = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -116,8 +118,10 @@ namespace Whisparr2.Net.Api
         /// <param name="renameEpisodes"> (optional)</param>
         /// <param name="replaceIllegalCharacters"> (optional)</param>
         /// <param name="colonReplacementFormat"> (optional)</param>
+        /// <param name="customColonReplacementFormat"> (optional)</param>
         /// <param name="multiEpisodeStyle"> (optional)</param>
         /// <param name="standardEpisodeFormat"> (optional)</param>
+        /// <param name="javEpisodeFormat"> (optional)</param>
         /// <param name="seriesFolderFormat"> (optional)</param>
         /// <param name="includeSeriesTitle"> (optional)</param>
         /// <param name="includeEpisodeTitle"> (optional)</param>
@@ -129,7 +133,7 @@ namespace Whisparr2.Net.Api
         /// <param name="resourceName"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetNamingConfigExamplesApiResponse"/>?&gt;</returns>
-        Task<IGetNamingConfigExamplesApiResponse?> GetNamingConfigExamplesOrDefaultAsync(Option<bool> renameEpisodes = default, Option<bool> replaceIllegalCharacters = default, Option<int> colonReplacementFormat = default, Option<int> multiEpisodeStyle = default, Option<string> standardEpisodeFormat = default, Option<string> seriesFolderFormat = default, Option<bool> includeSeriesTitle = default, Option<bool> includeEpisodeTitle = default, Option<bool> includeQuality = default, Option<bool> replaceSpaces = default, Option<string> separator = default, Option<string> numberStyle = default, Option<int> id = default, Option<string> resourceName = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetNamingConfigExamplesApiResponse?> GetNamingConfigExamplesOrDefaultAsync(Option<bool> renameEpisodes = default, Option<bool> replaceIllegalCharacters = default, Option<int> colonReplacementFormat = default, Option<string> customColonReplacementFormat = default, Option<int> multiEpisodeStyle = default, Option<string> standardEpisodeFormat = default, Option<string> javEpisodeFormat = default, Option<string> seriesFolderFormat = default, Option<bool> includeSeriesTitle = default, Option<bool> includeEpisodeTitle = default, Option<bool> includeQuality = default, Option<bool> replaceSpaces = default, Option<string> separator = default, Option<string> numberStyle = default, Option<int> id = default, Option<string> resourceName = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -821,21 +825,29 @@ namespace Whisparr2.Net.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatGetNamingConfigExamples(ref Option<bool> renameEpisodes, ref Option<bool> replaceIllegalCharacters, ref Option<int> colonReplacementFormat, ref Option<int> multiEpisodeStyle, ref Option<string> standardEpisodeFormat, ref Option<string> seriesFolderFormat, ref Option<bool> includeSeriesTitle, ref Option<bool> includeEpisodeTitle, ref Option<bool> includeQuality, ref Option<bool> replaceSpaces, ref Option<string> separator, ref Option<string> numberStyle, ref Option<int> id, ref Option<string> resourceName);
+        partial void FormatGetNamingConfigExamples(ref Option<bool> renameEpisodes, ref Option<bool> replaceIllegalCharacters, ref Option<int> colonReplacementFormat, ref Option<string> customColonReplacementFormat, ref Option<int> multiEpisodeStyle, ref Option<string> standardEpisodeFormat, ref Option<string> javEpisodeFormat, ref Option<string> seriesFolderFormat, ref Option<bool> includeSeriesTitle, ref Option<bool> includeEpisodeTitle, ref Option<bool> includeQuality, ref Option<bool> replaceSpaces, ref Option<string> separator, ref Option<string> numberStyle, ref Option<int> id, ref Option<string> resourceName);
 
         /// <summary>
         /// Validates the request parameters
         /// </summary>
+        /// <param name="customColonReplacementFormat"></param>
         /// <param name="standardEpisodeFormat"></param>
+        /// <param name="javEpisodeFormat"></param>
         /// <param name="seriesFolderFormat"></param>
         /// <param name="separator"></param>
         /// <param name="numberStyle"></param>
         /// <param name="resourceName"></param>
         /// <returns></returns>
-        private void ValidateGetNamingConfigExamples(Option<string> standardEpisodeFormat, Option<string> seriesFolderFormat, Option<string> separator, Option<string> numberStyle, Option<string> resourceName)
+        private void ValidateGetNamingConfigExamples(Option<string> customColonReplacementFormat, Option<string> standardEpisodeFormat, Option<string> javEpisodeFormat, Option<string> seriesFolderFormat, Option<string> separator, Option<string> numberStyle, Option<string> resourceName)
         {
+            if (customColonReplacementFormat.IsSet && customColonReplacementFormat.Value == null)
+                throw new ArgumentNullException(nameof(customColonReplacementFormat));
+
             if (standardEpisodeFormat.IsSet && standardEpisodeFormat.Value == null)
                 throw new ArgumentNullException(nameof(standardEpisodeFormat));
+
+            if (javEpisodeFormat.IsSet && javEpisodeFormat.Value == null)
+                throw new ArgumentNullException(nameof(javEpisodeFormat));
 
             if (seriesFolderFormat.IsSet && seriesFolderFormat.Value == null)
                 throw new ArgumentNullException(nameof(seriesFolderFormat));
@@ -857,8 +869,10 @@ namespace Whisparr2.Net.Api
         /// <param name="renameEpisodes"></param>
         /// <param name="replaceIllegalCharacters"></param>
         /// <param name="colonReplacementFormat"></param>
+        /// <param name="customColonReplacementFormat"></param>
         /// <param name="multiEpisodeStyle"></param>
         /// <param name="standardEpisodeFormat"></param>
+        /// <param name="javEpisodeFormat"></param>
         /// <param name="seriesFolderFormat"></param>
         /// <param name="includeSeriesTitle"></param>
         /// <param name="includeEpisodeTitle"></param>
@@ -868,10 +882,10 @@ namespace Whisparr2.Net.Api
         /// <param name="numberStyle"></param>
         /// <param name="id"></param>
         /// <param name="resourceName"></param>
-        private void AfterGetNamingConfigExamplesDefaultImplementation(IGetNamingConfigExamplesApiResponse apiResponseLocalVar, Option<bool> renameEpisodes, Option<bool> replaceIllegalCharacters, Option<int> colonReplacementFormat, Option<int> multiEpisodeStyle, Option<string> standardEpisodeFormat, Option<string> seriesFolderFormat, Option<bool> includeSeriesTitle, Option<bool> includeEpisodeTitle, Option<bool> includeQuality, Option<bool> replaceSpaces, Option<string> separator, Option<string> numberStyle, Option<int> id, Option<string> resourceName)
+        private void AfterGetNamingConfigExamplesDefaultImplementation(IGetNamingConfigExamplesApiResponse apiResponseLocalVar, Option<bool> renameEpisodes, Option<bool> replaceIllegalCharacters, Option<int> colonReplacementFormat, Option<string> customColonReplacementFormat, Option<int> multiEpisodeStyle, Option<string> standardEpisodeFormat, Option<string> javEpisodeFormat, Option<string> seriesFolderFormat, Option<bool> includeSeriesTitle, Option<bool> includeEpisodeTitle, Option<bool> includeQuality, Option<bool> replaceSpaces, Option<string> separator, Option<string> numberStyle, Option<int> id, Option<string> resourceName)
         {
             bool suppressDefaultLog = false;
-            AfterGetNamingConfigExamples(ref suppressDefaultLog, apiResponseLocalVar, renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle, id, resourceName);
+            AfterGetNamingConfigExamples(ref suppressDefaultLog, apiResponseLocalVar, renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, customColonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, javEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle, id, resourceName);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -884,8 +898,10 @@ namespace Whisparr2.Net.Api
         /// <param name="renameEpisodes"></param>
         /// <param name="replaceIllegalCharacters"></param>
         /// <param name="colonReplacementFormat"></param>
+        /// <param name="customColonReplacementFormat"></param>
         /// <param name="multiEpisodeStyle"></param>
         /// <param name="standardEpisodeFormat"></param>
+        /// <param name="javEpisodeFormat"></param>
         /// <param name="seriesFolderFormat"></param>
         /// <param name="includeSeriesTitle"></param>
         /// <param name="includeEpisodeTitle"></param>
@@ -895,7 +911,7 @@ namespace Whisparr2.Net.Api
         /// <param name="numberStyle"></param>
         /// <param name="id"></param>
         /// <param name="resourceName"></param>
-        partial void AfterGetNamingConfigExamples(ref bool suppressDefaultLog, IGetNamingConfigExamplesApiResponse apiResponseLocalVar, Option<bool> renameEpisodes, Option<bool> replaceIllegalCharacters, Option<int> colonReplacementFormat, Option<int> multiEpisodeStyle, Option<string> standardEpisodeFormat, Option<string> seriesFolderFormat, Option<bool> includeSeriesTitle, Option<bool> includeEpisodeTitle, Option<bool> includeQuality, Option<bool> replaceSpaces, Option<string> separator, Option<string> numberStyle, Option<int> id, Option<string> resourceName);
+        partial void AfterGetNamingConfigExamples(ref bool suppressDefaultLog, IGetNamingConfigExamplesApiResponse apiResponseLocalVar, Option<bool> renameEpisodes, Option<bool> replaceIllegalCharacters, Option<int> colonReplacementFormat, Option<string> customColonReplacementFormat, Option<int> multiEpisodeStyle, Option<string> standardEpisodeFormat, Option<string> javEpisodeFormat, Option<string> seriesFolderFormat, Option<bool> includeSeriesTitle, Option<bool> includeEpisodeTitle, Option<bool> includeQuality, Option<bool> replaceSpaces, Option<string> separator, Option<string> numberStyle, Option<int> id, Option<string> resourceName);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -906,8 +922,10 @@ namespace Whisparr2.Net.Api
         /// <param name="renameEpisodes"></param>
         /// <param name="replaceIllegalCharacters"></param>
         /// <param name="colonReplacementFormat"></param>
+        /// <param name="customColonReplacementFormat"></param>
         /// <param name="multiEpisodeStyle"></param>
         /// <param name="standardEpisodeFormat"></param>
+        /// <param name="javEpisodeFormat"></param>
         /// <param name="seriesFolderFormat"></param>
         /// <param name="includeSeriesTitle"></param>
         /// <param name="includeEpisodeTitle"></param>
@@ -917,10 +935,10 @@ namespace Whisparr2.Net.Api
         /// <param name="numberStyle"></param>
         /// <param name="id"></param>
         /// <param name="resourceName"></param>
-        private void OnErrorGetNamingConfigExamplesDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> renameEpisodes, Option<bool> replaceIllegalCharacters, Option<int> colonReplacementFormat, Option<int> multiEpisodeStyle, Option<string> standardEpisodeFormat, Option<string> seriesFolderFormat, Option<bool> includeSeriesTitle, Option<bool> includeEpisodeTitle, Option<bool> includeQuality, Option<bool> replaceSpaces, Option<string> separator, Option<string> numberStyle, Option<int> id, Option<string> resourceName)
+        private void OnErrorGetNamingConfigExamplesDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> renameEpisodes, Option<bool> replaceIllegalCharacters, Option<int> colonReplacementFormat, Option<string> customColonReplacementFormat, Option<int> multiEpisodeStyle, Option<string> standardEpisodeFormat, Option<string> javEpisodeFormat, Option<string> seriesFolderFormat, Option<bool> includeSeriesTitle, Option<bool> includeEpisodeTitle, Option<bool> includeQuality, Option<bool> replaceSpaces, Option<string> separator, Option<string> numberStyle, Option<int> id, Option<string> resourceName)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorGetNamingConfigExamples(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle, id, resourceName);
+            OnErrorGetNamingConfigExamples(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, customColonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, javEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle, id, resourceName);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -935,8 +953,10 @@ namespace Whisparr2.Net.Api
         /// <param name="renameEpisodes"></param>
         /// <param name="replaceIllegalCharacters"></param>
         /// <param name="colonReplacementFormat"></param>
+        /// <param name="customColonReplacementFormat"></param>
         /// <param name="multiEpisodeStyle"></param>
         /// <param name="standardEpisodeFormat"></param>
+        /// <param name="javEpisodeFormat"></param>
         /// <param name="seriesFolderFormat"></param>
         /// <param name="includeSeriesTitle"></param>
         /// <param name="includeEpisodeTitle"></param>
@@ -946,7 +966,7 @@ namespace Whisparr2.Net.Api
         /// <param name="numberStyle"></param>
         /// <param name="id"></param>
         /// <param name="resourceName"></param>
-        partial void OnErrorGetNamingConfigExamples(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> renameEpisodes, Option<bool> replaceIllegalCharacters, Option<int> colonReplacementFormat, Option<int> multiEpisodeStyle, Option<string> standardEpisodeFormat, Option<string> seriesFolderFormat, Option<bool> includeSeriesTitle, Option<bool> includeEpisodeTitle, Option<bool> includeQuality, Option<bool> replaceSpaces, Option<string> separator, Option<string> numberStyle, Option<int> id, Option<string> resourceName);
+        partial void OnErrorGetNamingConfigExamples(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> renameEpisodes, Option<bool> replaceIllegalCharacters, Option<int> colonReplacementFormat, Option<string> customColonReplacementFormat, Option<int> multiEpisodeStyle, Option<string> standardEpisodeFormat, Option<string> javEpisodeFormat, Option<string> seriesFolderFormat, Option<bool> includeSeriesTitle, Option<bool> includeEpisodeTitle, Option<bool> includeQuality, Option<bool> replaceSpaces, Option<string> separator, Option<string> numberStyle, Option<int> id, Option<string> resourceName);
 
         /// <summary>
         ///  
@@ -954,8 +974,10 @@ namespace Whisparr2.Net.Api
         /// <param name="renameEpisodes"> (optional)</param>
         /// <param name="replaceIllegalCharacters"> (optional)</param>
         /// <param name="colonReplacementFormat"> (optional)</param>
+        /// <param name="customColonReplacementFormat"> (optional)</param>
         /// <param name="multiEpisodeStyle"> (optional)</param>
         /// <param name="standardEpisodeFormat"> (optional)</param>
+        /// <param name="javEpisodeFormat"> (optional)</param>
         /// <param name="seriesFolderFormat"> (optional)</param>
         /// <param name="includeSeriesTitle"> (optional)</param>
         /// <param name="includeEpisodeTitle"> (optional)</param>
@@ -967,11 +989,11 @@ namespace Whisparr2.Net.Api
         /// <param name="resourceName"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetNamingConfigExamplesApiResponse"/>&gt;</returns>
-        public async Task<IGetNamingConfigExamplesApiResponse?> GetNamingConfigExamplesOrDefaultAsync(Option<bool> renameEpisodes = default, Option<bool> replaceIllegalCharacters = default, Option<int> colonReplacementFormat = default, Option<int> multiEpisodeStyle = default, Option<string> standardEpisodeFormat = default, Option<string> seriesFolderFormat = default, Option<bool> includeSeriesTitle = default, Option<bool> includeEpisodeTitle = default, Option<bool> includeQuality = default, Option<bool> replaceSpaces = default, Option<string> separator = default, Option<string> numberStyle = default, Option<int> id = default, Option<string> resourceName = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetNamingConfigExamplesApiResponse?> GetNamingConfigExamplesOrDefaultAsync(Option<bool> renameEpisodes = default, Option<bool> replaceIllegalCharacters = default, Option<int> colonReplacementFormat = default, Option<string> customColonReplacementFormat = default, Option<int> multiEpisodeStyle = default, Option<string> standardEpisodeFormat = default, Option<string> javEpisodeFormat = default, Option<string> seriesFolderFormat = default, Option<bool> includeSeriesTitle = default, Option<bool> includeEpisodeTitle = default, Option<bool> includeQuality = default, Option<bool> replaceSpaces = default, Option<string> separator = default, Option<string> numberStyle = default, Option<int> id = default, Option<string> resourceName = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await GetNamingConfigExamplesAsync(renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle, id, resourceName, cancellationToken).ConfigureAwait(false);
+                return await GetNamingConfigExamplesAsync(renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, customColonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, javEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle, id, resourceName, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -986,8 +1008,10 @@ namespace Whisparr2.Net.Api
         /// <param name="renameEpisodes"> (optional)</param>
         /// <param name="replaceIllegalCharacters"> (optional)</param>
         /// <param name="colonReplacementFormat"> (optional)</param>
+        /// <param name="customColonReplacementFormat"> (optional)</param>
         /// <param name="multiEpisodeStyle"> (optional)</param>
         /// <param name="standardEpisodeFormat"> (optional)</param>
+        /// <param name="javEpisodeFormat"> (optional)</param>
         /// <param name="seriesFolderFormat"> (optional)</param>
         /// <param name="includeSeriesTitle"> (optional)</param>
         /// <param name="includeEpisodeTitle"> (optional)</param>
@@ -999,15 +1023,15 @@ namespace Whisparr2.Net.Api
         /// <param name="resourceName"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetNamingConfigExamplesApiResponse"/>&gt;</returns>
-        public async Task<IGetNamingConfigExamplesApiResponse> GetNamingConfigExamplesAsync(Option<bool> renameEpisodes = default, Option<bool> replaceIllegalCharacters = default, Option<int> colonReplacementFormat = default, Option<int> multiEpisodeStyle = default, Option<string> standardEpisodeFormat = default, Option<string> seriesFolderFormat = default, Option<bool> includeSeriesTitle = default, Option<bool> includeEpisodeTitle = default, Option<bool> includeQuality = default, Option<bool> replaceSpaces = default, Option<string> separator = default, Option<string> numberStyle = default, Option<int> id = default, Option<string> resourceName = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetNamingConfigExamplesApiResponse> GetNamingConfigExamplesAsync(Option<bool> renameEpisodes = default, Option<bool> replaceIllegalCharacters = default, Option<int> colonReplacementFormat = default, Option<string> customColonReplacementFormat = default, Option<int> multiEpisodeStyle = default, Option<string> standardEpisodeFormat = default, Option<string> javEpisodeFormat = default, Option<string> seriesFolderFormat = default, Option<bool> includeSeriesTitle = default, Option<bool> includeEpisodeTitle = default, Option<bool> includeQuality = default, Option<bool> replaceSpaces = default, Option<string> separator = default, Option<string> numberStyle = default, Option<int> id = default, Option<string> resourceName = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
             try
             {
-                ValidateGetNamingConfigExamples(standardEpisodeFormat, seriesFolderFormat, separator, numberStyle, resourceName);
+                ValidateGetNamingConfigExamples(customColonReplacementFormat, standardEpisodeFormat, javEpisodeFormat, seriesFolderFormat, separator, numberStyle, resourceName);
 
-                FormatGetNamingConfigExamples(ref renameEpisodes, ref replaceIllegalCharacters, ref colonReplacementFormat, ref multiEpisodeStyle, ref standardEpisodeFormat, ref seriesFolderFormat, ref includeSeriesTitle, ref includeEpisodeTitle, ref includeQuality, ref replaceSpaces, ref separator, ref numberStyle, ref id, ref resourceName);
+                FormatGetNamingConfigExamples(ref renameEpisodes, ref replaceIllegalCharacters, ref colonReplacementFormat, ref customColonReplacementFormat, ref multiEpisodeStyle, ref standardEpisodeFormat, ref javEpisodeFormat, ref seriesFolderFormat, ref includeSeriesTitle, ref includeEpisodeTitle, ref includeQuality, ref replaceSpaces, ref separator, ref numberStyle, ref id, ref resourceName);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -1029,11 +1053,17 @@ namespace Whisparr2.Net.Api
                     if (colonReplacementFormat.IsSet)
                         parseQueryStringLocalVar["colonReplacementFormat"] = ClientUtils.ParameterToString(colonReplacementFormat.Value);
 
+                    if (customColonReplacementFormat.IsSet)
+                        parseQueryStringLocalVar["customColonReplacementFormat"] = ClientUtils.ParameterToString(customColonReplacementFormat.Value);
+
                     if (multiEpisodeStyle.IsSet)
                         parseQueryStringLocalVar["multiEpisodeStyle"] = ClientUtils.ParameterToString(multiEpisodeStyle.Value);
 
                     if (standardEpisodeFormat.IsSet)
                         parseQueryStringLocalVar["standardEpisodeFormat"] = ClientUtils.ParameterToString(standardEpisodeFormat.Value);
+
+                    if (javEpisodeFormat.IsSet)
+                        parseQueryStringLocalVar["javEpisodeFormat"] = ClientUtils.ParameterToString(javEpisodeFormat.Value);
 
                     if (seriesFolderFormat.IsSet)
                         parseQueryStringLocalVar["seriesFolderFormat"] = ClientUtils.ParameterToString(seriesFolderFormat.Value);
@@ -1088,7 +1118,7 @@ namespace Whisparr2.Net.Api
                             }
                         }
 
-                        AfterGetNamingConfigExamplesDefaultImplementation(apiResponseLocalVar, renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle, id, resourceName);
+                        AfterGetNamingConfigExamplesDefaultImplementation(apiResponseLocalVar, renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, customColonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, javEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle, id, resourceName);
 
                         Events.ExecuteOnGetNamingConfigExamples(apiResponseLocalVar);
 
@@ -1102,7 +1132,7 @@ namespace Whisparr2.Net.Api
             }
             catch(Exception e)
             {
-                OnErrorGetNamingConfigExamplesDefaultImplementation(e, "/api/v3/config/naming/examples", uriBuilderLocalVar.Path, renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle, id, resourceName);
+                OnErrorGetNamingConfigExamplesDefaultImplementation(e, "/api/v3/config/naming/examples", uriBuilderLocalVar.Path, renameEpisodes, replaceIllegalCharacters, colonReplacementFormat, customColonReplacementFormat, multiEpisodeStyle, standardEpisodeFormat, javEpisodeFormat, seriesFolderFormat, includeSeriesTitle, includeEpisodeTitle, includeQuality, replaceSpaces, separator, numberStyle, id, resourceName);
                 Events.ExecuteOnErrorGetNamingConfigExamples(e);
                 throw;
             }

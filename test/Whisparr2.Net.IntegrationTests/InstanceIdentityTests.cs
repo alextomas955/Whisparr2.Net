@@ -10,8 +10,8 @@ using Whisparr2.Net.Model;
 namespace Whisparr2.Net.IntegrationTests
 {
     /// <summary>
-    /// What the instance the suite reached says about itself: which application it is, when it
-    /// started, and whether it finished seeding before the tests read it.
+    /// What the instance the suite reached says about itself: when it started, and whether it
+    /// finished seeding before the tests read it.
     /// </summary>
     /// <remarks>
     /// Every response is classified by EnsureSuccess rather than by the generated success accessor.
@@ -22,36 +22,6 @@ namespace Whisparr2.Net.IntegrationTests
     [Collection(WhisparrCollection.Name)]
     public sealed class InstanceIdentityTests(WhisparrFixture fixture)
     {
-        /// <summary>
-        /// The instance answers with the branch and version the provenance document records for the
-        /// pinned digest.
-        /// </summary>
-        [SkippableFact]
-        public async Task Instance_reports_the_provenance_branch_and_major_version()
-        {
-            Skip.If(fixture.SkipReason is not null, fixture.SkipReason);
-
-            await using ServiceProvider provider = BuildProvider();
-
-            SystemResource status = (await provider
-                .GetRequiredService<ISystemApi>()
-                .GetSystemStatusAsync())
-                .EnsureSuccess();
-
-            // Compared as strings and never parsed into a Version value, so no component of the
-            // version can be lost on the way to the comparison. Ordinal, so no culture rule can
-            // make two different strings equal. The application name and the API prefix are
-            // identical on Whisparr 2 and its successor, so neither of those discriminates and
-            // neither is asserted.
-            Assert.True(
-                string.Equals(fixture.ExpectedVersion, status.VarVersion, StringComparison.Ordinal),
-                $"The instance reports version '{status.VarVersion}'. The provenance document records '{fixture.ExpectedVersion}'.");
-
-            Assert.True(
-                string.Equals(fixture.ExpectedBranch, status.Branch, StringComparison.Ordinal),
-                $"The instance reports branch '{status.Branch}'. The provenance document records '{fixture.ExpectedBranch}'.");
-        }
-
         /// <summary>
         /// The instance started no earlier than the whole second in which this run began its boot,
         /// and the same comparison refuses a stamp three days old.

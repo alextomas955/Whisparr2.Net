@@ -250,10 +250,11 @@ namespace Whisparr2.Net.Api
         /// 
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="importListResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestImportListApiResponse"/>&gt;</returns>
-        Task<ITestImportListApiResponse> TestImportListAsync(Option<ImportListResource> importListResource = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<ITestImportListApiResponse> TestImportListAsync(Option<bool> forceTest = default, Option<ImportListResource> importListResource = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -261,10 +262,11 @@ namespace Whisparr2.Net.Api
         /// <remarks>
         /// 
         /// </remarks>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="importListResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestImportListApiResponse"/>?&gt;</returns>
-        Task<ITestImportListApiResponse?> TestImportListOrDefaultAsync(Option<ImportListResource> importListResource = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<ITestImportListApiResponse?> TestImportListOrDefaultAsync(Option<bool> forceTest = default, Option<ImportListResource> importListResource = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -2825,7 +2827,7 @@ namespace Whisparr2.Net.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatTestImportList(Option<ImportListResource> importListResource);
+        partial void FormatTestImportList(ref Option<bool> forceTest, Option<ImportListResource> importListResource);
 
         /// <summary>
         /// Validates the request parameters
@@ -2842,11 +2844,12 @@ namespace Whisparr2.Net.Api
         /// Processes the server response
         /// </summary>
         /// <param name="apiResponseLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="importListResource"></param>
-        private void AfterTestImportListDefaultImplementation(ITestImportListApiResponse apiResponseLocalVar, Option<ImportListResource> importListResource)
+        private void AfterTestImportListDefaultImplementation(ITestImportListApiResponse apiResponseLocalVar, Option<bool> forceTest, Option<ImportListResource> importListResource)
         {
             bool suppressDefaultLog = false;
-            AfterTestImportList(ref suppressDefaultLog, apiResponseLocalVar, importListResource);
+            AfterTestImportList(ref suppressDefaultLog, apiResponseLocalVar, forceTest, importListResource);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -2856,8 +2859,9 @@ namespace Whisparr2.Net.Api
         /// </summary>
         /// <param name="suppressDefaultLog"></param>
         /// <param name="apiResponseLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="importListResource"></param>
-        partial void AfterTestImportList(ref bool suppressDefaultLog, ITestImportListApiResponse apiResponseLocalVar, Option<ImportListResource> importListResource);
+        partial void AfterTestImportList(ref bool suppressDefaultLog, ITestImportListApiResponse apiResponseLocalVar, Option<bool> forceTest, Option<ImportListResource> importListResource);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -2865,11 +2869,12 @@ namespace Whisparr2.Net.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="importListResource"></param>
-        private void OnErrorTestImportListDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<ImportListResource> importListResource)
+        private void OnErrorTestImportListDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> forceTest, Option<ImportListResource> importListResource)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorTestImportList(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, importListResource);
+            OnErrorTestImportList(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, forceTest, importListResource);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -2881,20 +2886,22 @@ namespace Whisparr2.Net.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="importListResource"></param>
-        partial void OnErrorTestImportList(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<ImportListResource> importListResource);
+        partial void OnErrorTestImportList(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> forceTest, Option<ImportListResource> importListResource);
 
         /// <summary>
         ///  
         /// </summary>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="importListResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestImportListApiResponse"/>&gt;</returns>
-        public async Task<ITestImportListApiResponse?> TestImportListOrDefaultAsync(Option<ImportListResource> importListResource = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<ITestImportListApiResponse?> TestImportListOrDefaultAsync(Option<bool> forceTest = default, Option<ImportListResource> importListResource = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await TestImportListAsync(importListResource, cancellationToken).ConfigureAwait(false);
+                return await TestImportListAsync(forceTest, importListResource, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -2906,10 +2913,11 @@ namespace Whisparr2.Net.Api
         ///  
         /// </summary>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="importListResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestImportListApiResponse"/>&gt;</returns>
-        public async Task<ITestImportListApiResponse> TestImportListAsync(Option<ImportListResource> importListResource = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<ITestImportListApiResponse> TestImportListAsync(Option<bool> forceTest = default, Option<ImportListResource> importListResource = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
@@ -2917,7 +2925,7 @@ namespace Whisparr2.Net.Api
             {
                 ValidateTestImportList(importListResource);
 
-                FormatTestImportList(importListResource);
+                FormatTestImportList(ref forceTest, importListResource);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -2927,6 +2935,13 @@ namespace Whisparr2.Net.Api
                     uriBuilderLocalVar.Path = HttpClient.BaseAddress.AbsolutePath == "/"
                         ? "/api/v3/importlist/test"
                         : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/api/v3/importlist/test");
+
+                    System.Collections.Specialized.NameValueCollection parseQueryStringLocalVar = System.Web.HttpUtility.ParseQueryString(string.Empty);
+
+                    if (forceTest.IsSet)
+                        parseQueryStringLocalVar["forceTest"] = ClientUtils.ParameterToString(forceTest.Value);
+
+                    uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
 
                     if (importListResource.IsSet)
                     {
@@ -2968,7 +2983,7 @@ namespace Whisparr2.Net.Api
                             }
                         }
 
-                        AfterTestImportListDefaultImplementation(apiResponseLocalVar, importListResource);
+                        AfterTestImportListDefaultImplementation(apiResponseLocalVar, forceTest, importListResource);
 
                         Events.ExecuteOnTestImportList(apiResponseLocalVar);
 
@@ -2982,7 +2997,7 @@ namespace Whisparr2.Net.Api
             }
             catch(Exception e)
             {
-                OnErrorTestImportListDefaultImplementation(e, "/api/v3/importlist/test", uriBuilderLocalVar.Path, importListResource);
+                OnErrorTestImportListDefaultImplementation(e, "/api/v3/importlist/test", uriBuilderLocalVar.Path, forceTest, importListResource);
                 Events.ExecuteOnErrorTestImportList(e);
                 throw;
             }

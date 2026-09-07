@@ -204,10 +204,11 @@ namespace Whisparr2.Net.Api
         /// 
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="metadataResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestMetadataApiResponse"/>&gt;</returns>
-        Task<ITestMetadataApiResponse> TestMetadataAsync(Option<MetadataResource> metadataResource = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<ITestMetadataApiResponse> TestMetadataAsync(Option<bool> forceTest = default, Option<MetadataResource> metadataResource = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -215,10 +216,11 @@ namespace Whisparr2.Net.Api
         /// <remarks>
         /// 
         /// </remarks>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="metadataResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestMetadataApiResponse"/>?&gt;</returns>
-        Task<ITestMetadataApiResponse?> TestMetadataOrDefaultAsync(Option<MetadataResource> metadataResource = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<ITestMetadataApiResponse?> TestMetadataOrDefaultAsync(Option<bool> forceTest = default, Option<MetadataResource> metadataResource = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -2214,7 +2216,7 @@ namespace Whisparr2.Net.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatTestMetadata(Option<MetadataResource> metadataResource);
+        partial void FormatTestMetadata(ref Option<bool> forceTest, Option<MetadataResource> metadataResource);
 
         /// <summary>
         /// Validates the request parameters
@@ -2231,11 +2233,12 @@ namespace Whisparr2.Net.Api
         /// Processes the server response
         /// </summary>
         /// <param name="apiResponseLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="metadataResource"></param>
-        private void AfterTestMetadataDefaultImplementation(ITestMetadataApiResponse apiResponseLocalVar, Option<MetadataResource> metadataResource)
+        private void AfterTestMetadataDefaultImplementation(ITestMetadataApiResponse apiResponseLocalVar, Option<bool> forceTest, Option<MetadataResource> metadataResource)
         {
             bool suppressDefaultLog = false;
-            AfterTestMetadata(ref suppressDefaultLog, apiResponseLocalVar, metadataResource);
+            AfterTestMetadata(ref suppressDefaultLog, apiResponseLocalVar, forceTest, metadataResource);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -2245,8 +2248,9 @@ namespace Whisparr2.Net.Api
         /// </summary>
         /// <param name="suppressDefaultLog"></param>
         /// <param name="apiResponseLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="metadataResource"></param>
-        partial void AfterTestMetadata(ref bool suppressDefaultLog, ITestMetadataApiResponse apiResponseLocalVar, Option<MetadataResource> metadataResource);
+        partial void AfterTestMetadata(ref bool suppressDefaultLog, ITestMetadataApiResponse apiResponseLocalVar, Option<bool> forceTest, Option<MetadataResource> metadataResource);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -2254,11 +2258,12 @@ namespace Whisparr2.Net.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="metadataResource"></param>
-        private void OnErrorTestMetadataDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<MetadataResource> metadataResource)
+        private void OnErrorTestMetadataDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> forceTest, Option<MetadataResource> metadataResource)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorTestMetadata(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, metadataResource);
+            OnErrorTestMetadata(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, forceTest, metadataResource);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -2270,20 +2275,22 @@ namespace Whisparr2.Net.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
+        /// <param name="forceTest"></param>
         /// <param name="metadataResource"></param>
-        partial void OnErrorTestMetadata(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<MetadataResource> metadataResource);
+        partial void OnErrorTestMetadata(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<bool> forceTest, Option<MetadataResource> metadataResource);
 
         /// <summary>
         ///  
         /// </summary>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="metadataResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestMetadataApiResponse"/>&gt;</returns>
-        public async Task<ITestMetadataApiResponse?> TestMetadataOrDefaultAsync(Option<MetadataResource> metadataResource = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<ITestMetadataApiResponse?> TestMetadataOrDefaultAsync(Option<bool> forceTest = default, Option<MetadataResource> metadataResource = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await TestMetadataAsync(metadataResource, cancellationToken).ConfigureAwait(false);
+                return await TestMetadataAsync(forceTest, metadataResource, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -2295,10 +2302,11 @@ namespace Whisparr2.Net.Api
         ///  
         /// </summary>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="forceTest"> (optional, default to false)</param>
         /// <param name="metadataResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="ITestMetadataApiResponse"/>&gt;</returns>
-        public async Task<ITestMetadataApiResponse> TestMetadataAsync(Option<MetadataResource> metadataResource = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<ITestMetadataApiResponse> TestMetadataAsync(Option<bool> forceTest = default, Option<MetadataResource> metadataResource = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
@@ -2306,7 +2314,7 @@ namespace Whisparr2.Net.Api
             {
                 ValidateTestMetadata(metadataResource);
 
-                FormatTestMetadata(metadataResource);
+                FormatTestMetadata(ref forceTest, metadataResource);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -2316,6 +2324,13 @@ namespace Whisparr2.Net.Api
                     uriBuilderLocalVar.Path = HttpClient.BaseAddress.AbsolutePath == "/"
                         ? "/api/v3/metadata/test"
                         : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/api/v3/metadata/test");
+
+                    System.Collections.Specialized.NameValueCollection parseQueryStringLocalVar = System.Web.HttpUtility.ParseQueryString(string.Empty);
+
+                    if (forceTest.IsSet)
+                        parseQueryStringLocalVar["forceTest"] = ClientUtils.ParameterToString(forceTest.Value);
+
+                    uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
 
                     if (metadataResource.IsSet)
                     {
@@ -2357,7 +2372,7 @@ namespace Whisparr2.Net.Api
                             }
                         }
 
-                        AfterTestMetadataDefaultImplementation(apiResponseLocalVar, metadataResource);
+                        AfterTestMetadataDefaultImplementation(apiResponseLocalVar, forceTest, metadataResource);
 
                         Events.ExecuteOnTestMetadata(apiResponseLocalVar);
 
@@ -2371,7 +2386,7 @@ namespace Whisparr2.Net.Api
             }
             catch(Exception e)
             {
-                OnErrorTestMetadataDefaultImplementation(e, "/api/v3/metadata/test", uriBuilderLocalVar.Path, metadataResource);
+                OnErrorTestMetadataDefaultImplementation(e, "/api/v3/metadata/test", uriBuilderLocalVar.Path, forceTest, metadataResource);
                 Events.ExecuteOnErrorTestMetadata(e);
                 throw;
             }

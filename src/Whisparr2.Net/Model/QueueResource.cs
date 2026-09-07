@@ -48,6 +48,7 @@ namespace Whisparr2.Net.Model
         /// <param name="sizeleft">sizeleft</param>
         /// <param name="timeleft">timeleft</param>
         /// <param name="estimatedCompletionTime">estimatedCompletionTime</param>
+        /// <param name="added">added</param>
         /// <param name="status">status</param>
         /// <param name="trackedDownloadStatus">trackedDownloadStatus</param>
         /// <param name="trackedDownloadState">trackedDownloadState</param>
@@ -61,7 +62,7 @@ namespace Whisparr2.Net.Model
         /// <param name="outputPath">outputPath</param>
         /// <param name="episodeHasFile">episodeHasFile</param>
         [JsonConstructor]
-        public QueueResource(Option<int?> id = default, Option<int?> seriesId = default, Option<int?> episodeId = default, Option<int?> seasonNumber = default, Option<SeriesResource?> series = default, Option<EpisodeResource?> episode = default, Option<List<Language>?> languages = default, Option<QualityModel?> quality = default, Option<List<CustomFormatResource>?> customFormats = default, Option<int?> customFormatScore = default, Option<double?> size = default, Option<string?> title = default, Option<double?> sizeleft = default, Option<string?> timeleft = default, Option<DateTime?> estimatedCompletionTime = default, Option<string?> status = default, Option<TrackedDownloadStatus?> trackedDownloadStatus = default, Option<TrackedDownloadState?> trackedDownloadState = default, Option<List<TrackedDownloadStatusMessage>?> statusMessages = default, Option<string?> errorMessage = default, Option<string?> downloadId = default, Option<DownloadProtocol?> protocol = default, Option<string?> downloadClient = default, Option<bool?> downloadClientHasPostImportCategory = default, Option<string?> indexer = default, Option<string?> outputPath = default, Option<bool?> episodeHasFile = default)
+        public QueueResource(Option<int?> id = default, Option<int?> seriesId = default, Option<int?> episodeId = default, Option<int?> seasonNumber = default, Option<SeriesResource?> series = default, Option<EpisodeResource?> episode = default, Option<List<Language>?> languages = default, Option<QualityModel?> quality = default, Option<List<CustomFormatResource>?> customFormats = default, Option<int?> customFormatScore = default, Option<double?> size = default, Option<string?> title = default, Option<double?> sizeleft = default, Option<string?> timeleft = default, Option<DateTime?> estimatedCompletionTime = default, Option<DateTime?> added = default, Option<string?> status = default, Option<TrackedDownloadStatus?> trackedDownloadStatus = default, Option<TrackedDownloadState?> trackedDownloadState = default, Option<List<TrackedDownloadStatusMessage>?> statusMessages = default, Option<string?> errorMessage = default, Option<string?> downloadId = default, Option<DownloadProtocol?> protocol = default, Option<string?> downloadClient = default, Option<bool?> downloadClientHasPostImportCategory = default, Option<string?> indexer = default, Option<string?> outputPath = default, Option<bool?> episodeHasFile = default)
         {
             IdOption = id;
             SeriesIdOption = seriesId;
@@ -78,6 +79,7 @@ namespace Whisparr2.Net.Model
             SizeleftOption = sizeleft;
             TimeleftOption = timeleft;
             EstimatedCompletionTimeOption = estimatedCompletionTime;
+            AddedOption = added;
             StatusOption = status;
             TrackedDownloadStatusOption = trackedDownloadStatus;
             TrackedDownloadStateOption = trackedDownloadState;
@@ -330,6 +332,19 @@ namespace Whisparr2.Net.Model
         public DateTime? EstimatedCompletionTime { get { return this.EstimatedCompletionTimeOption.Value; } set { this.EstimatedCompletionTimeOption = new(value); } }
 
         /// <summary>
+        /// Used to track the state of Added
+        /// </summary>
+        [JsonIgnore]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public Option<DateTime?> AddedOption { get; private set; }
+
+        /// <summary>
+        /// Gets or Sets Added
+        /// </summary>
+        [JsonPropertyName("added")]
+        public DateTime? Added { get { return this.AddedOption.Value; } set { this.AddedOption = new(value); } }
+
+        /// <summary>
         /// Used to track the state of Status
         /// </summary>
         [JsonIgnore]
@@ -469,6 +484,7 @@ namespace Whisparr2.Net.Model
             sb.Append("  Sizeleft: ").Append(Sizeleft).Append("\n");
             sb.Append("  Timeleft: ").Append(Timeleft).Append("\n");
             sb.Append("  EstimatedCompletionTime: ").Append(EstimatedCompletionTime).Append("\n");
+            sb.Append("  Added: ").Append(Added).Append("\n");
             sb.Append("  Status: ").Append(Status).Append("\n");
             sb.Append("  TrackedDownloadStatus: ").Append(TrackedDownloadStatus).Append("\n");
             sb.Append("  TrackedDownloadState: ").Append(TrackedDownloadState).Append("\n");
@@ -517,6 +533,11 @@ namespace Whisparr2.Net.Model
         public string EstimatedCompletionTimeFormat { get; private set; } = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffffK";
 
         /// <summary>
+        /// The format to use to serialize Added
+        /// </summary>
+        public string AddedFormat { get; private set; } = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffffK";
+
+        /// <summary>
         /// Deserializes json to <see cref="QueueResource" />
         /// </summary>
         /// <param name="utf8JsonReader"></param>
@@ -548,6 +569,7 @@ namespace Whisparr2.Net.Model
             Option<double?> sizeleft = default;
             Option<string?> timeleft = default;
             Option<DateTime?> estimatedCompletionTime = default;
+            Option<DateTime?> added = default;
             Option<string?> status = default;
             Option<TrackedDownloadStatus?> trackedDownloadStatus = default;
             Option<TrackedDownloadState?> trackedDownloadState = default;
@@ -620,6 +642,9 @@ namespace Whisparr2.Net.Model
                             break;
                         case "estimatedCompletionTime":
                             estimatedCompletionTime = new Option<DateTime?>(JsonSerializer.Deserialize<DateTime?>(ref utf8JsonReader, jsonSerializerOptions));
+                            break;
+                        case "added":
+                            added = new Option<DateTime?>(JsonSerializer.Deserialize<DateTime?>(ref utf8JsonReader, jsonSerializerOptions));
                             break;
                         case "status":
                             status = new Option<string?>(utf8JsonReader.GetString());
@@ -699,7 +724,7 @@ namespace Whisparr2.Net.Model
             if (episodeHasFile.IsSet && episodeHasFile.Value == null)
                 throw new ArgumentNullException(nameof(episodeHasFile), "Property is not nullable for class QueueResource.");
 
-            return new QueueResource(id, seriesId, episodeId, seasonNumber, series, episode, languages, quality, customFormats, customFormatScore, size, title, sizeleft, timeleft, estimatedCompletionTime, status, trackedDownloadStatus, trackedDownloadState, statusMessages, errorMessage, downloadId, protocol, downloadClient, downloadClientHasPostImportCategory, indexer, outputPath, episodeHasFile);
+            return new QueueResource(id, seriesId, episodeId, seasonNumber, series, episode, languages, quality, customFormats, customFormatScore, size, title, sizeleft, timeleft, estimatedCompletionTime, added, status, trackedDownloadStatus, trackedDownloadState, statusMessages, errorMessage, downloadId, protocol, downloadClient, downloadClientHasPostImportCategory, indexer, outputPath, episodeHasFile);
         }
 
         /// <summary>
@@ -813,6 +838,12 @@ namespace Whisparr2.Net.Model
                     writer.WriteString("estimatedCompletionTime", queueResource.EstimatedCompletionTimeOption.Value!.Value.ToString(EstimatedCompletionTimeFormat));
                 else
                     writer.WriteNull("estimatedCompletionTime");
+
+            if (queueResource.AddedOption.IsSet)
+                if (queueResource.AddedOption.Value != null)
+                    writer.WriteString("added", queueResource.AddedOption.Value!.Value.ToString(AddedFormat));
+                else
+                    writer.WriteNull("added");
 
             if (queueResource.StatusOption.IsSet)
                 if (queueResource.StatusOption.Value != null)

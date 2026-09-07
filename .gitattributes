@@ -14,9 +14,9 @@
 
 # spec/openapi.raw.json is the pin. Its byte count and its sha256 are recorded in
 # spec/PROVENANCE.json, so any end-of-line conversion on checkout makes the committed file disagree
-# with its own record. Measured 2026-09-05: with core.autocrlf=true and no rule here, the
-# checked-out file is 294,734 bytes rather than 282,862 and its sha256 is 56cf4730... rather than
-# e16d5052...
+# with its own record. Measured 2026-09-06: with core.autocrlf=true and no rule here, the
+# checked-out file is 303,525 bytes rather than 291,311 and its sha256 is a655e7e9... rather than
+# b1c0783a...
 # Deliberately -text and not the binary macro. binary expands to -diff -merge -text and renders the
 # spec delta as "Binary files differ", which destroys the reviewability a spec refresh depends on.
 # linguist-generated drops the file from the language statistics and collapses it in GitHub diffs.

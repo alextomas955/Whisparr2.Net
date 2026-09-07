@@ -91,6 +91,29 @@ namespace Whisparr2.Net.Api
         /// 
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="customFormatBulkResource"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IDeleteCustomFormatBulkApiResponse"/>&gt;</returns>
+        Task<IDeleteCustomFormatBulkApiResponse> DeleteCustomFormatBulkAsync(Option<CustomFormatBulkResource> customFormatBulkResource = default, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <param name="customFormatBulkResource"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IDeleteCustomFormatBulkApiResponse"/>?&gt;</returns>
+        Task<IDeleteCustomFormatBulkApiResponse?> DeleteCustomFormatBulkOrDefaultAsync(Option<CustomFormatBulkResource> customFormatBulkResource = default, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetCustomFormatByIdApiResponse"/>&gt;</returns>
@@ -156,6 +179,29 @@ namespace Whisparr2.Net.Api
         /// 
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="customFormatBulkResource"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IPutCustomFormatBulkApiResponse"/>&gt;</returns>
+        Task<IPutCustomFormatBulkApiResponse> PutCustomFormatBulkAsync(Option<CustomFormatBulkResource> customFormatBulkResource = default, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <param name="customFormatBulkResource"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IPutCustomFormatBulkApiResponse"/>?&gt;</returns>
+        Task<IPutCustomFormatBulkApiResponse?> PutCustomFormatBulkOrDefaultAsync(Option<CustomFormatBulkResource> customFormatBulkResource = default, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="customFormatResource"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
@@ -200,6 +246,18 @@ namespace Whisparr2.Net.Api
     }
 
     /// <summary>
+    /// The <see cref="IDeleteCustomFormatBulkApiResponse"/>
+    /// </summary>
+    public interface IDeleteCustomFormatBulkApiResponse : Whisparr2.Net.Client.IApiResponse
+    {
+        /// <summary>
+        /// Returns true if the response is 200 Ok
+        /// </summary>
+        /// <returns></returns>
+        bool IsOk { get; }
+    }
+
+    /// <summary>
     /// The <see cref="IGetCustomFormatByIdApiResponse"/>
     /// </summary>
     public interface IGetCustomFormatByIdApiResponse : Whisparr2.Net.Client.IApiResponse, IOk<Whisparr2.Net.Model.CustomFormatResource?>
@@ -227,6 +285,18 @@ namespace Whisparr2.Net.Api
     /// The <see cref="IListCustomFormatApiResponse"/>
     /// </summary>
     public interface IListCustomFormatApiResponse : Whisparr2.Net.Client.IApiResponse, IOk<List<CustomFormatResource>?>
+    {
+        /// <summary>
+        /// Returns true if the response is 200 Ok
+        /// </summary>
+        /// <returns></returns>
+        bool IsOk { get; }
+    }
+
+    /// <summary>
+    /// The <see cref="IPutCustomFormatBulkApiResponse"/>
+    /// </summary>
+    public interface IPutCustomFormatBulkApiResponse : Whisparr2.Net.Client.IApiResponse, IOk<Whisparr2.Net.Model.CustomFormatResource?>
     {
         /// <summary>
         /// Returns true if the response is 200 Ok
@@ -295,6 +365,26 @@ namespace Whisparr2.Net.Api
         /// <summary>
         /// The event raised after the server response
         /// </summary>
+        public event EventHandler<ApiResponseEventArgs>? OnDeleteCustomFormatBulk;
+
+        /// <summary>
+        /// The event raised after an error querying the server
+        /// </summary>
+        public event EventHandler<ExceptionEventArgs>? OnErrorDeleteCustomFormatBulk;
+
+        internal void ExecuteOnDeleteCustomFormatBulk(CustomFormatApi.DeleteCustomFormatBulkApiResponse apiResponse)
+        {
+            OnDeleteCustomFormatBulk?.Invoke(this, new ApiResponseEventArgs(apiResponse));
+        }
+
+        internal void ExecuteOnErrorDeleteCustomFormatBulk(Exception exception)
+        {
+            OnErrorDeleteCustomFormatBulk?.Invoke(this, new ExceptionEventArgs(exception));
+        }
+
+        /// <summary>
+        /// The event raised after the server response
+        /// </summary>
         public event EventHandler<ApiResponseEventArgs>? OnGetCustomFormatById;
 
         /// <summary>
@@ -350,6 +440,26 @@ namespace Whisparr2.Net.Api
         internal void ExecuteOnErrorListCustomFormat(Exception exception)
         {
             OnErrorListCustomFormat?.Invoke(this, new ExceptionEventArgs(exception));
+        }
+
+        /// <summary>
+        /// The event raised after the server response
+        /// </summary>
+        public event EventHandler<ApiResponseEventArgs>? OnPutCustomFormatBulk;
+
+        /// <summary>
+        /// The event raised after an error querying the server
+        /// </summary>
+        public event EventHandler<ExceptionEventArgs>? OnErrorPutCustomFormatBulk;
+
+        internal void ExecuteOnPutCustomFormatBulk(CustomFormatApi.PutCustomFormatBulkApiResponse apiResponse)
+        {
+            OnPutCustomFormatBulk?.Invoke(this, new ApiResponseEventArgs(apiResponse));
+        }
+
+        internal void ExecuteOnErrorPutCustomFormatBulk(Exception exception)
+        {
+            OnErrorPutCustomFormatBulk?.Invoke(this, new ExceptionEventArgs(exception));
         }
 
         /// <summary>
@@ -865,6 +975,230 @@ namespace Whisparr2.Net.Api
             /// <param name="requestedAt"></param>
             /// <param name="jsonSerializerOptions"></param>
             public DeleteCustomFormatApiResponse(ILogger<CustomFormatApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, System.IO.Stream contentStream, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, contentStream, path, requestedAt, jsonSerializerOptions)
+            {
+                Logger = logger;
+                OnCreated(httpRequestMessage, httpResponseMessage);
+            }
+
+            partial void OnCreated(global::System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage);
+
+            /// <summary>
+            /// Returns true if the response is 200 Ok
+            /// </summary>
+            /// <returns></returns>
+            public bool IsOk => 200 == (int)StatusCode;
+
+            private void OnDeserializationErrorDefaultImplementation(Exception exception, HttpStatusCode httpStatusCode)
+            {
+                bool suppressDefaultLog = false;
+                OnDeserializationError(ref suppressDefaultLog, exception, httpStatusCode);
+                if (!suppressDefaultLog)
+                    Logger.LogError(RestLogEvents.ApiDeserializationFailed, exception, "An error occurred while deserializing the {code} response.", httpStatusCode);
+            }
+
+            partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
+        }
+
+        partial void FormatDeleteCustomFormatBulk(Option<CustomFormatBulkResource> customFormatBulkResource);
+
+        /// <summary>
+        /// Validates the request parameters
+        /// </summary>
+        /// <param name="customFormatBulkResource"></param>
+        /// <returns></returns>
+        private void ValidateDeleteCustomFormatBulk(Option<CustomFormatBulkResource> customFormatBulkResource)
+        {
+            if (customFormatBulkResource.IsSet && customFormatBulkResource.Value == null)
+                throw new ArgumentNullException(nameof(customFormatBulkResource));
+        }
+
+        /// <summary>
+        /// Processes the server response
+        /// </summary>
+        /// <param name="apiResponseLocalVar"></param>
+        /// <param name="customFormatBulkResource"></param>
+        private void AfterDeleteCustomFormatBulkDefaultImplementation(IDeleteCustomFormatBulkApiResponse apiResponseLocalVar, Option<CustomFormatBulkResource> customFormatBulkResource)
+        {
+            bool suppressDefaultLog = false;
+            AfterDeleteCustomFormatBulk(ref suppressDefaultLog, apiResponseLocalVar, customFormatBulkResource);
+            if (!suppressDefaultLog)
+                Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
+        }
+
+        /// <summary>
+        /// Processes the server response
+        /// </summary>
+        /// <param name="suppressDefaultLog"></param>
+        /// <param name="apiResponseLocalVar"></param>
+        /// <param name="customFormatBulkResource"></param>
+        partial void AfterDeleteCustomFormatBulk(ref bool suppressDefaultLog, IDeleteCustomFormatBulkApiResponse apiResponseLocalVar, Option<CustomFormatBulkResource> customFormatBulkResource);
+
+        /// <summary>
+        /// Logs exceptions that occur while retrieving the server response
+        /// </summary>
+        /// <param name="exceptionLocalVar"></param>
+        /// <param name="pathFormatLocalVar"></param>
+        /// <param name="pathLocalVar"></param>
+        /// <param name="customFormatBulkResource"></param>
+        private void OnErrorDeleteCustomFormatBulkDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<CustomFormatBulkResource> customFormatBulkResource)
+        {
+            bool suppressDefaultLogLocalVar = false;
+            OnErrorDeleteCustomFormatBulk(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, customFormatBulkResource);
+            if (!suppressDefaultLogLocalVar)
+                Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
+        }
+
+        /// <summary>
+        /// A partial method that gives developers a way to provide customized exception handling
+        /// </summary>
+        /// <param name="suppressDefaultLogLocalVar"></param>
+        /// <param name="exceptionLocalVar"></param>
+        /// <param name="pathFormatLocalVar"></param>
+        /// <param name="pathLocalVar"></param>
+        /// <param name="customFormatBulkResource"></param>
+        partial void OnErrorDeleteCustomFormatBulk(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<CustomFormatBulkResource> customFormatBulkResource);
+
+        /// <summary>
+        ///  
+        /// </summary>
+        /// <param name="customFormatBulkResource"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IDeleteCustomFormatBulkApiResponse"/>&gt;</returns>
+        public async Task<IDeleteCustomFormatBulkApiResponse?> DeleteCustomFormatBulkOrDefaultAsync(Option<CustomFormatBulkResource> customFormatBulkResource = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                return await DeleteCustomFormatBulkAsync(customFormatBulkResource, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        ///  
+        /// </summary>
+        /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="customFormatBulkResource"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IDeleteCustomFormatBulkApiResponse"/>&gt;</returns>
+        public async Task<IDeleteCustomFormatBulkApiResponse> DeleteCustomFormatBulkAsync(Option<CustomFormatBulkResource> customFormatBulkResource = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+            UriBuilder uriBuilderLocalVar = new UriBuilder();
+
+            try
+            {
+                ValidateDeleteCustomFormatBulk(customFormatBulkResource);
+
+                FormatDeleteCustomFormatBulk(customFormatBulkResource);
+
+                using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
+                {
+                    uriBuilderLocalVar.Host = HttpClient.BaseAddress!.Host;
+                    uriBuilderLocalVar.Port = HttpClient.BaseAddress.Port;
+                    uriBuilderLocalVar.Scheme = HttpClient.BaseAddress.Scheme;
+                    uriBuilderLocalVar.Path = HttpClient.BaseAddress.AbsolutePath == "/"
+                        ? "/api/v3/customformat/bulk"
+                        : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/api/v3/customformat/bulk");
+
+                    if (customFormatBulkResource.IsSet)
+                    {
+                      httpRequestMessageLocalVar.Content = (customFormatBulkResource.Value as object) is Whisparr2.Net.Client.FileParameter fileParameterLocalVar
+                        ? httpRequestMessageLocalVar.Content = new StreamContent(fileParameterLocalVar.Content)
+                        : httpRequestMessageLocalVar.Content = new StringContent(JsonSerializer.Serialize(customFormatBulkResource.Value, _jsonSerializerOptions));
+                    }
+
+                    List<TokenBase> tokenBaseLocalVars = new List<TokenBase>();
+                    ApiKeyToken apiKeyTokenLocalVar1 = (ApiKeyToken) await ApiKeyProvider.GetAsync("X-Api-Key", cancellationToken).ConfigureAwait(false);
+                    tokenBaseLocalVars.Add(apiKeyTokenLocalVar1);
+                    apiKeyTokenLocalVar1.UseInHeader(httpRequestMessageLocalVar);
+
+                    httpRequestMessageLocalVar.RequestUri = uriBuilderLocalVar.Uri;
+
+                    string[] contentTypes = new string[] {
+                        "application/json"
+                    };
+
+                    string? contentTypeLocalVar = ClientUtils.SelectHeaderContentType(contentTypes);
+
+                    if (contentTypeLocalVar != null && httpRequestMessageLocalVar.Content != null)
+                        httpRequestMessageLocalVar.Content.Headers.ContentType = new MediaTypeHeaderValue(contentTypeLocalVar);
+
+                    httpRequestMessageLocalVar.Method = HttpMethod.Delete;
+
+                    DateTime requestedAtLocalVar = DateTime.UtcNow;
+
+                    using (HttpResponseMessage httpResponseMessageLocalVar = await HttpClient.SendAsync(httpRequestMessageLocalVar, cancellationToken).ConfigureAwait(false))
+                    {
+                        DeleteCustomFormatBulkApiResponse apiResponseLocalVar;
+
+                        switch ((int)httpResponseMessageLocalVar.StatusCode) {
+                            default: {
+                                string responseContentLocalVar = await httpResponseMessageLocalVar.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                                apiResponseLocalVar = new(Logger, httpRequestMessageLocalVar, httpResponseMessageLocalVar, responseContentLocalVar, "/api/v3/customformat/bulk", requestedAtLocalVar, _jsonSerializerOptions);
+
+                                break;
+                            }
+                        }
+
+                        AfterDeleteCustomFormatBulkDefaultImplementation(apiResponseLocalVar, customFormatBulkResource);
+
+                        Events.ExecuteOnDeleteCustomFormatBulk(apiResponseLocalVar);
+
+                        if (apiResponseLocalVar.StatusCode == (HttpStatusCode) 429)
+                            foreach(TokenBase tokenBaseLocalVar in tokenBaseLocalVars)
+                                tokenBaseLocalVar.BeginRateLimit();
+
+                        return apiResponseLocalVar;
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                OnErrorDeleteCustomFormatBulkDefaultImplementation(e, "/api/v3/customformat/bulk", uriBuilderLocalVar.Path, customFormatBulkResource);
+                Events.ExecuteOnErrorDeleteCustomFormatBulk(e);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// The <see cref="DeleteCustomFormatBulkApiResponse"/>
+        /// </summary>
+        public partial class DeleteCustomFormatBulkApiResponse : Whisparr2.Net.Client.ApiResponse, IDeleteCustomFormatBulkApiResponse
+        {
+            /// <summary>
+            /// The logger
+            /// </summary>
+            public ILogger<CustomFormatApi> Logger { get; }
+
+            /// <summary>
+            /// The <see cref="DeleteCustomFormatBulkApiResponse"/>
+            /// </summary>
+            /// <param name="logger"></param>
+            /// <param name="httpRequestMessage"></param>
+            /// <param name="httpResponseMessage"></param>
+            /// <param name="rawContent"></param>
+            /// <param name="path"></param>
+            /// <param name="requestedAt"></param>
+            /// <param name="jsonSerializerOptions"></param>
+            public DeleteCustomFormatBulkApiResponse(ILogger<CustomFormatApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, string rawContent, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, rawContent, path, requestedAt, jsonSerializerOptions)
+            {
+                Logger = logger;
+                OnCreated(httpRequestMessage, httpResponseMessage);
+            }
+
+            /// <summary>
+            /// The <see cref="DeleteCustomFormatBulkApiResponse"/>
+            /// </summary>
+            /// <param name="logger"></param>
+            /// <param name="httpRequestMessage"></param>
+            /// <param name="httpResponseMessage"></param>
+            /// <param name="contentStream"></param>
+            /// <param name="path"></param>
+            /// <param name="requestedAt"></param>
+            /// <param name="jsonSerializerOptions"></param>
+            public DeleteCustomFormatBulkApiResponse(ILogger<CustomFormatApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, System.IO.Stream contentStream, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, contentStream, path, requestedAt, jsonSerializerOptions)
             {
                 Logger = logger;
                 OnCreated(httpRequestMessage, httpResponseMessage);
@@ -1536,6 +1870,283 @@ namespace Whisparr2.Net.Api
             /// <param name="result"></param>
             /// <returns></returns>
             public bool TryOk([NotNullWhen(true)]out List<CustomFormatResource>? result)
+            {
+                result = null;
+
+                try
+                {
+                    result = Ok();
+                } catch (Exception e)
+                {
+                    OnDeserializationErrorDefaultImplementation(e, (HttpStatusCode)200);
+                }
+
+                return result != null;
+            }
+
+            private void OnDeserializationErrorDefaultImplementation(Exception exception, HttpStatusCode httpStatusCode)
+            {
+                bool suppressDefaultLog = false;
+                OnDeserializationError(ref suppressDefaultLog, exception, httpStatusCode);
+                if (!suppressDefaultLog)
+                    Logger.LogError(RestLogEvents.ApiDeserializationFailed, exception, "An error occurred while deserializing the {code} response.", httpStatusCode);
+            }
+
+            partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
+        }
+
+        partial void FormatPutCustomFormatBulk(Option<CustomFormatBulkResource> customFormatBulkResource);
+
+        /// <summary>
+        /// Validates the request parameters
+        /// </summary>
+        /// <param name="customFormatBulkResource"></param>
+        /// <returns></returns>
+        private void ValidatePutCustomFormatBulk(Option<CustomFormatBulkResource> customFormatBulkResource)
+        {
+            if (customFormatBulkResource.IsSet && customFormatBulkResource.Value == null)
+                throw new ArgumentNullException(nameof(customFormatBulkResource));
+        }
+
+        /// <summary>
+        /// Processes the server response
+        /// </summary>
+        /// <param name="apiResponseLocalVar"></param>
+        /// <param name="customFormatBulkResource"></param>
+        private void AfterPutCustomFormatBulkDefaultImplementation(IPutCustomFormatBulkApiResponse apiResponseLocalVar, Option<CustomFormatBulkResource> customFormatBulkResource)
+        {
+            bool suppressDefaultLog = false;
+            AfterPutCustomFormatBulk(ref suppressDefaultLog, apiResponseLocalVar, customFormatBulkResource);
+            if (!suppressDefaultLog)
+                Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
+        }
+
+        /// <summary>
+        /// Processes the server response
+        /// </summary>
+        /// <param name="suppressDefaultLog"></param>
+        /// <param name="apiResponseLocalVar"></param>
+        /// <param name="customFormatBulkResource"></param>
+        partial void AfterPutCustomFormatBulk(ref bool suppressDefaultLog, IPutCustomFormatBulkApiResponse apiResponseLocalVar, Option<CustomFormatBulkResource> customFormatBulkResource);
+
+        /// <summary>
+        /// Logs exceptions that occur while retrieving the server response
+        /// </summary>
+        /// <param name="exceptionLocalVar"></param>
+        /// <param name="pathFormatLocalVar"></param>
+        /// <param name="pathLocalVar"></param>
+        /// <param name="customFormatBulkResource"></param>
+        private void OnErrorPutCustomFormatBulkDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<CustomFormatBulkResource> customFormatBulkResource)
+        {
+            bool suppressDefaultLogLocalVar = false;
+            OnErrorPutCustomFormatBulk(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, customFormatBulkResource);
+            if (!suppressDefaultLogLocalVar)
+                Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
+        }
+
+        /// <summary>
+        /// A partial method that gives developers a way to provide customized exception handling
+        /// </summary>
+        /// <param name="suppressDefaultLogLocalVar"></param>
+        /// <param name="exceptionLocalVar"></param>
+        /// <param name="pathFormatLocalVar"></param>
+        /// <param name="pathLocalVar"></param>
+        /// <param name="customFormatBulkResource"></param>
+        partial void OnErrorPutCustomFormatBulk(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<CustomFormatBulkResource> customFormatBulkResource);
+
+        /// <summary>
+        ///  
+        /// </summary>
+        /// <param name="customFormatBulkResource"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IPutCustomFormatBulkApiResponse"/>&gt;</returns>
+        public async Task<IPutCustomFormatBulkApiResponse?> PutCustomFormatBulkOrDefaultAsync(Option<CustomFormatBulkResource> customFormatBulkResource = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                return await PutCustomFormatBulkAsync(customFormatBulkResource, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        ///  
+        /// </summary>
+        /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="customFormatBulkResource"> (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns><see cref="Task"/>&lt;<see cref="IPutCustomFormatBulkApiResponse"/>&gt;</returns>
+        public async Task<IPutCustomFormatBulkApiResponse> PutCustomFormatBulkAsync(Option<CustomFormatBulkResource> customFormatBulkResource = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+            UriBuilder uriBuilderLocalVar = new UriBuilder();
+
+            try
+            {
+                ValidatePutCustomFormatBulk(customFormatBulkResource);
+
+                FormatPutCustomFormatBulk(customFormatBulkResource);
+
+                using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
+                {
+                    uriBuilderLocalVar.Host = HttpClient.BaseAddress!.Host;
+                    uriBuilderLocalVar.Port = HttpClient.BaseAddress.Port;
+                    uriBuilderLocalVar.Scheme = HttpClient.BaseAddress.Scheme;
+                    uriBuilderLocalVar.Path = HttpClient.BaseAddress.AbsolutePath == "/"
+                        ? "/api/v3/customformat/bulk"
+                        : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/api/v3/customformat/bulk");
+
+                    if (customFormatBulkResource.IsSet)
+                    {
+                      httpRequestMessageLocalVar.Content = (customFormatBulkResource.Value as object) is Whisparr2.Net.Client.FileParameter fileParameterLocalVar
+                        ? httpRequestMessageLocalVar.Content = new StreamContent(fileParameterLocalVar.Content)
+                        : httpRequestMessageLocalVar.Content = new StringContent(JsonSerializer.Serialize(customFormatBulkResource.Value, _jsonSerializerOptions));
+                    }
+
+                    List<TokenBase> tokenBaseLocalVars = new List<TokenBase>();
+                    ApiKeyToken apiKeyTokenLocalVar1 = (ApiKeyToken) await ApiKeyProvider.GetAsync("X-Api-Key", cancellationToken).ConfigureAwait(false);
+                    tokenBaseLocalVars.Add(apiKeyTokenLocalVar1);
+                    apiKeyTokenLocalVar1.UseInHeader(httpRequestMessageLocalVar);
+
+                    httpRequestMessageLocalVar.RequestUri = uriBuilderLocalVar.Uri;
+
+                    string[] contentTypes = new string[] {
+                        "application/json"
+                    };
+
+                    string? contentTypeLocalVar = ClientUtils.SelectHeaderContentType(contentTypes);
+
+                    if (contentTypeLocalVar != null && httpRequestMessageLocalVar.Content != null)
+                        httpRequestMessageLocalVar.Content.Headers.ContentType = new MediaTypeHeaderValue(contentTypeLocalVar);
+
+                    string[] acceptLocalVars = new string[] {
+                        "application/json"
+                    };
+
+                    IEnumerable<MediaTypeWithQualityHeaderValue> acceptHeaderValuesLocalVar = ClientUtils.SelectHeaderAcceptArray(acceptLocalVars);
+
+                    foreach (var acceptLocalVar in acceptHeaderValuesLocalVar)
+                        httpRequestMessageLocalVar.Headers.Accept.Add(acceptLocalVar);
+
+                    httpRequestMessageLocalVar.Method = HttpMethod.Put;
+
+                    DateTime requestedAtLocalVar = DateTime.UtcNow;
+
+                    using (HttpResponseMessage httpResponseMessageLocalVar = await HttpClient.SendAsync(httpRequestMessageLocalVar, cancellationToken).ConfigureAwait(false))
+                    {
+                        PutCustomFormatBulkApiResponse apiResponseLocalVar;
+
+                        switch ((int)httpResponseMessageLocalVar.StatusCode) {
+                            default: {
+                                string responseContentLocalVar = await httpResponseMessageLocalVar.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                                apiResponseLocalVar = new(Logger, httpRequestMessageLocalVar, httpResponseMessageLocalVar, responseContentLocalVar, "/api/v3/customformat/bulk", requestedAtLocalVar, _jsonSerializerOptions);
+
+                                break;
+                            }
+                        }
+
+                        AfterPutCustomFormatBulkDefaultImplementation(apiResponseLocalVar, customFormatBulkResource);
+
+                        Events.ExecuteOnPutCustomFormatBulk(apiResponseLocalVar);
+
+                        if (apiResponseLocalVar.StatusCode == (HttpStatusCode) 429)
+                            foreach(TokenBase tokenBaseLocalVar in tokenBaseLocalVars)
+                                tokenBaseLocalVar.BeginRateLimit();
+
+                        return apiResponseLocalVar;
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                OnErrorPutCustomFormatBulkDefaultImplementation(e, "/api/v3/customformat/bulk", uriBuilderLocalVar.Path, customFormatBulkResource);
+                Events.ExecuteOnErrorPutCustomFormatBulk(e);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// The <see cref="PutCustomFormatBulkApiResponse"/>
+        /// </summary>
+        public partial class PutCustomFormatBulkApiResponse : Whisparr2.Net.Client.ApiResponse, IPutCustomFormatBulkApiResponse
+        {
+            /// <summary>
+            /// The logger
+            /// </summary>
+            public ILogger<CustomFormatApi> Logger { get; }
+
+            /// <summary>
+            /// The <see cref="PutCustomFormatBulkApiResponse"/>
+            /// </summary>
+            /// <param name="logger"></param>
+            /// <param name="httpRequestMessage"></param>
+            /// <param name="httpResponseMessage"></param>
+            /// <param name="rawContent"></param>
+            /// <param name="path"></param>
+            /// <param name="requestedAt"></param>
+            /// <param name="jsonSerializerOptions"></param>
+            public PutCustomFormatBulkApiResponse(ILogger<CustomFormatApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, string rawContent, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, rawContent, path, requestedAt, jsonSerializerOptions)
+            {
+                Logger = logger;
+                OnCreated(httpRequestMessage, httpResponseMessage);
+            }
+
+            /// <summary>
+            /// The <see cref="PutCustomFormatBulkApiResponse"/>
+            /// </summary>
+            /// <param name="logger"></param>
+            /// <param name="httpRequestMessage"></param>
+            /// <param name="httpResponseMessage"></param>
+            /// <param name="contentStream"></param>
+            /// <param name="path"></param>
+            /// <param name="requestedAt"></param>
+            /// <param name="jsonSerializerOptions"></param>
+            public PutCustomFormatBulkApiResponse(ILogger<CustomFormatApi> logger, System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage, System.IO.Stream contentStream, string path, DateTime requestedAt, System.Text.Json.JsonSerializerOptions jsonSerializerOptions) : base(httpRequestMessage, httpResponseMessage, contentStream, path, requestedAt, jsonSerializerOptions)
+            {
+                Logger = logger;
+                OnCreated(httpRequestMessage, httpResponseMessage);
+            }
+
+            partial void OnCreated(global::System.Net.Http.HttpRequestMessage httpRequestMessage, System.Net.Http.HttpResponseMessage httpResponseMessage);
+
+            /// <summary>
+            /// Returns true if the response is 200 Ok
+            /// </summary>
+            /// <returns></returns>
+            public bool IsOk => 200 == (int)StatusCode;
+
+            /// <summary>
+            /// Deserializes the response if the response is 200 Ok
+            /// </summary>
+            /// <returns></returns>
+            public Whisparr2.Net.Model.CustomFormatResource? Ok()
+            {
+                bool suppressDefault = false;
+                Whisparr2.Net.Model.CustomFormatResource? result = null;
+                OnOk(ref suppressDefault, ref result);
+                if (!suppressDefault)
+                    result = DefaultOk();
+                return result;
+            }
+
+            private Whisparr2.Net.Model.CustomFormatResource? DefaultOk()
+            {
+                // NOTICE: Consider this AsModel template deprecated. Implement the appropriate partial method instead
+                return IsOk
+                    ? System.Text.Json.JsonSerializer.Deserialize<Whisparr2.Net.Model.CustomFormatResource>(RawContent, _jsonSerializerOptions)
+                    : null;
+            }
+
+            partial void OnOk(ref bool suppressDefault, ref Whisparr2.Net.Model.CustomFormatResource? result);
+
+            /// <summary>
+            /// Returns true if the response is 200 Ok and the deserialized response is not null
+            /// </summary>
+            /// <param name="result"></param>
+            /// <returns></returns>
+            public bool TryOk([NotNullWhen(true)]out Whisparr2.Net.Model.CustomFormatResource? result)
             {
                 result = null;
 

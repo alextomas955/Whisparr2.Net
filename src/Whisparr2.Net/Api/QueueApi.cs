@@ -114,9 +114,13 @@ namespace Whisparr2.Net.Api
         /// <param name="includeUnknownSeriesItems"> (optional, default to false)</param>
         /// <param name="includeSeries"> (optional, default to false)</param>
         /// <param name="includeEpisode"> (optional, default to false)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="protocol"> (optional)</param>
+        /// <param name="languages"> (optional)</param>
+        /// <param name="quality"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetQueueApiResponse"/>&gt;</returns>
-        Task<IGetQueueApiResponse> GetQueueAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeUnknownSeriesItems = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetQueueApiResponse> GetQueueAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeUnknownSeriesItems = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<List<int>> seriesIds = default, Option<DownloadProtocol> protocol = default, Option<List<int>> languages = default, Option<int> quality = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -131,9 +135,13 @@ namespace Whisparr2.Net.Api
         /// <param name="includeUnknownSeriesItems"> (optional, default to false)</param>
         /// <param name="includeSeries"> (optional, default to false)</param>
         /// <param name="includeEpisode"> (optional, default to false)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="protocol"> (optional)</param>
+        /// <param name="languages"> (optional)</param>
+        /// <param name="quality"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetQueueApiResponse"/>?&gt;</returns>
-        Task<IGetQueueApiResponse?> GetQueueOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeUnknownSeriesItems = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetQueueApiResponse?> GetQueueOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeUnknownSeriesItems = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<List<int>> seriesIds = default, Option<DownloadProtocol> protocol = default, Option<List<int>> languages = default, Option<int> quality = default, System.Threading.CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -781,17 +789,25 @@ namespace Whisparr2.Net.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatGetQueue(ref Option<int> page, ref Option<int> pageSize, ref Option<string> sortKey, ref Option<SortDirection> sortDirection, ref Option<bool> includeUnknownSeriesItems, ref Option<bool> includeSeries, ref Option<bool> includeEpisode);
+        partial void FormatGetQueue(ref Option<int> page, ref Option<int> pageSize, ref Option<string> sortKey, ref Option<SortDirection> sortDirection, ref Option<bool> includeUnknownSeriesItems, ref Option<bool> includeSeries, ref Option<bool> includeEpisode, Option<List<int>> seriesIds, ref Option<DownloadProtocol> protocol, Option<List<int>> languages, ref Option<int> quality);
 
         /// <summary>
         /// Validates the request parameters
         /// </summary>
         /// <param name="sortKey"></param>
+        /// <param name="seriesIds"></param>
+        /// <param name="languages"></param>
         /// <returns></returns>
-        private void ValidateGetQueue(Option<string> sortKey)
+        private void ValidateGetQueue(Option<string> sortKey, Option<List<int>> seriesIds, Option<List<int>> languages)
         {
             if (sortKey.IsSet && sortKey.Value == null)
                 throw new ArgumentNullException(nameof(sortKey));
+
+            if (seriesIds.IsSet && seriesIds.Value == null)
+                throw new ArgumentNullException(nameof(seriesIds));
+
+            if (languages.IsSet && languages.Value == null)
+                throw new ArgumentNullException(nameof(languages));
         }
 
         /// <summary>
@@ -805,10 +821,14 @@ namespace Whisparr2.Net.Api
         /// <param name="includeUnknownSeriesItems"></param>
         /// <param name="includeSeries"></param>
         /// <param name="includeEpisode"></param>
-        private void AfterGetQueueDefaultImplementation(IGetQueueApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeUnknownSeriesItems, Option<bool> includeSeries, Option<bool> includeEpisode)
+        /// <param name="seriesIds"></param>
+        /// <param name="protocol"></param>
+        /// <param name="languages"></param>
+        /// <param name="quality"></param>
+        private void AfterGetQueueDefaultImplementation(IGetQueueApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeUnknownSeriesItems, Option<bool> includeSeries, Option<bool> includeEpisode, Option<List<int>> seriesIds, Option<DownloadProtocol> protocol, Option<List<int>> languages, Option<int> quality)
         {
             bool suppressDefaultLog = false;
-            AfterGetQueue(ref suppressDefaultLog, apiResponseLocalVar, page, pageSize, sortKey, sortDirection, includeUnknownSeriesItems, includeSeries, includeEpisode);
+            AfterGetQueue(ref suppressDefaultLog, apiResponseLocalVar, page, pageSize, sortKey, sortDirection, includeUnknownSeriesItems, includeSeries, includeEpisode, seriesIds, protocol, languages, quality);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -825,7 +845,11 @@ namespace Whisparr2.Net.Api
         /// <param name="includeUnknownSeriesItems"></param>
         /// <param name="includeSeries"></param>
         /// <param name="includeEpisode"></param>
-        partial void AfterGetQueue(ref bool suppressDefaultLog, IGetQueueApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeUnknownSeriesItems, Option<bool> includeSeries, Option<bool> includeEpisode);
+        /// <param name="seriesIds"></param>
+        /// <param name="protocol"></param>
+        /// <param name="languages"></param>
+        /// <param name="quality"></param>
+        partial void AfterGetQueue(ref bool suppressDefaultLog, IGetQueueApiResponse apiResponseLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeUnknownSeriesItems, Option<bool> includeSeries, Option<bool> includeEpisode, Option<List<int>> seriesIds, Option<DownloadProtocol> protocol, Option<List<int>> languages, Option<int> quality);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -840,10 +864,14 @@ namespace Whisparr2.Net.Api
         /// <param name="includeUnknownSeriesItems"></param>
         /// <param name="includeSeries"></param>
         /// <param name="includeEpisode"></param>
-        private void OnErrorGetQueueDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeUnknownSeriesItems, Option<bool> includeSeries, Option<bool> includeEpisode)
+        /// <param name="seriesIds"></param>
+        /// <param name="protocol"></param>
+        /// <param name="languages"></param>
+        /// <param name="quality"></param>
+        private void OnErrorGetQueueDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeUnknownSeriesItems, Option<bool> includeSeries, Option<bool> includeEpisode, Option<List<int>> seriesIds, Option<DownloadProtocol> protocol, Option<List<int>> languages, Option<int> quality)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorGetQueue(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, page, pageSize, sortKey, sortDirection, includeUnknownSeriesItems, includeSeries, includeEpisode);
+            OnErrorGetQueue(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, page, pageSize, sortKey, sortDirection, includeUnknownSeriesItems, includeSeries, includeEpisode, seriesIds, protocol, languages, quality);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -862,7 +890,11 @@ namespace Whisparr2.Net.Api
         /// <param name="includeUnknownSeriesItems"></param>
         /// <param name="includeSeries"></param>
         /// <param name="includeEpisode"></param>
-        partial void OnErrorGetQueue(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeUnknownSeriesItems, Option<bool> includeSeries, Option<bool> includeEpisode);
+        /// <param name="seriesIds"></param>
+        /// <param name="protocol"></param>
+        /// <param name="languages"></param>
+        /// <param name="quality"></param>
+        partial void OnErrorGetQueue(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<int> page, Option<int> pageSize, Option<string> sortKey, Option<SortDirection> sortDirection, Option<bool> includeUnknownSeriesItems, Option<bool> includeSeries, Option<bool> includeEpisode, Option<List<int>> seriesIds, Option<DownloadProtocol> protocol, Option<List<int>> languages, Option<int> quality);
 
         /// <summary>
         ///  
@@ -874,13 +906,17 @@ namespace Whisparr2.Net.Api
         /// <param name="includeUnknownSeriesItems"> (optional, default to false)</param>
         /// <param name="includeSeries"> (optional, default to false)</param>
         /// <param name="includeEpisode"> (optional, default to false)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="protocol"> (optional)</param>
+        /// <param name="languages"> (optional)</param>
+        /// <param name="quality"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetQueueApiResponse"/>&gt;</returns>
-        public async Task<IGetQueueApiResponse?> GetQueueOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeUnknownSeriesItems = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetQueueApiResponse?> GetQueueOrDefaultAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeUnknownSeriesItems = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<List<int>> seriesIds = default, Option<DownloadProtocol> protocol = default, Option<List<int>> languages = default, Option<int> quality = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await GetQueueAsync(page, pageSize, sortKey, sortDirection, includeUnknownSeriesItems, includeSeries, includeEpisode, cancellationToken).ConfigureAwait(false);
+                return await GetQueueAsync(page, pageSize, sortKey, sortDirection, includeUnknownSeriesItems, includeSeries, includeEpisode, seriesIds, protocol, languages, quality, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -899,17 +935,21 @@ namespace Whisparr2.Net.Api
         /// <param name="includeUnknownSeriesItems"> (optional, default to false)</param>
         /// <param name="includeSeries"> (optional, default to false)</param>
         /// <param name="includeEpisode"> (optional, default to false)</param>
+        /// <param name="seriesIds"> (optional)</param>
+        /// <param name="protocol"> (optional)</param>
+        /// <param name="languages"> (optional)</param>
+        /// <param name="quality"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetQueueApiResponse"/>&gt;</returns>
-        public async Task<IGetQueueApiResponse> GetQueueAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeUnknownSeriesItems = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetQueueApiResponse> GetQueueAsync(Option<int> page = default, Option<int> pageSize = default, Option<string> sortKey = default, Option<SortDirection> sortDirection = default, Option<bool> includeUnknownSeriesItems = default, Option<bool> includeSeries = default, Option<bool> includeEpisode = default, Option<List<int>> seriesIds = default, Option<DownloadProtocol> protocol = default, Option<List<int>> languages = default, Option<int> quality = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
             try
             {
-                ValidateGetQueue(sortKey);
+                ValidateGetQueue(sortKey, seriesIds, languages);
 
-                FormatGetQueue(ref page, ref pageSize, ref sortKey, ref sortDirection, ref includeUnknownSeriesItems, ref includeSeries, ref includeEpisode);
+                FormatGetQueue(ref page, ref pageSize, ref sortKey, ref sortDirection, ref includeUnknownSeriesItems, ref includeSeries, ref includeEpisode, seriesIds, ref protocol, languages, ref quality);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -942,6 +982,18 @@ namespace Whisparr2.Net.Api
 
                     if (includeEpisode.IsSet)
                         parseQueryStringLocalVar["includeEpisode"] = ClientUtils.ParameterToString(includeEpisode.Value);
+
+                    if (seriesIds.IsSet)
+                        parseQueryStringLocalVar["seriesIds"] = ClientUtils.ParameterToString(seriesIds.Value);
+
+                    if (protocol.IsSet)
+                        parseQueryStringLocalVar["protocol"] = ClientUtils.ParameterToString(protocol.Value);
+
+                    if (languages.IsSet)
+                        parseQueryStringLocalVar["languages"] = ClientUtils.ParameterToString(languages.Value);
+
+                    if (quality.IsSet)
+                        parseQueryStringLocalVar["quality"] = ClientUtils.ParameterToString(quality.Value);
 
                     uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
 
@@ -978,7 +1030,7 @@ namespace Whisparr2.Net.Api
                             }
                         }
 
-                        AfterGetQueueDefaultImplementation(apiResponseLocalVar, page, pageSize, sortKey, sortDirection, includeUnknownSeriesItems, includeSeries, includeEpisode);
+                        AfterGetQueueDefaultImplementation(apiResponseLocalVar, page, pageSize, sortKey, sortDirection, includeUnknownSeriesItems, includeSeries, includeEpisode, seriesIds, protocol, languages, quality);
 
                         Events.ExecuteOnGetQueue(apiResponseLocalVar);
 
@@ -992,7 +1044,7 @@ namespace Whisparr2.Net.Api
             }
             catch(Exception e)
             {
-                OnErrorGetQueueDefaultImplementation(e, "/api/v3/queue", uriBuilderLocalVar.Path, page, pageSize, sortKey, sortDirection, includeUnknownSeriesItems, includeSeries, includeEpisode);
+                OnErrorGetQueueDefaultImplementation(e, "/api/v3/queue", uriBuilderLocalVar.Path, page, pageSize, sortKey, sortDirection, includeUnknownSeriesItems, includeSeries, includeEpisode, seriesIds, protocol, languages, quality);
                 Events.ExecuteOnErrorGetQueue(e);
                 throw;
             }
