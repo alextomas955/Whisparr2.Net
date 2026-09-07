@@ -322,8 +322,23 @@ namespace Whisparr2.Net.IntegrationTests
                         + "the container this run started. Nothing was proven.");
             }
 
-            DateTimeOffset startedAt = DateTimeOffset.Parse(
-                reported, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+            // RoundtripKind rather than AdjustToUniversal, and the kind is then tested. Adjusting
+            // without assuming reads a string carrying no offset as local time and converts it, so
+            // on a machine west of UTC a zoneless stamp arrives later than it is and an instance
+            // started hours ago compares as no older than this boot. generator/conformance.py
+            // refuses the same input for the same reason.
+            DateTime parsed = DateTime.Parse(
+                reported, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+            if (parsed.Kind == DateTimeKind.Unspecified)
+            {
+                throw new InvalidOperationException(
+                    "The reported start time '" + reported + "' carries no time zone, so the "
+                        + "comparison would silently move by this machine's offset. Nothing was "
+                        + "proven.");
+            }
+
+            DateTimeOffset startedAt = new DateTimeOffset(parsed).ToUniversalTime();
 
             string? refusal = StaleStartTimeRefusal(startedAt, BootBeganAt);
             if (refusal is not null)
