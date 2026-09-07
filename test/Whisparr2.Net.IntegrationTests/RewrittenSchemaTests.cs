@@ -48,45 +48,60 @@ namespace Whisparr2.Net.IntegrationTests
         private const string ParseSubject = "Some.Series.S01E02.1080p.WEB-DL.x264-GROUP";
 
         /// <summary>
-        /// Every subject operation a fresh instance does not answer, with the reason.
+        /// Every subject operation a fresh instance does not answer.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Committed so the remainder cannot grow silently, and asserted in both directions: no
         /// operation named here was answered, and no operation that went unanswered is missing from
         /// here. A one-directional assertion would let a regression that broke a working read look
         /// like a documented gap.
+        /// </para>
+        /// <para>
+        /// The names are the whole subject of the assertion. Why each one goes unanswered was
+        /// measured against the pinned image and is recorded beside it as a comment, because
+        /// nothing reads it: the run reports the message the failed call raised, not the reason
+        /// written here. A status code that moved would leave a committed sentence wrong, and a
+        /// comment is what a reader checks against the run's own output.
+        /// </para>
         /// </remarks>
-        private static readonly IReadOnlyDictionary<string, string> Unreachable =
-            new Dictionary<string, string>(StringComparer.Ordinal)
+        private static readonly IReadOnlyCollection<string> Unreachable =
+            new HashSet<string>(StringComparer.Ordinal)
             {
-                ["GetCalendarById"] =
-                    "No discoverable id: the calendar read answers 200 and carries no entry, "
-                        + "because the calendar is derived from monitored series and a fresh "
-                        + "instance has none.",
-                ["GetCommandById"] =
-                    "No discoverable id: the command list answers 200 and carries no entry, "
-                        + "because nothing has queued a command on a fresh instance.",
-                ["GetImportListById"] =
-                    "No discoverable id: the import list read answers 200 and carries no entry, "
-                        + "because none is configured on a fresh instance.",
-                ["GetWantedCutoffById"] =
-                    "No discoverable id: the cutoff-unmet page answers 200 with no records, "
-                        + "because there is no series to be short of its cutoff.",
-                ["GetWantedMissingById"] =
-                    "No discoverable id: the missing page answers 200 with no records, because "
-                        + "there is no series to be missing an episode.",
-                ["GetEpisodeById"] =
-                    "Answers a non-200: the discovery read this depends on is the episode list, "
-                        + "which answers 400 without a series id, an episode file id or an "
-                        + "episode id list.",
-                ["ListEpisode"] =
-                    "Answers a non-200: 400 without a series id, an episode file id or an episode "
-                        + "id list, and a fresh instance has none to give it.",
-                ["ListHistorySeries"] =
-                    "Answers a non-200: 404 without a series id.",
-                ["ListManualImport"] =
-                    "Answers a non-200: 500 without a folder or a download id, because a fresh "
-                        + "instance has no download client and no root folder.",
+                // No discoverable id: the calendar read answers 200 and carries no entry, because
+                // the calendar is derived from monitored series and a fresh instance has none.
+                "GetCalendarById",
+
+                // No discoverable id: the command list answers 200 and carries no entry, because
+                // nothing has queued a command on a fresh instance.
+                "GetCommandById",
+
+                // No discoverable id: the import list read answers 200 and carries no entry,
+                // because none is configured on a fresh instance.
+                "GetImportListById",
+
+                // No discoverable id: the cutoff-unmet page answers 200 with no records, because
+                // there is no series to be short of its cutoff.
+                "GetWantedCutoffById",
+
+                // No discoverable id: the missing page answers 200 with no records, because there
+                // is no series to be missing an episode.
+                "GetWantedMissingById",
+
+                // Answers a non-200: the discovery read this depends on is the episode list, which
+                // answers 400 without a series id, an episode file id or an episode id list.
+                "GetEpisodeById",
+
+                // Answers a non-200: 400 without a series id, an episode file id or an episode id
+                // list, and a fresh instance has none to give it.
+                "ListEpisode",
+
+                // Answers a non-200: 404 without a series id.
+                "ListHistorySeries",
+
+                // Answers a non-200: 500 without a folder or a download id, because a fresh
+                // instance has no download client and no root folder.
+                "ListManualImport",
             };
 
         /// <summary>
@@ -314,7 +329,7 @@ namespace Whisparr2.Net.IntegrationTests
             // Both directions. Nothing enumerated as unreachable was answered, and nothing that
             // went unanswered is missing from the enumeration.
             Assert.Equal(
-                Unreachable.Keys.Order(StringComparer.Ordinal).ToArray(),
+                Unreachable.Order(StringComparer.Ordinal).ToArray(),
                 refused.Keys.Order(StringComparer.Ordinal).ToArray());
 
             AssertRewrittenValuesArrived(answered);
