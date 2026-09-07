@@ -1,0 +1,36 @@
+# Regenerates the client tree from the committed spec on a fresh checkout and refuses any
+# difference from what is committed. This is the same command a developer runs locally, which
+# is what makes a byte-identical reproduction something a stranger can perform.
+name: determinism
+
+on:
+  # push is narrowed to main on purpose, matching build-and-test.yml. Left open, a commit on a
+  # branch with an open pull request fires both push and pull_request and charges two runs.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# This workflow reads and compares. It writes nothing back to the repository.
+permissions:
+  contents: read
+
+jobs:
+  determinism:
+    runs-on: ubuntu-latest
+    # The generator runs a pinned image, which the same command takes roughly 30 to 60 seconds
+    # to complete against locally. The budget here covers that plus a cold pull of the image.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # One step and no staging. --check generates into a temporary root, reads both sides in
+      # binary and compares, and writes nothing anywhere: not into the tree, not into the index.
+      # So there is no working tree mutation to undo when it refuses, and a generated file the
+      # committed tree does not have is reported by the comparison itself rather than needing to
+      # be staged first to become visible.
+      #
+      # The generator needs Docker and nothing else. No SDK is set up here because no step
+      # compiles anything; build-and-test.yml is what proves the tree builds.
+      - name: Regenerate the client tree and compare it against what is committed
+        run: python3 generator/generate.py --check

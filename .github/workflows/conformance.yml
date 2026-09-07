@@ -1,0 +1,43 @@
+# Boots the pinned Whisparr 2 image, calls every read the sweep can address and every write it
+# can make a fresh instance answer, and rewrites the record of what the wire carried.
+name: conformance
+
+on:
+  # On demand only. The sweep boots a Whisparr container and rewrites spec/CONFORMANCE.json, and
+  # that record only moves when the pinned image or the spec moves, so a per-commit run would
+  # re-measure an unchanged answer at real runner cost.
+  workflow_dispatch:
+
+# The sweep rewrites a file in the workspace and nothing reads it back. Nothing here commits,
+# pushes or opens a pull request, so a read-only token is all it needs.
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    # The image pull plus the sweep. The sweep's own runtime is estimated rather than measured,
+    # so the budget has room; the only cost of a generous value is how long a hung run takes to
+    # report.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The exit code is the assertion. The sweep refuses on its own count invariants before it
+      # writes anything, so there is nothing here to grep the output for.
+      #
+      # WHISPARR2NET_CONFORMANCE_EXTERNAL is deliberately left unset. The read behind it reaches
+      # a metadata service over the public internet, and a runner's route out is not something
+      # this run should depend on.
+      - name: Sweep a running instance and record what it returned
+        run: python3 generator/conformance.py
+
+      # What moved in the record is the reason someone dispatched this run, so it is printed
+      # rather than left for a rerun to discover.
+      #
+      # It is reported and not gated. A run on a runner with no outbound route is hermetic, and
+      # a hermetic sweep records one fewer bodiless operation than the committed record, which
+      # came from a run with the external read enabled. A diff gate would be red on every
+      # hermetic run for a reason that has nothing to do with the spec.
+      - name: Report what moved in the record
+        run: git diff --stat -- spec/CONFORMANCE.json
