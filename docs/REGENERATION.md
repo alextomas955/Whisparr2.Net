@@ -637,7 +637,7 @@ that sentence finds every one of them.
 
 ## Checking the scripts themselves
 
-`python generator/selftest.py` runs 26 offline assertions over the build, the pin, the five
+`python generator/selftest.py` runs 27 offline assertions over the build, the pin, the five
 pre-processing transformations, the generation gate, the integration suite's addressing and the
 conformance sweep's refusal branches. It needs no network and no Docker.
 

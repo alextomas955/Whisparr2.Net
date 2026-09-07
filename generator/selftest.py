@@ -613,24 +613,26 @@ def clr_reference_sites(document):
 
     def walk(node, owner):
         if isinstance(node, dict):
-            for key, value in node.items():
-                name = None
-                if isinstance(value, dict):
-                    reference = value.get("$ref")
-                    if isinstance(reference, str) and reference.startswith(
-                        preprocess_spec.REF_PREFIX
-                    ):
-                        name = reference[len(preprocess_spec.REF_PREFIX):]
-                if name in targets:
-                    if owner is None:
-                        outside.append((node, key, name))
-                    else:
-                        inside.append((owner, key, name))
-                    continue
-                walk(value, owner_of.get(id(value), owner))
+            items = node.items()
         elif isinstance(node, list):
-            for item in node:
-                walk(item, owner)
+            items = enumerate(node)
+        else:
+            return
+        for key, value in items:
+            name = None
+            if isinstance(value, dict):
+                reference = value.get("$ref")
+                if isinstance(reference, str) and reference.startswith(
+                    preprocess_spec.REF_PREFIX
+                ):
+                    name = reference[len(preprocess_spec.REF_PREFIX):]
+            if name in targets:
+                if owner is None:
+                    outside.append((node, key, name))
+                else:
+                    inside.append((owner, key, name))
+                continue
+            walk(value, owner_of.get(id(value), owner))
 
     walk(document, None)
     return inside, outside
@@ -751,6 +753,40 @@ def resolve_pointer(document, trail):
     for key in trail:
         node = node[key]
     return node
+
+
+def check_clr_reference_inside_an_array_is_rewritten():
+    """A reference sitting as a direct element of an allOf array is rewritten, not left dangling.
+
+    The five schemas are deleted unconditionally, so a site the rewrite does not collect leaves the
+    output document referring to a component it no longer declares, and the generator then runs
+    against that document. Driven over the pin with one property added, so the ten sites the
+    committed document already carries are present at the same time.
+
+    The sites are located with clr_reference_pointers, which walks list elements, and read back at
+    those same positions after the rewrite. Nothing else here would report the array shape:
+    check_clr_schema_partition asserts the count the rewrite returns against a walk of its own, and
+    a site neither of them collects agrees.
+    """
+    mutated = parsed_raw_spec()
+    carrier = mutated["components"]["schemas"]["HealthResource"]["properties"]
+    carrier["someNewField"] = {"allOf": [{"$ref": preprocess_spec.REF_PREFIX + "Version"}]}
+    added = ("components", "schemas", "HealthResource", "properties", "someNewField", "allOf", 0)
+
+    pointers = clr_reference_pointers(mutated)
+    assert added in [trail for trail, _ in pointers], pointers
+
+    count, refusals = preprocess_spec.rewrite_clr_schemas(mutated)
+    assert refusals == [], refusals
+    assert count == len(pointers), (count, len(pointers))
+    for trail, name in pointers:
+        expected = preprocess_spec.DATE if name == "DateOnly" else preprocess_spec.STRING
+        assert resolve_pointer(mutated, trail) == expected, (trail, name)
+
+    schemas = mutated["components"]["schemas"]
+    assert [name for name in preprocess_spec.CLR_SCHEMAS if name in schemas] == []
+    print("ok  array reference: a $ref added as an allOf element brings the rewritten sites to {}, "
+          "and every one of them reads back as its replacement".format(count))
 
 
 def check_patched_document_on_disk():
@@ -1824,6 +1860,7 @@ OFFLINE_CHECKS = (
     check_clr_schema_partition,
     check_preprocess_refuses_scratch_input,
     check_preprocess_refuses_committed_write_targets,
+    check_clr_reference_inside_an_array_is_rewritten,
     check_patched_document_on_disk,
     check_preprocess_reproduces_committed_output,
     check_preprocess_refusal_gate_exits,

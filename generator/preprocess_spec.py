@@ -334,24 +334,31 @@ def rewrite_clr_schemas(document):
     inside = []
     outside = []
 
+    # A list is walked with its indices, not its bare items, so a $ref that sits as a direct
+    # element of an allOf, oneOf or anyOf array is collected with a key its parent can be assigned
+    # through. Iterating a bare item would descend into the reference node and test its string
+    # value, which no branch here matches, and the schema would then be deleted with that site
+    # still pointing at it.
     def walk(node, owner):
         if isinstance(node, dict):
-            for key, value in node.items():
-                if isinstance(value, dict):
-                    reference = value.get("$ref")
-                    name = None
-                    if isinstance(reference, str) and reference.startswith(REF_PREFIX):
-                        name = reference[len(REF_PREFIX):]
-                    if name in targets:
-                        if owner is None:
-                            outside.append((node, key, name))
-                        else:
-                            inside.append((owner, key, name))
-                        continue
-                walk(value, owner_of.get(id(value), owner))
+            items = node.items()
         elif isinstance(node, list):
-            for item in node:
-                walk(item, owner)
+            items = enumerate(node)
+        else:
+            return
+        for key, value in items:
+            name = None
+            if isinstance(value, dict):
+                reference = value.get("$ref")
+                if isinstance(reference, str) and reference.startswith(REF_PREFIX):
+                    name = reference[len(REF_PREFIX):]
+            if name in targets:
+                if owner is None:
+                    outside.append((node, key, name))
+                else:
+                    inside.append((owner, key, name))
+                continue
+            walk(value, owner_of.get(id(value), owner))
 
     # The whole document, not only the schema section, so an upstream inline reference in a
     # parameters or requestBody node is caught rather than skipped.
