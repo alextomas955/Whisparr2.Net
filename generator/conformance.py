@@ -364,24 +364,6 @@ def refuse_bodiless_shape(entries, mapping):
     return None
 
 
-def refuse_measured_image(image_ref, recorded):
-    """Refuse when this run boots a different image from the one the client is described by.
-
-    The record is a measurement of one application and the document it patches describes another,
-    so the two identities have to be the same one. Both operands are independent: image_ref is the
-    reference this run passes to Docker and recorded is the field spec/PROVENANCE.json holds.
-    """
-    if image_ref != recorded:
-        return (
-            REFUSAL_PREFIX
-            + "this run boots {} and spec/PROVENANCE.json records {}, so the measurement and the "
-            "client would describe different images. Nothing was written.".format(
-                image_ref, recorded
-            )
-        )
-    return None
-
-
 def refuse_empty_selection(answered):
     """Refuse when no selected read reached the instance at all.
 
@@ -845,13 +827,6 @@ def main():
     with open(resolve_repo_path(PROVENANCE_PATH), encoding="utf-8") as handle:
         provenance = json.load(handle)
 
-    # Checked before anything boots, for the same reason as the map above: a measurement taken from
-    # one image and applied to a document describing another is the failure, and it is cheaper to
-    # refuse it than to boot and discover it.
-    mismatched = refuse_measured_image(container.IMAGE_REF, provenance["imageDigest"])
-    if mismatched:
-        die(mismatched)
-
     output_path = resolve_repo_path(OUTPUT_PATH)
     external = os.environ.get(EXTERNAL_FLAG) == "1"
     total_gets = sum(len(tier) for tier in select_reads(document))
@@ -935,9 +910,10 @@ def main():
         # what fixes the paths this sweep walked, and imageDigest identifies the application that
         # answered. Nothing reads a recorded document hash.
         #
-        # imageDigest is the reference this run passed to Docker, not the field the provenance
-        # record holds. Copying it out of that record would make the fifth transformation's digest
-        # comparison read one field against itself.
+        # imageDigest is the reference this run passed to Docker, which container.py reads from the
+        # provenance record. The fifth transformation compares this recording against the record at
+        # patch time, and that comparison has two independent operands because this file is a
+        # committed artifact of a past run rather than a live read.
         conformance = {
             "measuredAgainst": {
                 "imageDigest": container.IMAGE_REF,

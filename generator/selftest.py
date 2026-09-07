@@ -38,7 +38,6 @@ import tempfile
 
 import build_spec
 import conformance
-import container
 import generate
 import preprocess_spec
 from _common import (
@@ -49,8 +48,8 @@ from _common import (
 )
 
 # The twelve spec fields build_spec.py owns, in the order the provenance record carries them. The
-# two image constants are asserted in check_provenance_complete rather than listed here: they are
-# module constants of the container harness, not a block with a writer of its own.
+# two image fields are asserted in check_provenance_complete rather than listed here: they are
+# declared in the record, not a block with a writer of its own.
 SPEC_KEYS = (
     "builtAt",
     "specRepo",
@@ -187,20 +186,14 @@ def check_provenance_complete():
     patched = provenance["generatedSpecSha256"]
     assert len(patched) == 64 and set(patched) <= HEX, patched
 
-    # Both image keys are asserted here rather than through a list of their own. They are constants
-    # of the container harness, so there is no writer whose absence a missing key could implicate.
+    # Both image keys are asserted here rather than through a list of their own. They are declared
+    # in the record, so there is no writer whose absence a missing key could implicate.
     for key in ("imageTag", "imageDigest"):
         value = provenance.get(key)
         assert isinstance(value, str) and value.strip(), key
 
-    # The C# fixture builds its container from this recorded key while the Python sweep runs the
-    # module constant. The two are written independently, and a disagreement puts the suite and the
-    # sweep on different images without either of them noticing.
-    assert provenance["imageDigest"] == container.IMAGE_REF, provenance["imageDigest"]
-
-    print("ok  provenance: {} spec fields present and observed, both image constants recorded, "
-          "patched-spec hash recorded, recorded image digest matches the harness "
-          "constant".format(len(SPEC_KEYS)))
+    print("ok  provenance: {} spec fields present and observed, both image fields recorded, "
+          "patched-spec hash recorded".format(len(SPEC_KEYS)))
 
 
 # Every refusal line in the pre-processing module opens with the first and closes with the second,
@@ -1758,7 +1751,7 @@ def conformance_seen(body):
 
 
 def check_conformance_failure_branches():
-    """The four script refusals each fire and each stay quiet, and the sweep's recorders hold.
+    """The three script refusals each fire and each stay quiet, and the sweep's recorders hold.
 
     What this pins is every branch of the sweep that a run against the pin never reaches. A refusal
     only ever observed passing is not evidenced, so each is driven once over an input that must fire
@@ -1813,10 +1806,6 @@ def check_conformance_failure_branches():
         (conformance.refuse_bodiless_shape([disagreeing], conformance.BODILESS_SCHEMA_MAP),
          conformance.refuse_bodiless_shape([agreeing], conformance.BODILESS_SCHEMA_MAP)),
         (conformance.refuse_empty_selection(0), conformance.refuse_empty_selection(1)),
-        # The image this run would boot against the image the client is described by. Driven with
-        # the real pair, so the quiet side also reports that the pin and the record agree today.
-        (conformance.refuse_measured_image(container.IMAGE_REF, "sha256:" + "0" * 64),
-         conformance.refuse_measured_image(container.IMAGE_REF, container.IMAGE_REF)),
     )
     for fires, quiet in refusals:
         assert (fires or "").startswith(conformance.REFUSAL_PREFIX), fires

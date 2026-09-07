@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""The pinned Whisparr 2 container: the image, the seed, the key and the Docker calls.
+"""The pinned Whisparr 2 container: the image reference, the seed, the key and the Docker calls.
 
-Owns four things and nothing else. The pinned image digest every probe runs. The one committed
-seed config.xml. The API key parsed out of those same bytes, so no caller can hold a key the
-container was never given. And the Docker calls that create, seed, start and address a container.
+Owns four things and nothing else. The reference every probe runs, read from
+spec/PROVENANCE.json rather than declared here. The one committed seed config.xml. The API key
+parsed out of those same bytes, so no caller can hold a key the container was never given. And the
+Docker calls that create, seed, start and address a container.
+
+The pin lives in the record because the C# fixture reads the same field and cannot import a Python
+constant. This module owns the address and the Docker calls, not the pin.
 
 This is the single construction site for the address. Nothing here names a host port: the port is
 published as ephemeral on the loopback address and read back from Docker at run time. A caller that
@@ -14,18 +18,18 @@ A library. Nothing runs it directly.
 """
 
 import io
+import json
 import subprocess
 import tarfile
 import xml.etree.ElementTree as ElementTree
 
 from _common import die, resolve_repo_path
 
-IMAGE_TAG = "ghcr.io/hotio/whisparr:v2-2.2.0-release.231"  # measured 2026-09-05
-IMAGE_DIGEST = "sha256:c6dae7dc99b52c3f73b64c9eca9bb38db0f646c98a3ea5829c57b1ebdce0d170"  # measured 2026-09-05
-# Only the digest is ever used to run. The tag is recorded beside it so a reader can tell which
-# release line the digest belongs to, and the repository name is taken from the tag rather than
-# written twice.  measured 2026-09-05
-IMAGE_REF = IMAGE_TAG.rsplit(":", 1)[0] + "@" + IMAGE_DIGEST
+PROVENANCE_FILE = "spec/PROVENANCE.json"  # measured 2026-09-07
+# The record declares the pin, and imageDigest is the whole reference rather than a bare digest, so
+# there is one spelling of the image and no copy to check.  measured 2026-09-07
+with open(resolve_repo_path(PROVENANCE_FILE), "r", encoding="utf-8") as _provenance_handle:
+    IMAGE_REF = json.load(_provenance_handle)["imageDigest"]
 
 SEED_FILE = "generator/config.seed.xml"  # measured 2026-09-05
 # One committed seed, read once. The key comes out of the same document that is copied into the
