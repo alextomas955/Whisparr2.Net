@@ -48,6 +48,17 @@
     <EmbeddedResource Include="..\..\generator\config.seed.xml" LogicalName="config.seed.xml" />
   </ItemGroup>
 
+  <!-- Both documents, because neither substitutes for the other. The pre-processing rewrite
+       deletes the five CLR-shaped schemas, so only the pinned document still names them and only
+       it can say which properties referenced them. The pre-processed document is the one that
+       carries an operationId per operation, which is what names the generated method. A test that
+       derives its own subject set needs both. Logical names are explicit for the same reason the
+       group above gives. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\spec\openapi.raw.json" LogicalName="openapi.raw.json" />
+    <EmbeddedResource Include="..\..\spec\openapi.generated.json" LogicalName="openapi.generated.json" />
+  </ItemGroup>
+
   <!-- This reference, plus direct calls to AddWhisparr2, is what makes an uncompiled hand-written
        directory a hard build error here instead of a green suite that tested nothing. Do not test
        through an intermediate abstraction and do not copy the hand-written sources in. -->
