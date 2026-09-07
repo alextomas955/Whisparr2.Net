@@ -33,9 +33,8 @@ from _common import die, resolve_repo_path, write_json_lf
 REFUSAL_PREFIX = "ERROR: REFUSED - "
 
 # The container this run creates, and the only address this run ever speaks to. The suffix is not
-# decoration. The module this script reuses force-removes its own fixed name at the start of a run
-# and again in its finally, so two runs sharing a name would have the second destroy the first
-# mid-sweep.
+# decoration: the finally below force-removes by name, so two runs sharing a fixed name would have
+# the second destroy the first mid-sweep.
 CONTAINER_NAME = "whisparr2-conformance-" + uuid.uuid4().hex[:12]
 
 SPEC_PATH = "spec/openapi.generated.json"
@@ -859,10 +858,9 @@ def main():
 
     print("Check conformance against " + container.IMAGE_REF)
     try:
-        # -v removes the anonymous volume the image declares for /config. The loopback publish is
-        # explicit: a bare publish binds every interface and puts this run's key on all of them.
+        # The loopback publish is explicit: a bare publish binds every interface and puts this
+        # run's key on all of them.
         boot_began_at = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
-        container.run_docker(["rm", "-f", "-v", CONTAINER_NAME])
         created = container.run_docker([
             "create", "--name", CONTAINER_NAME,
             "-p", "127.0.0.1::{}".format(container.CONTAINER_PORT),
@@ -973,7 +971,8 @@ def main():
         # record, and a record has nothing to refuse on.
         print("Done. " + output_path)
     finally:
-        # Force-remove so a failed run cannot leave a container holding a published port and a key.
+        # Force-remove so a failed run cannot leave a container holding a published port and a
+        # key. -v removes the anonymous volume the image declares for /config.
         container.run_docker(["rm", "-f", "-v", CONTAINER_NAME])
 
 
