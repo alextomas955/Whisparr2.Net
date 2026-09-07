@@ -647,7 +647,7 @@ that sentence finds every one of them.
 pre-processing transformations, the generation gate, the integration suite's addressing and the
 conformance sweep's refusal branches. It needs no network and no Docker.
 
-`python generator/selftest.py --docker` adds two more, for 28: a full regeneration compared against
+`python generator/selftest.py --docker` adds two more, for 29: a full regeneration compared against
 the committed tree, and a hermetic sweep of a live instance compared against the committed record.
 Both need the pinned image and together they take a few minutes.
 
