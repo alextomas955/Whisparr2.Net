@@ -51,11 +51,13 @@ def write_bytes_atomic(path, data):
         handle.flush()
         os.fsync(handle.fileno())
         handle.close()
+        # Inside the try, so a replace that fails for a permission or cross-device reason leaves no
+        # temporary file behind. The default target directory is the committed spec/.
+        os.replace(handle.name, path)
     except BaseException:
         handle.close()
         os.remove(handle.name)
         raise
-    os.replace(handle.name, path)
 
 
 def die(*lines) -> NoReturn:
