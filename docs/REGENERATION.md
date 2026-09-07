@@ -392,6 +392,61 @@ re-run the generator.
 
 Run it when a pin moves, after pre-processing. Not per change.
 
+## Render the API surface document
+
+`docs/SURFACE.md` states what this library returns and what it does not: the operations that declare
+no response body, the ones that serve Whisparr's browser interface, the responses that carry
+credentials, and the operations whose effect the spec does not describe. Every count and every table
+row in it is derived from a committed file rather than typed.
+
+```
+python3 generator/render_docs.py
+```
+
+```
+python generator/render_docs.py
+```
+
+It reads four files: `spec/openapi.raw.json`, `spec/openapi.generated.json`, `spec/CONFORMANCE.json`
+and `generator/templates/SURFACE.md.in`. It writes one, `docs/SURFACE.md`, through the same atomic
+writer the spec scripts use, so an interrupted run leaves either the previous document or the
+complete new one.
+
+```
+python3 generator/render_docs.py --check
+```
+
+```
+python generator/render_docs.py --check
+```
+
+`--check` renders in memory, compares the result against the document on disk, opens nothing for
+writing anywhere and exits 1 when the two differ. A passing check prints `docs/SURFACE.md matches
+the render of the committed spec.` on a line of its own. That wording is fixed rather than free: a
+silent success reads in a run log exactly like a step that never executed, and continuous
+integration greps a run log for those bytes as the evidence that the check ran.
+
+Prose lives in `generator/templates/SURFACE.md.in` and is copied through untouched. Derived values
+are substituted for `@@TOKEN@@` markers, a syntax chosen over Python's own format braces because
+every path in these tables can contain a brace. An edit made to `docs/SURFACE.md` itself is
+overwritten by the next render, so edit the template.
+
+Three module-level lists in `generator/render_docs.py` hold what no field of the spec states, and
+every render checks all three against the generated document. `WEB_INTERFACE_PATHS` holds which
+paths serve Whisparr's own browser interface and its calendar subscribers. `CREDENTIAL_ROWS` holds
+which responses carry a secret, which is a property of the response schemas rather than anything the
+spec labels, and it names the properties and never a value. `DESCRIBED_BY_NAME` holds which
+operations have effects the spec does not describe, each of them written out by name in the
+template. An entry naming something the spec no longer declares refuses the render, and each of the
+three refusals has a row in the table below.
+
+The mismatch `--check` reports is deliberately not one of them, and carries neither the
+`ERROR: REFUSED -` opening nor the `Nothing was written.` close. It reports two committed things
+disagreeing rather than protecting a write, so it names the file that differs and gives the command
+that fixes it. It is the first non-zero exit in this repository that is not a refusal.
+
+Run it when the spec moves, after pre-processing. Not per change.
+
 ## Why the pinned image is taken to be Whisparr 2
 
 No script asserts it. The Whisparr `v2` branch and the `v2` image line are taken to correspond, and
@@ -622,6 +677,9 @@ line. Find yours by its first line.
 | `ERROR: REFUSED - the reported start time <time> carries no time zone, so the comparison would silently move by this machine's offset. Nothing was written.` | The reported start time has no zone, and comparing it would depend on the local offset. |
 | `ERROR: REFUSED - the instance reports a start time of <time>, which is before this run began its boot at <time>. This run did not start the instance that answered, so nothing was written.` | The instance that answered predates this boot, so it is not the container this run created. The write probe issues a real delete, and a delete against an instance this run did not create has no undo. |
 | `ERROR: REFUSED - the read selection reached no operation at all, so nothing was recorded. Nothing was written.` | Every selected read failed, and an empty record from a run that reached nothing is indistinguishable from an empty one from a clean run. The likely cause is an unreachable instance or a rejected key. |
+| `ERROR: REFUSED - WEB_INTERFACE_PATHS names paths the spec no longer declares: <paths>. The list holds which paths serve Whisparr's own browser interface and its calendar subscribers, which no field of the spec states. A path that disappeared upstream should be investigated rather than deleted, because the prose describing it goes with it. Nothing was written.` | A hand-kept path list in `generator/render_docs.py` names a path the generated spec no longer declares. Find out where the path went before touching the list, because the template's prose about it goes with the entry. |
+| `ERROR: REFUSED - CREDENTIAL_ROWS names operations the spec no longer declares: <operations>. The list holds which responses carry a secret, which is a property of the schemas rather than anything the spec labels. An operation that disappeared upstream should be investigated rather than deleted, because the credential may have moved to another operation. Nothing was written.` | A hand-kept row in `generator/render_docs.py` warns that a response carries a secret, and the generated spec no longer declares that operation. Check where the credential went before removing the row. |
+| `ERROR: REFUSED - DESCRIBED_BY_NAME names operations the spec no longer declares: <operations>. The list holds which operations have effects the spec does not describe, which no field of the spec states. An operation that disappeared upstream should be investigated rather than deleted, because the template describes each one by name and the prose goes with it. Nothing was written.` | A hand-kept operation list in `generator/render_docs.py` names an operation the generated spec no longer declares. Fix the list and the template's prose together. |
 | `ERROR: REFUSED - <file>:<line> builds an address that does not come from GetMappedPublicPort: <statement> The integration suite may address only the container this run started.` | A source in the integration suite builds an address that is not the container this run started. The unit of the rule is the statement, not the line. |
 | `ERROR: REFUSED - <file>:<line> names host port <port>, which is a real Whisparr library on this machine: <line> The integration suite may address only the container this run started.` | A source names a host port that a personal instance on the developer's machine is published on. The rule holds in every context, comments included. |
 | `ERROR: REFUSED - <file>:<line> carries <port> outside the container-port declaration: <line> The integration suite may address only the container this run started.` | The port the image listens on inside the container is restated somewhere other than its one declaration. |
@@ -643,11 +701,11 @@ that sentence finds every one of them.
 
 ## Checking the scripts themselves
 
-`python generator/selftest.py` runs 27 offline assertions over the build, the pin, the five
-pre-processing transformations, the generation gate, the integration suite's addressing and the
-conformance sweep's refusal branches. It needs no network and no Docker.
+`python generator/selftest.py` runs 30 offline assertions over the build, the pin, the five
+pre-processing transformations, the generation gate, the integration suite's addressing, the
+conformance sweep's refusal branches and the surface renderer. It needs no network and no Docker.
 
-`python generator/selftest.py --docker` adds two more, for 29: a full regeneration compared against
+`python generator/selftest.py --docker` adds two more, for 32: a full regeneration compared against
 the committed tree, and a hermetic sweep of a live instance compared against the committed record.
 Both need the pinned image and together they take a few minutes.
 
