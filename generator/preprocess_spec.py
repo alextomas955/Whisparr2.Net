@@ -148,8 +148,8 @@ def delete_root_path(document):
     The count is operations rather than keys, so the census in main() can subtract it from the
     input count without knowing how the root path item was shaped.
 
-    This refusal is not redundant with the one in generator/fetch_spec.py:136-141. The two speak at
-    different boundaries: the fetch says this is not the document the pipeline was measured
+    This refusal is not redundant with the branch check in build_spec.check_tier2. The two speak at
+    different boundaries: that check says this is not the document the pipeline was measured
     against, and this one says do not delete a key that is already gone. Both are needed because
     derive_operation_id("get", "/", "StaticResource", False) returns Get, which the shape pattern
     accepts, so a root path that survived is caught by neither the shape assertion nor the
@@ -684,8 +684,8 @@ def main():
     )
 
     # --- 5. The manifest ---
-    # generator/fetch_spec.py:218 pops generatedSpecSha256 on every fetch. Deliberate: a new fetch
-    # invalidates the patched spec, and this script is what puts the field back.
+    # build_spec.merge_spec_provenance pops generatedSpecSha256 on every build. Deliberate: a new
+    # capture invalidates the patched spec, and this script is what puts the field back.
     if os.path.isfile(provenance_path):
         promoted_sha = sha256_file(out_path)
         with open(provenance_path, "r", encoding="utf-8") as handle:

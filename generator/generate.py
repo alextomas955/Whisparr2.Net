@@ -22,7 +22,7 @@ redirect without a promote guard is the fail-open shape this pipeline is hardene
 
 --check runs the same generation and compares the result against the committed tree, writing
 nothing anywhere. That is not the shape the paragraph above rejects, because it has no output root
-and no promote step at all. generator/fetch_spec.py --propose already follows the same rule.
+and no promote step at all.
 
     python generator/generate.py
     python generator/generate.py --check
@@ -183,10 +183,8 @@ def write_tree_digest(digest):
     Re-assigning an existing key keeps its position, so a re-run does not reorder the record, and
     write_json_lf keeps it 2-space indented and LF-terminated like the rest of the pipeline.
 
-    Nothing here ever pops the field, which is the one asymmetry against generator/fetch_spec.py.
-    That script pops generatedSpecSha256 because a new capture makes the patched document stale. A
-    moved pin does not change the bytes of the committed tree, so the recorded digest still
-    describes it truthfully.
+    Nothing here ever pops the field. A moved pin does not change the bytes of the committed tree,
+    so the recorded digest still describes it truthfully.
     """
     provenance_path = os.path.join(REPO_ROOT, "spec", "PROVENANCE.json")
     provenance = read_provenance()
